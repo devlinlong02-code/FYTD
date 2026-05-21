@@ -71,7 +71,7 @@ export default async function ProfilePage() {
 
   const stats = {
     outfits: postedOutfits.length,
-    saves: savedIds.length,
+    saves: savedOutfits.length,
     followers: 0,
   };
 
@@ -158,7 +158,7 @@ export default async function ProfilePage() {
       <div className="px-4 pt-2 pb-8 border-t border-neutral-100">
         <div className="flex items-baseline justify-between mb-4 pt-5">
           <h2 className="text-base font-bold text-neutral-900">Saved</h2>
-          <span className="text-xs text-neutral-400">{savedIds.length} saved</span>
+          <span className="text-xs text-neutral-400">{savedOutfits.length} saved</span>
         </div>
 
         {savedOutfits.length === 0 ? (

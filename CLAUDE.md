@@ -9,7 +9,7 @@ FYTD is a fashion discovery and shopping app. The core loop: browse outfits → 
 ## Tech stack
 
 - **Next.js 16** (Turbopack, App Router) — read `node_modules/next/dist/docs/` before using unfamiliar APIs
-- **React 19** — `useActionState` for form state, `cache()` for server-side memoization
+- **React 19** — `cache()` for server-side memoization; avoid `useActionState` for auth forms (see below)
 - **Tailwind CSS v4** — uses `@import "tailwindcss"` in globals.css, not `@tailwind` directives
 - **TypeScript**
 - **Supabase** — auth (email/password), PostgreSQL database, Row Level Security, Storage
@@ -43,9 +43,17 @@ src/
     auth/
       login/page.tsx              # Client-side login — calls signInWithPassword directly; checks
                                   # profile_completed and redirects to /onboarding for new users
-      signup/page.tsx             # Signup form — shows "Check your inbox" on email confirm required
-      actions.ts                  # signup, logout server actions (login is client-side)
-      callback/route.ts           # GET handler — exchanges email confirm code for session
+      signup/page.tsx             # Fully client-side signup — controlled inputs via useState; calls
+                                  # supabase.auth.signUp() from browser client; shows ConfirmScreen on
+                                  # email confirmation required, ResendScreen for expired links
+      actions.ts                  # logout server action only (login + signup are client-side)
+      callback/route.ts           # GET handler — handles 5 cases: query-param error, ?code= (PKCE),
+                                  # ?token_hash= (OTP), hash-fragment implicit flow, fallback
+    api/
+      auth/
+        set-session/route.ts      # POST handler — accepts {access_token, refresh_token} from implicit-
+                                  # flow confirmation emails; calls supabase.auth.setSession() server-
+                                  # side to set cookies; returns {redirect} JSON
     admin/
       upload/page.tsx             # Post outfit form — media upload + fit breakdown builder
     onboarding/                   # (see above)
@@ -189,10 +197,15 @@ AestheticTag = "streetwear" | "clean fit" | "old money" | "minimal"
 - **`dbRowToOutfit` avatar fallback** — uses `https://i.pravatar.cc/150?u=${username}` (unique per username, not a fixed seed) so different users get different placeholder avatars.
 - **`createOutfit` redirect** — returns `{ outfitId: string }` on success instead of calling `redirect()`. Upload page navigates via `router.push()` in `useEffect` to avoid silent failure with `useActionState`.
 - **Social links on Profile** — `profile/page.tsx` reads from individual columns (005) with fallback to `social_links` JSONB (002) using `col in profileObj` (not `??`) to distinguish null-column from absent-column. Passes `socialLinks` to `ProfileHeader`.
-- **`redirect()` must never be called inside a `useActionState` server action** — `redirect()` throws a `NEXT_REDIRECT` which Next.js serializes as an HTML redirect page. React's server action deserializer receives this HTML and throws `"Unexpected token '<', '<!DOCTYPE...'"`. Instead, return `{ redirectTo: "/path" }` state and navigate with `router.push()` in a client-side `useEffect`. This applies to `signup` (and any future `useActionState` actions). Server actions NOT bound to `useActionState` (like `logout`) can still call `redirect()` safely.
-- **Signup flow** — `auth/actions.ts` `signup` server action: validates fields → builds `emailRedirectTo` from `NEXT_PUBLIC_SITE_URL` env var (production) or request headers (local dev) → calls `supabase.auth.signUp`. Returns `{ confirm: true, email }` when email confirmation is required, `{ redirectTo: "/" }` when session is returned immediately (confirmation disabled), or `{ error: string }` on failure. "Error sending confirmation email" means no SMTP is configured in Supabase — configure Resend SMTP or disable email confirmation for local testing.
+- **`redirect()` must never be called inside a `useActionState` server action** — `redirect()` throws a `NEXT_REDIRECT` which Next.js serializes as an HTML redirect page. React's server action deserializer receives this HTML and throws `"Unexpected token '<', '<!DOCTYPE...'"`. Instead, return `{ redirectTo: "/path" }` state and navigate with `router.push()` in a client-side `useEffect`. Server actions NOT bound to `useActionState` (like `logout`) can still call `redirect()` safely.
+- **Signup is fully client-side** — `auth/signup/page.tsx` uses `useState` for all fields (controlled inputs) and calls `createClient().auth.signUp()` from the browser. `emailRedirectTo` is `window.location.origin + "/auth/callback"`. On error: sets error state, all field values preserved. On success with no session: shows `ConfirmScreen`. Do NOT use `useActionState` for signup — it resets uncontrolled form inputs after every action call, wiping user input on errors.
+- **Login form state** — on any auth error, password is cleared (`setPassword("")`) but email is preserved. If `authError.message === "Email not confirmed"`, sets `emailUnconfirmed` state and shows a "Resend confirmation email" link to `/auth/signup?resend=true&email=${encodeURIComponent(email)}`.
+- **`ResendScreen`** — accepts `initialEmail?: string` prop; `SignupInner` reads `?email=` from `useSearchParams()` and passes it so the email field is pre-filled when arriving from the login "Email not confirmed" link.
+- **Auth callback — implicit flow** — `resend()` in `@supabase/auth-js` does NOT include a PKCE code_challenge. Supabase therefore uses implicit flow for resent confirmation emails, returning tokens/errors as URL hash fragments (e.g. `#access_token=...` or `#error=access_denied&error_code=otp_expired`). Route handlers never receive hash fragments (browsers strip them). When `/auth/callback` receives no code/token_hash/error query params, it returns an HTML page with an inline script that reads `window.location.hash`, handles errors (`otp_expired` → resend screen, `already confirmed` → login), and POSTs `{access_token, refresh_token}` to `/api/auth/set-session`.
+- **`/api/auth/set-session`** — POST Route Handler. Accepts `{access_token, refresh_token}` from the implicit-flow client script. Creates a `createServerClient` with explicit cookie management, calls `supabase.auth.setSession()`, checks `profile_completed`, and returns `{redirect: "/onboarding"|"/"}`. Copies session cookies onto the JSON response. Does NOT use service role key.
+- **`createBrowserClient` uses PKCE** — `@supabase/ssr` hardcodes `flowType: "pkce"` in `createBrowserClient`, so `signUp()` from the browser client sends a `code_challenge` and Supabase uses PKCE flow (tokens delivered via `?code=` query param to `/auth/callback`).
 - **`NEXT_PUBLIC_SUPABASE_ANON_KEY`** — use the JWT anon key from Supabase Dashboard → Project Settings → API (starts with `eyJ`). The newer `sb_publishable_...` publishable key format may also work with `@supabase/supabase-js@2.100+` but the JWT format is the canonical value for `@supabase/ssr`.
-- **`NEXT_PUBLIC_SITE_URL`** — set in Vercel env vars for production (`https://fytd.org`). Leave unset locally; the signup action falls back to reading request headers. Also add `https://fytd.org/auth/callback` and `http://localhost:3000/auth/callback` to Supabase → Authentication → URL Configuration → Redirect URLs.
+- **`NEXT_PUBLIC_SITE_URL`** — set in Vercel env vars for production (`https://fytd.org`). Signup uses `window.location.origin` client-side (no server env var needed for the callback URL). Add `https://fytd.org/auth/callback` and `http://localhost:3000/auth/callback` to Supabase → Authentication → URL Configuration → Redirect URLs.
 - **Resend SMTP** — `src/lib/resend.ts` exports `getResendClient()` (throws with clear message if `RESEND_API_KEY` is missing) and `getFromEmail()`. The `RESEND_API_KEY` is server-only (no `NEXT_PUBLIC_` prefix). For Supabase auth emails, the Resend API key is entered as the SMTP password in Supabase Dashboard → Project Settings → Auth → SMTP (host: `smtp.resend.com`, port: `465`, user: `resend`). The `resend` npm package (`src/lib/resend.ts`) is for future direct transactional emails.
 
 ## Database schema (Supabase)
@@ -221,8 +234,11 @@ RLS: published outfits are public; users manage own saves/profile; any authentic
 
 ## Auth flow
 
-1. Signup → Supabase auth user created → `handle_new_user()` trigger auto-creates `profiles` row with `profile_completed = false`
-2. Email confirmation (if enabled) → user clicks link → `/auth/callback` exchanges code for session
+1. Signup → client-side `supabase.auth.signUp()` (browser client, PKCE flow) → `handle_new_user()` trigger auto-creates `profiles` row with `profile_completed = false`
+2. Email confirmation (if enabled) → user clicks link → `/auth/callback`:
+   - **Initial signup link** (PKCE): arrives with `?code=` → `exchangeCodeForSession()` → session set via cookies → redirect
+   - **Resent confirmation link** (implicit flow): arrives with no query params but hash fragment → callback serves HTML page → client script reads `#access_token=...` → POSTs to `/api/auth/set-session` → session set via cookies → redirect
+   - **Expired link**: `#error=access_denied&error_code=otp_expired` in hash → redirected to `/auth/signup?resend=true`
 3. Login → client-side `signInWithPassword()` → checks `profile_completed` → routes to `/onboarding` (new users) or `next` (returning users)
 4. `proxy.ts` refreshes session cookie on every request; redirects unauthenticated users from protected routes
 5. `getSession()` in DAL returns authenticated user or null (never throws)
@@ -244,7 +260,7 @@ RLS: published outfits are public; users manage own saves/profile; any authentic
 - MobileNav: Home, Explore, + Post (circular black button), Profile, Account
 - Guest browsing with `AuthPromptSheet` — no full-page walls, bottom sheet on gated action
 - `AuthPromptContext` with `authLoaded` flag — no premature auth prompts
-- Supabase auth (login client-side, signup via server action, logout, email callback)
+- Supabase auth (login + signup fully client-side with controlled inputs, logout server action, email callback with implicit-flow hash-fragment handling)
 - Custom domain `fytd.org` connected to Vercel; `NEXT_PUBLIC_SITE_URL=https://fytd.org` set in Vercel env vars
 - Resend SMTP integration ready (`src/lib/resend.ts`); configure in Supabase dashboard before beta email delivery
 - Analytics page (`/analytics`)

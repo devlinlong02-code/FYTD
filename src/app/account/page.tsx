@@ -4,10 +4,8 @@ import Layout from "@/components/Layout";
 import OutfitCard from "@/components/OutfitCard";
 import SignOutButton from "@/components/SignOutButton";
 import { getProfile, getSession } from "@/lib/dal";
-import { getOutfits } from "@/app/actions/outfits";
+import { getOutfits, getCreatorOutfits } from "@/app/actions/outfits";
 import { getSavedOutfitIds } from "@/app/actions/saved";
-import { mockUser } from "@/data/user";
-import { outfits as mockOutfits } from "@/data/outfits";
 
 const SETTINGS_ITEMS = [
   {
@@ -55,25 +53,20 @@ const SETTINGS_ITEMS = [
 ];
 
 export default async function AccountPage() {
-  const [profile, user, savedIds, allOutfits] = await Promise.all([
+  const [profile, user, savedIds, allOutfits, postedOutfits] = await Promise.all([
     getProfile(),
     getSession(),
     getSavedOutfitIds(),
     getOutfits(),
+    getCreatorOutfits(),
   ]);
 
-  const displayName = profile?.display_name ?? mockUser.displayName;
-  const username = profile?.username ?? mockUser.username;
-  const bio = profile?.bio ?? mockUser.bio;
+  const displayName = profile?.display_name ?? user?.email ?? "User";
+  const username = profile?.username ?? user?.email?.split("@")[0] ?? "user";
+  const bio = profile?.bio ?? "";
   const location = profile?.location ?? "";
 
   const savedOutfits = allOutfits.filter((o) => savedIds.includes(o.id));
-
-  let postedOutfits = mockOutfits.filter((o) => mockUser.postedOutfitIds.includes(o.id));
-  if (user) {
-    const byCreator = allOutfits.filter((o) => o.creatorHandle === `@${username}`);
-    if (byCreator.length > 0) postedOutfits = byCreator;
-  }
 
   const isAuthenticated = !!user;
 
