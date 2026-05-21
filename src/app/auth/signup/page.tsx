@@ -1,12 +1,24 @@
 "use client";
 
-import { useActionState, useEffect, useState, Suspense } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { signup } from "@/app/auth/actions";
 import { createClient } from "@/lib/supabase/client";
 
-type SignupState = { error: string | null; confirm?: boolean; email?: string; redirectTo?: string } | null;
+const SIGNUP_ERRORS: Record<string, string> = {
+  "User already registered": "An account with this email already exists. Try signing in.",
+  "Password should be at least 6 characters": "Password must be at least 8 characters.",
+  "Unable to validate email address: invalid format": "Enter a valid email address.",
+};
+
+function friendlySignupError(message: string): string {
+  return SIGNUP_ERRORS[message] ?? message ?? "Something went wrong. Please try again.";
+}
+
+const INPUT_CLS =
+  "w-full px-4 py-3 bg-neutral-100 rounded-xl text-sm text-neutral-900 placeholder-neutral-400 outline-none focus:ring-2 focus:ring-neutral-900/10 transition";
+const LABEL_CLS =
+  "block text-xs font-semibold text-neutral-500 uppercase tracking-widest mb-1.5";
 
 // --- Confirm screen (shown right after a fresh signup) ---
 
@@ -96,8 +108,8 @@ function ConfirmScreen({ email }: { email: string }) {
 
 // --- Resend screen (shown when arriving via an expired confirmation link) ---
 
-function ResendScreen() {
-  const [email, setEmail] = useState("");
+function ResendScreen({ initialEmail = "" }: { initialEmail?: string }) {
+  const [email, setEmail] = useState(initialEmail);
   const [status, setStatus] = useState<"idle" | "pending" | "sent" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -163,7 +175,7 @@ function ResendScreen() {
               onChange={(e) => { setEmail(e.target.value); if (status === "error") setStatus("idle"); }}
               placeholder="you@example.com"
               autoComplete="email"
-              className="w-full px-4 py-3 bg-neutral-100 rounded-xl text-sm text-neutral-900 placeholder-neutral-400 outline-none focus:ring-2 focus:ring-neutral-900/10 transition"
+              className={INPUT_CLS}
             />
             {status === "error" && errorMsg && (
               <p className="text-red-500 text-sm">{errorMsg}</p>
@@ -194,22 +206,87 @@ function ResendScreen() {
   );
 }
 
-// --- Main signup form ---
+// --- Main signup form (client-side controlled — fields never reset on error) ---
 
-function SignupInner() {
-  const searchParams = useSearchParams();
-  const isResendMode = searchParams.get("resend") === "true";
+function SignupForm() {
   const router = useRouter();
-  const [state, action, pending] = useActionState<SignupState, FormData>(signup, null);
 
-  useEffect(() => {
-    if (state?.redirectTo) {
-      router.push(state.redirectTo);
+  // All fields are controlled state — they survive error responses without clearing
+  const [username, setUsername] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  const [confirm, setConfirm] = useState(false);
+
+  if (confirm) return <ConfirmScreen email={email} />;
+
+  const handleSubmit = async (e: { preventDefault(): void }) => {
+    e.preventDefault();
+    setError(null);
+
+    // Client-side validation — all fields preserved on failure
+    const trimUsername = username.trim().toLowerCase();
+    const trimEmail = email.trim();
+
+    if (!trimUsername || !trimEmail || !password) {
+      setError("All fields are required.");
+      return;
     }
-  }, [state, router]);
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (!/^[a-z0-9_]+$/.test(trimUsername)) {
+      setError("Username can only contain letters, numbers, and underscores.");
+      return;
+    }
 
-  if (isResendMode) return <ResendScreen />;
-  if (state?.confirm) return <ConfirmScreen email={state.email ?? ""} />;
+    setPending(true);
+
+    try {
+      const callbackUrl = `${window.location.origin}/auth/callback`;
+      console.log("[signup] email:", trimEmail, "| redirectTo:", callbackUrl);
+
+      const supabase = createClient();
+      const { data, error: authError } = await supabase.auth.signUp({
+        email: trimEmail,
+        password,
+        options: {
+          emailRedirectTo: callbackUrl,
+          data: {
+            username: trimUsername,
+            display_name: displayName.trim() || trimUsername,
+          },
+        },
+      });
+
+      console.log("[signup] user:", data?.user?.id, "| session:", !!data?.session, "| error:", authError?.message);
+
+      if (authError) {
+        setError(friendlySignupError(authError.message));
+        // All fields (username, displayName, email, password) are preserved in state
+        return;
+      }
+
+      if (!data?.session) {
+        // Email confirmation required — show the confirm screen
+        // `email` state still holds the address so ConfirmScreen can display and resend it
+        setConfirm(true);
+      } else {
+        // Email confirmation disabled — session returned immediately
+        router.push("/");
+      }
+    } catch (err) {
+      console.error("[signup] unexpected error:", err);
+      setError("Signup failed. Please try again.");
+      // All fields preserved in state
+    } finally {
+      setPending(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white flex flex-col justify-center px-6 py-12">
@@ -219,12 +296,10 @@ function SignupInner() {
           <p className="text-neutral-400 text-sm mt-2">Create your account</p>
         </div>
 
-        <form action={action} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor="username" className="block text-xs font-semibold text-neutral-500 uppercase tracking-widest mb-1.5">
-                Username
-              </label>
+              <label htmlFor="username" className={LABEL_CLS}>Username</label>
               <input
                 id="username"
                 name="username"
@@ -232,28 +307,28 @@ function SignupInner() {
                 required
                 autoComplete="username"
                 placeholder="yourhandle"
-                className="w-full px-4 py-3 bg-neutral-100 rounded-xl text-sm text-neutral-900 placeholder-neutral-400 outline-none focus:ring-2 focus:ring-neutral-900/10 transition"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className={INPUT_CLS}
               />
             </div>
             <div>
-              <label htmlFor="display_name" className="block text-xs font-semibold text-neutral-500 uppercase tracking-widest mb-1.5">
-                Name
-              </label>
+              <label htmlFor="display_name" className={LABEL_CLS}>Name</label>
               <input
                 id="display_name"
                 name="display_name"
                 type="text"
                 autoComplete="name"
                 placeholder="Your Name"
-                className="w-full px-4 py-3 bg-neutral-100 rounded-xl text-sm text-neutral-900 placeholder-neutral-400 outline-none focus:ring-2 focus:ring-neutral-900/10 transition"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                className={INPUT_CLS}
               />
             </div>
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-xs font-semibold text-neutral-500 uppercase tracking-widest mb-1.5">
-              Email
-            </label>
+            <label htmlFor="email" className={LABEL_CLS}>Email</label>
             <input
               id="email"
               name="email"
@@ -261,14 +336,14 @@ function SignupInner() {
               required
               autoComplete="email"
               placeholder="you@example.com"
-              className="w-full px-4 py-3 bg-neutral-100 rounded-xl text-sm text-neutral-900 placeholder-neutral-400 outline-none focus:ring-2 focus:ring-neutral-900/10 transition"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className={INPUT_CLS}
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-xs font-semibold text-neutral-500 uppercase tracking-widest mb-1.5">
-              Password
-            </label>
+            <label htmlFor="password" className={LABEL_CLS}>Password</label>
             <input
               id="password"
               name="password"
@@ -276,12 +351,14 @@ function SignupInner() {
               required
               autoComplete="new-password"
               placeholder="min. 8 characters"
-              className="w-full px-4 py-3 bg-neutral-100 rounded-xl text-sm text-neutral-900 placeholder-neutral-400 outline-none focus:ring-2 focus:ring-neutral-900/10 transition"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={INPUT_CLS}
             />
           </div>
 
-          {state?.error && (
-            <p className="text-red-500 text-sm text-center">{state.error}</p>
+          {error && (
+            <p className="text-red-500 text-sm text-center">{error}</p>
           )}
 
           <button
@@ -302,6 +379,18 @@ function SignupInner() {
       </div>
     </div>
   );
+}
+
+// --- Page shell: routes between signup form and resend screen ---
+
+function SignupInner() {
+  const searchParams = useSearchParams();
+  const isResendMode = searchParams.get("resend") === "true";
+  // Optional email pre-fill — login page links here with ?email=... on "Email not confirmed" errors
+  const prefilledEmail = searchParams.get("email") ?? "";
+
+  if (isResendMode) return <ResendScreen initialEmail={prefilledEmail} />;
+  return <SignupForm />;
 }
 
 export default function SignupPage() {

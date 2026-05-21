@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 
 const ERROR_MAP: Record<string, string> = {
   "Invalid login credentials": "Incorrect email or password.",
-  "Email not confirmed": "Please confirm your email before signing in. Check your inbox.",
+  "Email not confirmed": "Please confirm your email before signing in. Check your inbox or junk folder.",
   "User not found": "No account found with this email.",
 };
 
@@ -25,17 +25,24 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState(urlError ?? "");
   const [loading, setLoading] = useState(false);
+  // Tracks whether the last failure was specifically "email not confirmed"
+  const [emailUnconfirmed, setEmailUnconfirmed] = useState(false);
 
   const handleSubmit = async (e: { preventDefault(): void }) => {
     e.preventDefault();
     setError("");
+    setEmailUnconfirmed(false);
     setLoading(true);
 
     const supabase = createClient();
     const { error: authError, data } = await supabase.auth.signInWithPassword({ email, password });
 
     if (authError) {
+      const isUnconfirmed = authError.message === "Email not confirmed";
       setError(friendlyError(authError.message));
+      setEmailUnconfirmed(isUnconfirmed);
+      // Clear password so user can retype it; email is preserved in state
+      setPassword("");
       setLoading(false);
       return;
     }
@@ -101,7 +108,17 @@ function LoginForm() {
           </div>
 
           {error && (
-            <p className="text-red-500 text-sm text-center">{error}</p>
+            <div className="text-center">
+              <p className="text-red-500 text-sm">{error}</p>
+              {emailUnconfirmed && email && (
+                <Link
+                  href={`/auth/signup?resend=true&email=${encodeURIComponent(email)}`}
+                  className="inline-block mt-2 text-sm text-neutral-600 underline underline-offset-2 hover:text-neutral-900 transition-colors"
+                >
+                  Resend confirmation email
+                </Link>
+              )}
+            </div>
           )}
 
           <button
