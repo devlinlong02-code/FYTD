@@ -18,6 +18,7 @@ function ConfirmScreen({ email }: { email: string }) {
     setResendStatus("pending");
     setResendError("");
     const callbackUrl = `${window.location.origin}/auth/callback`;
+    console.log("[resend:confirm-screen] email:", email, "| redirectTo:", callbackUrl);
     const supabase = createClient();
     const { error } = await supabase.auth.resend({
       type: "signup",
@@ -25,7 +26,7 @@ function ConfirmScreen({ email }: { email: string }) {
       options: { emailRedirectTo: callbackUrl },
     });
     if (error) {
-      console.error("[resend] error:", error.message);
+      console.error("[resend:confirm-screen] error:", error.message);
       setResendError(
         error.message.toLowerCase().includes("rate")
           ? "Too many requests. Wait a minute then try again."
@@ -33,6 +34,7 @@ function ConfirmScreen({ email }: { email: string }) {
       );
       setResendStatus("error");
     } else {
+      console.log("[resend:confirm-screen] sent successfully");
       setResendStatus("sent");
     }
   };
@@ -109,6 +111,7 @@ function ResendScreen() {
     setErrorMsg("");
 
     const callbackUrl = `${window.location.origin}/auth/callback`;
+    console.log("[resend:resend-screen] email:", email.trim(), "| redirectTo:", callbackUrl);
     const supabase = createClient();
     const { error } = await supabase.auth.resend({
       type: "signup",
@@ -117,13 +120,14 @@ function ResendScreen() {
     });
 
     if (error) {
-      console.error("[resend] error:", error.message);
+      console.error("[resend:resend-screen] error:", error.message);
       const msg = error.message.toLowerCase().includes("rate")
         ? "Too many requests. Wait a minute then try again."
         : error.message;
       setErrorMsg(msg);
       setStatus("error");
     } else {
+      console.log("[resend:resend-screen] sent successfully");
       setStatus("sent");
     }
   };

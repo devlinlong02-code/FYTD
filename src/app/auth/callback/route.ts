@@ -8,18 +8,19 @@ export async function GET(request: NextRequest) {
 
   const code = url.searchParams.get("code");
   const tokenHash = url.searchParams.get("token_hash");
-  // Default to "email" — some Supabase versions omit the type param
-  const type = (url.searchParams.get("type") ?? "email") as EmailOtpType;
+  // Read type from URL; default to "signup" since we only use this callback for signup confirmation
+  const type = (url.searchParams.get("type") ?? "signup") as EmailOtpType;
   const next = url.searchParams.get("next") ?? "/";
   const errorParam = url.searchParams.get("error");
   const errorDescription = url.searchParams.get("error_description");
 
-  console.log("[callback] received:", {
+  console.log("[callback] reached:", {
     hasCode: !!code,
     hasTokenHash: !!tokenHash,
     type,
     errorParam,
     errorDescription,
+    allParams: Object.fromEntries(url.searchParams.entries()),
   });
 
   // Supabase forwarded an auth error (expired link, already-used link, etc.)
@@ -30,52 +31,18 @@ export async function GET(request: NextRequest) {
       (errorDescription?.toLowerCase().includes("expired") ||
         errorDescription?.toLowerCase().includes("invalid"));
     if (isExpired) {
-      // Expired — user needs a new link, send them to the resend flow
       return NextResponse.redirect(`${origin}/auth/signup?resend=true`);
     }
-    // Already confirmed or some other error — signing in is the right move
-    const msg = "Confirmation link has already been used. Please sign in.";
+    // Already confirmed or some other error
+    const msg = "Your email is already confirmed. Try signing in.";
     return NextResponse.redirect(`${origin}/auth/login?error=${encodeURIComponent(msg)}`);
   }
 
-  // Nothing usable in the URL — malformed or wrong destination
-  if (!code && !tokenHash) {
-    console.error("[callback] no code or token_hash found in URL");
-    return NextResponse.redirect(
-      `${origin}/auth/login?error=${encodeURIComponent(
-        "Invalid confirmation link. Please try signing up again or request a new confirmation email."
-      )}`
-    );
-  }
-
-  // Build a Route-Handler-safe Supabase client.
-  // Cookies must be explicitly copied from request → response so the session
-  // survives the redirect. Using NextResponse.next() here (not cookies() from
-  // next/headers) guarantees Set-Cookie headers appear on the redirect response.
-  let response = NextResponse.next({ request });
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          );
-        },
-      },
-    }
-  );
-
-  // --- PKCE code flow (Supabase default with @supabase/ssr) ---
+  // PKCE code flow
   if (code) {
     console.log("[callback] exchangeCodeForSession");
+    let response = NextResponse.next({ request });
+    const supabase = buildSupabaseClient(request, (r) => { response = r; });
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {
       console.error("[callback] exchangeCodeForSession failed:", error.message);
@@ -85,23 +52,131 @@ export async function GET(request: NextRequest) {
     return buildSuccessRedirect(supabase, origin, next, response);
   }
 
-  // --- Token-hash flow (OTP / implicit — used by some Supabase email templates) ---
+  // Token-hash / OTP flow (used by resend() since it doesn't include a PKCE challenge)
   if (tokenHash) {
     console.log("[callback] verifyOtp, type:", type);
+    let response = NextResponse.next({ request });
+    const supabase = buildSupabaseClient(request, (r) => { response = r; });
     const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
     if (error) {
       console.error("[callback] verifyOtp failed:", error.message);
+      // If the "signup" type failed, try "email" — some Supabase versions use different type names
+      if (type === "signup") {
+        console.log("[callback] retrying verifyOtp with type: email");
+        const { error: error2 } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: "email",
+        });
+        if (!error2) {
+          console.log("[callback] verifyOtp with type:email succeeded");
+          return buildSuccessRedirect(supabase, origin, next, response);
+        }
+        console.error("[callback] verifyOtp type:email also failed:", error2.message);
+      }
       return loginError(origin, error.message);
     }
     console.log("[callback] verifyOtp succeeded");
     return buildSuccessRedirect(supabase, origin, next, response);
   }
 
-  // Unreachable — guarded above — but satisfies TypeScript
-  return loginError(origin, "Unknown error.");
+  // Neither code nor token_hash — likely implicit flow (hash fragment) from resend().
+  // The browser strips hash fragments before the HTTP request, so we can't read them
+  // server-side. Serve an HTML page with a script that reads the fragment and posts
+  // the tokens to /api/auth/set-session to complete the session setup server-side.
+  console.log("[callback] no code or token_hash — serving hash-fragment handler");
+  return new NextResponse(
+    `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Confirming your account…</title>
+  <style>
+    body { margin: 0; display: flex; align-items: center; justify-content: center;
+           min-height: 100vh; font-family: -apple-system, sans-serif; background: #fff; }
+    p { color: #a3a3a3; font-size: 0.875rem; }
+  </style>
+</head>
+<body>
+  <p>Confirming your account…</p>
+  <script>
+    (function () {
+      var hash = location.hash.slice(1);
+      var params = new URLSearchParams(hash);
+      var at = params.get('access_token');
+      var rt = params.get('refresh_token');
+      var hashError = params.get('error');
+      var hashErrorCode = params.get('error_code');
+      console.log('[callback-client] hash present:', !!hash,
+        '| has access_token:', !!at,
+        '| hash error:', hashError,
+        '| error_code:', hashErrorCode);
+
+      // Supabase sends OTP errors as hash fragments in implicit flow
+      if (hashError === 'access_denied') {
+        var isExpired = hashErrorCode === 'otp_expired' || hashErrorCode === 'otp_disabled';
+        if (isExpired) {
+          // Expired link — send to resend screen so user can request a new email
+          location.replace('/auth/signup?resend=true');
+          return;
+        }
+        // Already confirmed or other access error
+        location.replace('/auth/login?error=' + encodeURIComponent(
+          'Your email is already confirmed. Try signing in.'
+        ));
+        return;
+      }
+
+      if (!at || !rt) {
+        location.replace('/auth/login?error=' + encodeURIComponent(
+          'Invalid or expired confirmation link. Request a new confirmation email or try signing in.'
+        ));
+        return;
+      }
+
+      fetch('/api/auth/set-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: at, refresh_token: rt })
+      })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { location.replace(d.redirect || '/'); })
+      .catch(function () {
+        location.replace('/auth/login?error=' + encodeURIComponent(
+          'Confirmation failed. Please try signing in.'
+        ));
+      });
+    })();
+  </script>
+</body>
+</html>`,
+    { headers: { "Content-Type": "text/html; charset=utf-8" } }
+  );
 }
 
 // --- helpers ---
+
+function buildSupabaseClient(
+  request: NextRequest,
+  setResponse: (r: NextResponse) => void
+) {
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+          const next = NextResponse.next({ request });
+          cookiesToSet.forEach(({ name, value, options }) => next.cookies.set(name, value, options));
+          setResponse(next);
+        },
+      },
+    }
+  );
+}
 
 async function buildSuccessRedirect(
   supabase: ReturnType<typeof createServerClient>,
@@ -112,7 +187,9 @@ async function buildSuccessRedirect(
   let destination = next;
 
   if (next === "/") {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (user) {
       const { data: profile } = await supabase
         .from("profiles")
@@ -126,7 +203,6 @@ async function buildSuccessRedirect(
   console.log("[callback] success — redirecting to:", destination);
 
   const redirectResponse = NextResponse.redirect(`${origin}${destination}`);
-  // Copy session cookies set during the exchange onto the redirect response
   cookieResponse.cookies.getAll().forEach(({ name, value }) => {
     redirectResponse.cookies.set(name, value);
   });
@@ -140,15 +216,12 @@ function loginError(origin: string, supabaseMessage: string): NextResponse {
   const isAlreadyUsed = supabaseMessage.toLowerCase().includes("already");
 
   if (isExpired) {
-    // Send to resend flow — user needs a new link
     return NextResponse.redirect(`${origin}/auth/signup?resend=true`);
   }
 
   const msg = isAlreadyUsed
-    ? "Confirmation link has already been used. Please sign in."
-    : "Could not confirm your account. Please try again or request a new confirmation email.";
+    ? "Your email is already confirmed. Try signing in."
+    : "Invalid or expired confirmation link. Request a new confirmation email or try signing in.";
 
-  return NextResponse.redirect(
-    `${origin}/auth/login?error=${encodeURIComponent(msg)}`
-  );
+  return NextResponse.redirect(`${origin}/auth/login?error=${encodeURIComponent(msg)}`);
 }
