@@ -24,11 +24,17 @@ export async function GET(request: NextRequest) {
 
   // Supabase forwarded an auth error (expired link, already-used link, etc.)
   if (errorParam) {
-    const msg =
-      errorParam === "access_denied" && errorDescription?.toLowerCase().includes("expired")
-        ? "Confirmation link expired. Please request a new one from the sign-up page."
-        : "Confirmation link is invalid or has already been used. Try signing in, or request a new confirmation email.";
     console.error("[callback] Supabase error param:", errorParam, errorDescription);
+    const isExpired =
+      errorParam === "access_denied" &&
+      (errorDescription?.toLowerCase().includes("expired") ||
+        errorDescription?.toLowerCase().includes("invalid"));
+    if (isExpired) {
+      // Expired — user needs a new link, send them to the resend flow
+      return NextResponse.redirect(`${origin}/auth/signup?resend=true`);
+    }
+    // Already confirmed or some other error — signing in is the right move
+    const msg = "Confirmation link has already been used. Please sign in.";
     return NextResponse.redirect(`${origin}/auth/login?error=${encodeURIComponent(msg)}`);
   }
 
@@ -128,14 +134,19 @@ async function buildSuccessRedirect(
 }
 
 function loginError(origin: string, supabaseMessage: string): NextResponse {
-  const isExpiredOrUsed =
+  const isExpired =
     supabaseMessage.toLowerCase().includes("expired") ||
-    supabaseMessage.toLowerCase().includes("already") ||
     supabaseMessage.toLowerCase().includes("invalid");
+  const isAlreadyUsed = supabaseMessage.toLowerCase().includes("already");
 
-  const msg = isExpiredOrUsed
-    ? "Confirmation link has expired or already been used. Try signing in, or request a new confirmation email."
-    : "Could not confirm your account. The link may have expired or already been used. Try signing in, or request a new confirmation email.";
+  if (isExpired) {
+    // Send to resend flow — user needs a new link
+    return NextResponse.redirect(`${origin}/auth/signup?resend=true`);
+  }
+
+  const msg = isAlreadyUsed
+    ? "Confirmation link has already been used. Please sign in."
+    : "Could not confirm your account. Please try again or request a new confirmation email.";
 
   return NextResponse.redirect(
     `${origin}/auth/login?error=${encodeURIComponent(msg)}`

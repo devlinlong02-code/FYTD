@@ -1,12 +1,14 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signup } from "@/app/auth/actions";
 import { createClient } from "@/lib/supabase/client";
 
 type SignupState = { error: string | null; confirm?: boolean; email?: string; redirectTo?: string } | null;
+
+// --- Confirm screen (shown right after a fresh signup) ---
 
 function ConfirmScreen({ email }: { email: string }) {
   const [resendStatus, setResendStatus] = useState<"idle" | "pending" | "sent" | "error">("idle");
@@ -15,23 +17,22 @@ function ConfirmScreen({ email }: { email: string }) {
   const handleResend = async () => {
     setResendStatus("pending");
     setResendError("");
-
     const callbackUrl = `${window.location.origin}/auth/callback`;
-    console.log("[resend] email:", email, "callbackUrl:", callbackUrl);
-
     const supabase = createClient();
     const { error } = await supabase.auth.resend({
       type: "signup",
       email,
       options: { emailRedirectTo: callbackUrl },
     });
-
     if (error) {
       console.error("[resend] error:", error.message);
-      setResendError(error.message);
+      setResendError(
+        error.message.toLowerCase().includes("rate")
+          ? "Too many requests. Wait a minute then try again."
+          : error.message
+      );
       setResendStatus("error");
     } else {
-      console.log("[resend] success");
       setResendStatus("sent");
     }
   };
@@ -46,9 +47,7 @@ function ConfirmScreen({ email }: { email: string }) {
           </svg>
         </div>
         <h1 className="text-2xl font-bold text-neutral-900 mb-3">Check your email</h1>
-        <p className="text-sm text-neutral-500 leading-relaxed mb-2">
-          We sent a confirmation link to
-        </p>
+        <p className="text-sm text-neutral-500 leading-relaxed mb-2">We sent a confirmation link to</p>
         <p className="text-sm font-semibold text-neutral-900 mb-4">{email}</p>
         <p className="text-sm text-neutral-500 leading-relaxed mb-2">
           Tap the link to confirm your account, then sign in.
@@ -60,11 +59,11 @@ function ConfirmScreen({ email }: { email: string }) {
         <div className="mb-6 min-h-[28px]">
           {resendStatus === "sent" && (
             <p className="text-sm text-green-600 font-medium">
-              Confirmation email sent. Check your inbox or junk folder.
+              New confirmation email sent. Check your inbox or junk folder.
             </p>
           )}
           {resendStatus === "error" && (
-            <p className="text-sm text-red-500">
+            <p className="text-sm text-red-500 mb-2">
               {resendError || "Could not resend. Please try again."}
             </p>
           )}
@@ -72,7 +71,7 @@ function ConfirmScreen({ email }: { email: string }) {
             <button
               type="button"
               onClick={handleResend}
-              className="text-sm text-neutral-500 underline underline-offset-2 hover:text-neutral-900 transition-colors mt-1"
+              className="text-sm text-neutral-500 underline underline-offset-2 hover:text-neutral-900 transition-colors"
             >
               Resend confirmation email
             </button>
@@ -93,7 +92,109 @@ function ConfirmScreen({ email }: { email: string }) {
   );
 }
 
-export default function SignupPage() {
+// --- Resend screen (shown when arriving via an expired confirmation link) ---
+
+function ResendScreen() {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "pending" | "sent" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const handleResend = async () => {
+    if (!email.trim()) {
+      setErrorMsg("Enter your email first so we can resend the confirmation link.");
+      setStatus("error");
+      return;
+    }
+    setStatus("pending");
+    setErrorMsg("");
+
+    const callbackUrl = `${window.location.origin}/auth/callback`;
+    const supabase = createClient();
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: email.trim(),
+      options: { emailRedirectTo: callbackUrl },
+    });
+
+    if (error) {
+      console.error("[resend] error:", error.message);
+      const msg = error.message.toLowerCase().includes("rate")
+        ? "Too many requests. Wait a minute then try again."
+        : error.message;
+      setErrorMsg(msg);
+      setStatus("error");
+    } else {
+      setStatus("sent");
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-white flex flex-col justify-center px-6 py-12">
+      <div className="max-w-sm w-full mx-auto text-center">
+        <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-6">
+          <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24" className="text-amber-500">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+            <polyline points="22,6 12,13 2,6" />
+          </svg>
+        </div>
+        <h1 className="text-2xl font-bold text-neutral-900 mb-3">Confirmation link expired</h1>
+        <p className="text-sm text-neutral-500 leading-relaxed mb-8">
+          Enter the email you signed up with to get a new confirmation link.
+        </p>
+
+        {status === "sent" ? (
+          <div className="mb-8">
+            <p className="text-sm text-green-600 font-medium mb-2">
+              New confirmation email sent.
+            </p>
+            <p className="text-sm text-neutral-400">
+              Check your inbox or junk folder and click the new link.
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3 mb-6">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => { setEmail(e.target.value); if (status === "error") setStatus("idle"); }}
+              placeholder="you@example.com"
+              autoComplete="email"
+              className="w-full px-4 py-3 bg-neutral-100 rounded-xl text-sm text-neutral-900 placeholder-neutral-400 outline-none focus:ring-2 focus:ring-neutral-900/10 transition"
+            />
+            {status === "error" && errorMsg && (
+              <p className="text-red-500 text-sm">{errorMsg}</p>
+            )}
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={status === "pending"}
+              className="w-full bg-neutral-900 text-white font-semibold py-3.5 rounded-2xl text-sm hover:bg-neutral-700 transition-colors disabled:opacity-50"
+            >
+              {status === "pending" ? "Sending…" : "Send new confirmation email"}
+            </button>
+          </div>
+        )}
+
+        <p className="text-sm text-amber-600 leading-relaxed mb-6">
+          Check your <strong>Junk</strong> or <strong>Spam</strong> folder if you don&apos;t see it.
+        </p>
+
+        <Link
+          href="/auth/login"
+          className="text-sm font-medium text-neutral-500 hover:text-neutral-900 transition-colors"
+        >
+          Back to Sign In
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+// --- Main signup form ---
+
+function SignupInner() {
+  const searchParams = useSearchParams();
+  const isResendMode = searchParams.get("resend") === "true";
   const router = useRouter();
   const [state, action, pending] = useActionState<SignupState, FormData>(signup, null);
 
@@ -103,9 +204,8 @@ export default function SignupPage() {
     }
   }, [state, router]);
 
-  if (state?.confirm) {
-    return <ConfirmScreen email={state.email ?? ""} />;
-  }
+  if (isResendMode) return <ResendScreen />;
+  if (state?.confirm) return <ConfirmScreen email={state.email ?? ""} />;
 
   return (
     <div className="min-h-screen bg-white flex flex-col justify-center px-6 py-12">
@@ -197,5 +297,13 @@ export default function SignupPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-white" />}>
+      <SignupInner />
+    </Suspense>
   );
 }
