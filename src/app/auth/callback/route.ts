@@ -12,28 +12,32 @@ export async function GET(request: NextRequest) {
   const type = (url.searchParams.get("type") ?? "signup") as EmailOtpType;
   const next = url.searchParams.get("next") ?? "/";
   const errorParam = url.searchParams.get("error");
+  const errorCode = url.searchParams.get("error_code");
   const errorDescription = url.searchParams.get("error_description");
 
-  console.log("[callback] reached:", {
+  console.log("[callback] reached — params:", {
     hasCode: !!code,
     hasTokenHash: !!tokenHash,
     type,
-    errorParam,
-    errorDescription,
-    allParams: Object.fromEntries(url.searchParams.entries()),
+    error: errorParam,
+    error_code: errorCode,
+    error_description: errorDescription,
   });
 
-  // Supabase forwarded an auth error (expired link, already-used link, etc.)
+  // Supabase forwarded an auth error via query params (PKCE flow errors come here)
   if (errorParam) {
-    console.error("[callback] Supabase error param:", errorParam, errorDescription);
+    console.error("[callback] Supabase query-param error:", errorParam, errorCode, errorDescription);
     const isExpired =
-      errorParam === "access_denied" &&
-      (errorDescription?.toLowerCase().includes("expired") ||
-        errorDescription?.toLowerCase().includes("invalid"));
+      errorCode === "otp_expired" ||
+      errorCode === "otp_disabled" ||
+      (errorParam === "access_denied" &&
+        (errorDescription?.toLowerCase().includes("expired") ||
+          errorDescription?.toLowerCase().includes("invalid")));
     if (isExpired) {
+      console.log("[callback] OTP expired — redirecting to resend screen");
       return NextResponse.redirect(`${origin}/auth/signup?resend=true`);
     }
-    // Already confirmed or some other error
+    // Already confirmed or some other access error
     const msg = "Your email is already confirmed. Try signing in.";
     return NextResponse.redirect(`${origin}/auth/login?error=${encodeURIComponent(msg)}`);
   }
@@ -210,10 +214,13 @@ async function buildSuccessRedirect(
 }
 
 function loginError(origin: string, supabaseMessage: string): NextResponse {
+  const lower = supabaseMessage.toLowerCase();
   const isExpired =
-    supabaseMessage.toLowerCase().includes("expired") ||
-    supabaseMessage.toLowerCase().includes("invalid");
-  const isAlreadyUsed = supabaseMessage.toLowerCase().includes("already");
+    lower.includes("expired") ||
+    lower.includes("invalid") ||
+    lower.includes("otp") ||
+    lower.includes("token");
+  const isAlreadyUsed = lower.includes("already");
 
   if (isExpired) {
     return NextResponse.redirect(`${origin}/auth/signup?resend=true`);
