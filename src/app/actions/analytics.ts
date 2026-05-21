@@ -51,11 +51,25 @@ export async function getAnalytics(): Promise<AnalyticsData> {
 
   const supabase = await createClient();
 
-  const { data: outfits } = await supabase
+  // Try with deleted_at filter (migration 009); fall back if column doesn't exist yet
+  let outfitsResult = await supabase
     .from("outfits")
     .select("id, title, image_url, view_count, save_count")
     .eq("creator_id", user.id)
+    .eq("published", true)
+    .is("deleted_at", null)
     .order("created_at", { ascending: false });
+
+  if (outfitsResult.error?.message?.includes("deleted_at")) {
+    outfitsResult = await supabase
+      .from("outfits")
+      .select("id, title, image_url, view_count, save_count")
+      .eq("creator_id", user.id)
+      .eq("published", true)
+      .order("created_at", { ascending: false });
+  }
+
+  const { data: outfits } = outfitsResult;
 
   if (!outfits || outfits.length === 0) return empty;
 
