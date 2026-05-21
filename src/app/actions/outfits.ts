@@ -1,0 +1,216 @@
+import "server-only";
+
+import { createClient } from "@/lib/supabase/server";
+import { getSession } from "@/lib/dal";
+import { outfits as mockOutfits } from "@/data/outfits";
+import type { Outfit, OutfitItem, OutfitMedia } from "@/types";
+
+function hasSupabase() {
+  return !!(
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
+    !process.env.NEXT_PUBLIC_SUPABASE_URL.includes("your-project-id")
+  );
+}
+
+function dbRowToOutfit(
+  row: Record<string, unknown>,
+  items: Record<string, unknown>[],
+  mediaRows: Record<string, unknown>[] = []
+): Outfit {
+  const profile = (row.profiles as Record<string, unknown>) ?? {};
+  const username = (profile.username as string) ?? "creator";
+  const displayName = (profile.display_name as string) || "Creator";
+  const avatarUrl = (profile.avatar_url as string | null) || null;
+
+  // Build media array from outfit_media rows; fallback to outfits.image_url
+  let media: OutfitMedia[];
+  if (mediaRows.length > 0) {
+    media = mediaRows
+      .sort((a, b) => (a.position as number) - (b.position as number))
+      .map((m) => ({
+        id: m.id as string,
+        media_url: m.media_url as string,
+        media_type: (m.media_type as "image" | "video") ?? "image",
+        position: m.position as number,
+      }));
+  } else {
+    // outfit_media not available (migration 008 not run) — use legacy columns
+    const fallbackUrl = (row.image_url as string) ?? "";
+    media = fallbackUrl
+      ? [{ media_url: fallbackUrl, media_type: (row.media_type as "image" | "video") ?? "image", position: 0 }]
+      : [];
+  }
+
+  const primary = media[0];
+
+  return {
+    id: row.id as string,
+    title: row.title as string,
+    description: row.description as string,
+    image: primary?.media_url ?? (row.image_url as string) ?? "",
+    mediaType: primary?.media_type ?? (row.media_type as "image" | "video") ?? "image",
+    media,
+    tags: (row.tags as string[]) ?? [],
+    creatorId: row.creator_id as string | undefined,
+    creatorName: displayName,
+    creatorHandle: `@${username}`,
+    creatorAvatar: avatarUrl,
+    items: items.map((item) => ({
+      id: item.id as string,
+      name: item.name as string,
+      brand: item.brand as string,
+      category: item.category as string,
+      price: Number(item.price),
+      image: item.image_url as string,
+      shopLink: (item.shop_link as string) ?? "#",
+      shopType: (item.shop_type as "exact" | "similar") ?? "exact",
+    }) satisfies OutfitItem),
+  };
+}
+
+async function fetchMediaForOutfits(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  outfitIds: string[]
+): Promise<Record<string, unknown>[]> {
+  if (outfitIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from("outfit_media")
+    .select("id, outfit_id, media_url, media_type, position, storage_path")
+    .in("outfit_id", outfitIds)
+    .order("position");
+
+  if (error) {
+    const msg = error.message ?? "";
+    if (msg.includes("schema cache") || msg.includes("does not exist")) {
+      // Expected when migrations haven't been applied yet.
+      // Run supabase/migrations/012_multi_photo_complete.sql in Supabase SQL Editor.
+      console.warn("[FYTD] outfit_media table not found — multi-photo posts will show only 1 image. Apply 012_multi_photo_complete.sql to fix.");
+    } else {
+      console.error("[FYTD] outfit_media SELECT failed:", msg);
+    }
+    return [];
+  }
+
+  return (data ?? []) as Record<string, unknown>[];
+}
+
+export async function getOutfits(tag?: string): Promise<Outfit[]> {
+  if (!hasSupabase()) {
+    if (!tag) return mockOutfits;
+    return mockOutfits.filter((o) => o.tags.includes(tag));
+  }
+
+  const supabase = await createClient();
+
+  const buildQuery = (withDeletedFilter: boolean) => {
+    let q = supabase
+      .from("outfits")
+      .select("*, profiles(display_name, username, avatar_url)")
+      .eq("published", true)
+      .order("created_at", { ascending: false });
+    if (withDeletedFilter) q = q.is("deleted_at", null);
+    if (tag) q = q.contains("tags", [tag]);
+    return q;
+  };
+
+  let { data, error } = await buildQuery(true);
+  if (error?.message?.includes("deleted_at")) {
+    console.warn("[getOutfits] deleted_at column missing — apply migration 009");
+    ({ data, error } = await buildQuery(false));
+  }
+  if (error || !data) return mockOutfits;
+
+  const outfitIds = data.map((o) => o.id as string);
+
+  const [{ data: items }, mediaRows] = await Promise.all([
+    supabase.from("outfit_items").select("*").in("outfit_id", outfitIds).order("display_order"),
+    fetchMediaForOutfits(supabase, outfitIds),
+  ]);
+
+  return data.map((row) =>
+    dbRowToOutfit(
+      row as Record<string, unknown>,
+      (items ?? []).filter((i) => i.outfit_id === row.id) as Record<string, unknown>[],
+      mediaRows.filter((m) => m.outfit_id === row.id)
+    )
+  );
+}
+
+export async function getOutfitById(id: string): Promise<Outfit | null> {
+  if (!hasSupabase()) {
+    return mockOutfits.find((o) => o.id === id) ?? null;
+  }
+
+  const supabase = await createClient();
+
+  const runQuery = async (withDeletedFilter: boolean) => {
+    const q = supabase
+      .from("outfits")
+      .select("*, profiles(display_name, username, avatar_url)")
+      .eq("id", id)
+      .eq("published", true);
+    return withDeletedFilter ? q.is("deleted_at", null).single() : q.single();
+  };
+
+  let { data: row, error } = await runQuery(true);
+  if (error?.message?.includes("deleted_at")) {
+    console.warn("[getOutfitById] deleted_at column missing — apply migration 009");
+    ({ data: row, error } = await runQuery(false));
+  }
+
+  if (error || !row) {
+    return mockOutfits.find((o) => o.id === id) ?? null;
+  }
+
+  const [{ data: items }, mediaRows] = await Promise.all([
+    supabase.from("outfit_items").select("*").eq("outfit_id", id).order("display_order"),
+    fetchMediaForOutfits(supabase, [id]),
+  ]);
+
+  return dbRowToOutfit(
+    row as Record<string, unknown>,
+    (items ?? []) as Record<string, unknown>[],
+    mediaRows
+  );
+}
+
+export async function getCreatorOutfits(): Promise<Outfit[]> {
+  const user = await getSession();
+  if (!user || !hasSupabase()) return [];
+
+  const supabase = await createClient();
+
+  const runQuery = (withDeletedFilter: boolean) => {
+    const q = supabase
+      .from("outfits")
+      .select("*, profiles(display_name, username, avatar_url)")
+      .eq("creator_id", user.id)
+      .eq("published", true)
+      .order("created_at", { ascending: false });
+    return withDeletedFilter ? q.is("deleted_at", null) : q;
+  };
+
+  let { data, error } = await runQuery(true);
+  if (error?.message?.includes("deleted_at")) {
+    console.warn("[getCreatorOutfits] deleted_at column missing — apply migration 009");
+    ({ data, error } = await runQuery(false));
+  }
+
+  if (error || !data) return [];
+
+  const outfitIds = data.map((o) => o.id as string);
+
+  const [{ data: items }, mediaRows] = await Promise.all([
+    supabase.from("outfit_items").select("*").in("outfit_id", outfitIds).order("display_order"),
+    fetchMediaForOutfits(supabase, outfitIds),
+  ]);
+
+  return data.map((row) =>
+    dbRowToOutfit(
+      row as Record<string, unknown>,
+      (items ?? []).filter((i) => i.outfit_id === row.id) as Record<string, unknown>[],
+      mediaRows.filter((m) => m.outfit_id === row.id)
+    )
+  );
+}
