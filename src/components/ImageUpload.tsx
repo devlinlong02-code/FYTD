@@ -110,7 +110,7 @@ export default function ImageUpload({ name, onChange, storagePath, size = "large
 
         {preview ? (
           <div className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden bg-neutral-100">
-            <Image src={preview} alt="Preview" fill className="object-cover" sizes="448px" />
+            <Image src={preview} alt="Preview" fill className="object-cover" sizes="448px" unoptimized={preview.startsWith("http")} />
             {uploading && (
               <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                 <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -153,7 +153,7 @@ export default function ImageUpload({ name, onChange, storagePath, size = "large
 
       {preview ? (
         <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-neutral-100">
-          <Image src={preview} alt="Item preview" fill className="object-cover" sizes="120px" />
+          <Image src={preview} alt="Item preview" fill className="object-cover" sizes="120px" unoptimized={preview.startsWith("http")} />
           {uploading && (
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />

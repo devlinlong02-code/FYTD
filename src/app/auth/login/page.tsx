@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
@@ -16,9 +16,10 @@ function friendlyError(msg: string) {
 }
 
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") || "/";
+  const rawNext = searchParams.get("next") || "/";
+  // Validate to prevent open redirect — only allow internal paths
+  const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/";
   const urlError = searchParams.get("error");
 
   const [email, setEmail] = useState("");
@@ -61,9 +62,8 @@ function LoginForm() {
       }
     }
 
-    // Session is live in the browser — refresh server components then navigate
-    router.refresh();
-    router.push(destination);
+    // Hard navigation ensures the new session cookie is sent with the request
+    window.location.assign(destination);
   };
 
   return (

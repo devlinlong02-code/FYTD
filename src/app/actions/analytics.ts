@@ -14,7 +14,7 @@ function hasSupabase() {
 export interface OutfitStat {
   id: string;
   title: string;
-  image_url: string;
+  image_url: string | null;
   views: number;
   saves: number;
   clicks: number;
@@ -82,13 +82,17 @@ export async function getAnalytics(): Promise<AnalyticsData> {
 
   const { data: clicksByItem } = await supabase
     .from("click_events")
-    .select("outfit_item_id")
+    .select("outfit_item_id, outfit_id")
     .in("outfit_id", outfitIds);
 
   const itemClickCounts: Record<string, number> = {};
+  const outfitClickCounts: Record<string, number> = {};
   for (const row of clicksByItem ?? []) {
     if (row.outfit_item_id) {
       itemClickCounts[row.outfit_item_id] = (itemClickCounts[row.outfit_item_id] ?? 0) + 1;
+    }
+    if (row.outfit_id) {
+      outfitClickCounts[row.outfit_id] = (outfitClickCounts[row.outfit_id] ?? 0) + 1;
     }
   }
 
@@ -116,10 +120,10 @@ export async function getAnalytics(): Promise<AnalyticsData> {
   const outfitStats: OutfitStat[] = outfits.map((o) => ({
     id: o.id as string,
     title: o.title as string,
-    image_url: o.image_url as string,
+    image_url: (o.image_url as string | null) ?? null,
     views: (o.view_count as number) ?? 0,
     saves: (o.save_count as number) ?? 0,
-    clicks: 0,
+    clicks: outfitClickCounts[o.id as string] ?? 0,
   }));
 
   const totalViews = outfitStats.reduce((sum, o) => sum + o.views, 0);

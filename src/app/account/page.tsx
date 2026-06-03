@@ -97,8 +97,8 @@ export default async function AccountPage() {
     );
   }
 
-  const displayName = profile?.display_name ?? user.email ?? "User";
-  const username = profile?.username ?? user.email?.split("@")[0] ?? "user";
+  const displayName = profile?.display_name ?? "User";
+  const username = profile?.username ?? "user";
 
   return (
     <Layout>
@@ -164,7 +164,7 @@ export default async function AccountPage() {
 
         {/* Beta feedback */}
         <a
-          href="mailto:devlinlong02@gmail.com?subject=FYTD Beta Feedback"
+          href="mailto:feedback@fytd.org?subject=FYTD Beta Feedback"
           className="w-full flex items-center gap-3 px-4 py-3.5 bg-white rounded-2xl border border-neutral-100 hover:bg-neutral-50 transition-colors"
         >
           <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" className="text-neutral-400 shrink-0">

@@ -7,6 +7,9 @@ export interface OutfitItem {
   image: string;
   shopLink: string;
   shopType?: "exact" | "similar";
+  hotspotX?: number;
+  hotspotY?: number;
+  note?: string;
 }
 
 export interface OutfitMedia {
@@ -14,6 +17,7 @@ export interface OutfitMedia {
   media_url: string;
   media_type: "image" | "video";
   position: number;
+  thumbnail_url?: string;
 }
 
 export interface Outfit {
@@ -33,6 +37,9 @@ export interface Outfit {
   description: string;
   tags: string[];
   items: OutfitItem[];
+  likesCount?: number;
+  commentsCount?: number;
+  savesCount?: number;
 }
 
 export type AestheticTag =

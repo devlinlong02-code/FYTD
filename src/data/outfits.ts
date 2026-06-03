@@ -655,6 +655,651 @@ export const outfits: Outfit[] = [
     ],
   },
   {
+    id: "13",
+    title: "Campus Core",
+    creatorName: "Tyler Brooks",
+    creatorHandle: "@tylbrooks",
+    creatorAvatar: "https://i.pravatar.cc/150?img=3",
+    image:
+      "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?auto=format&fit=crop&w=800&q=80",
+    media: singleMedia("https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?auto=format&fit=crop&w=800&q=80"),
+    description:
+      "The go-to campus uniform done right. Comfortable, clean, and always put-together without looking like you tried too hard.",
+    tags: ["campus", "casual", "streetwear"],
+    items: [
+      {
+        id: "13-1",
+        category: "Top",
+        brand: "Abercrombie",
+        name: "Essential Crewneck",
+        price: 65,
+        image:
+          "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "exact",
+      },
+      {
+        id: "13-2",
+        category: "Bottom",
+        brand: "Levi's",
+        name: "512 Slim Taper Jeans",
+        price: 88,
+        image:
+          "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "exact",
+      },
+      {
+        id: "13-3",
+        category: "Footwear",
+        brand: "New Balance",
+        name: "574 White",
+        price: 90,
+        image:
+          "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "exact",
+      },
+      {
+        id: "13-4",
+        category: "Accessory",
+        brand: "Carhartt WIP",
+        name: "Acrylic Watch Hat",
+        price: 30,
+        image:
+          "https://images.unsplash.com/photo-1521369909029-2afed882baee?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "similar",
+      },
+    ],
+  },
+  {
+    id: "14",
+    title: "Night Out Sleek",
+    creatorName: "Isabelle Crane",
+    creatorHandle: "@isabellecrane",
+    creatorAvatar: "https://i.pravatar.cc/150?img=47",
+    image:
+      "https://images.unsplash.com/photo-1516762689617-e1cffcef479d?auto=format&fit=crop&w=800&q=80",
+    media: singleMedia("https://images.unsplash.com/photo-1516762689617-e1cffcef479d?auto=format&fit=crop&w=800&q=80"),
+    description:
+      "Minimal, confident, and dressed for the room. When you want to stand out by standing still.",
+    tags: ["night out", "minimal", "clean fit"],
+    items: [
+      {
+        id: "14-1",
+        category: "Top",
+        brand: "Toteme",
+        name: "Twisted Knit Top",
+        price: 290,
+        image:
+          "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "exact",
+      },
+      {
+        id: "14-2",
+        category: "Bottom",
+        brand: "Sandro",
+        name: "Satin Wide-Leg Trouser",
+        price: 295,
+        image:
+          "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "exact",
+      },
+      {
+        id: "14-3",
+        category: "Footwear",
+        brand: "Tony Bianco",
+        name: "Kylian Strappy Heel",
+        price: 175,
+        image:
+          "https://images.unsplash.com/photo-1603487742131-4160ec999306?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "similar",
+      },
+      {
+        id: "14-4",
+        category: "Bag",
+        brand: "A.P.C.",
+        name: "Demi-Lune Clutch",
+        price: 350,
+        image:
+          "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "exact",
+      },
+    ],
+  },
+  {
+    id: "15",
+    title: "Prep Season",
+    creatorName: "Hank Whitfield",
+    creatorHandle: "@hankwhitfield",
+    creatorAvatar: "https://i.pravatar.cc/150?img=16",
+    image:
+      "https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=800&q=80",
+    media: singleMedia("https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=800&q=80"),
+    description:
+      "The East Coast classics reimagined for the modern wardrobe. Clean, composed, and built to last.",
+    tags: ["old money", "campus", "clean fit"],
+    items: [
+      {
+        id: "15-1",
+        category: "Top",
+        brand: "Rowing Blazers",
+        name: "Rugby Stripe Shirt",
+        price: 195,
+        image:
+          "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "exact",
+      },
+      {
+        id: "15-2",
+        category: "Bottom",
+        brand: "Polo Ralph Lauren",
+        name: "Stretch Classic Chino",
+        price: 98,
+        image:
+          "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "exact",
+      },
+      {
+        id: "15-3",
+        category: "Footwear",
+        brand: "Sperry",
+        name: "Authentic Original Boat Shoe",
+        price: 110,
+        image:
+          "https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "exact",
+      },
+      {
+        id: "15-4",
+        category: "Accessory",
+        brand: "Timex",
+        name: "Weekender 38mm",
+        price: 79,
+        image:
+          "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "similar",
+      },
+    ],
+  },
+  {
+    id: "16",
+    title: "Seoul Street",
+    creatorName: "Min Ji-woo",
+    creatorHandle: "@minjiw00",
+    creatorAvatar: "https://i.pravatar.cc/150?img=23",
+    image:
+      "https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?auto=format&fit=crop&w=800&q=80",
+    media: singleMedia("https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?auto=format&fit=crop&w=800&q=80"),
+    description:
+      "Hongdae energy. Oversized silhouettes, tonal layers, and statement footwear for those who shape the aesthetic.",
+    tags: ["streetwear", "casual"],
+    items: [
+      {
+        id: "16-1",
+        category: "Outerwear",
+        brand: "Musinsa Standard",
+        name: "Oversized Nylon Bomber",
+        price: 120,
+        image:
+          "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "similar",
+      },
+      {
+        id: "16-2",
+        category: "Top",
+        brand: "Ader Error",
+        name: "Oversized Graphic Tee",
+        price: 165,
+        image:
+          "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "exact",
+      },
+      {
+        id: "16-3",
+        category: "Bottom",
+        brand: "Nike",
+        name: "Tech Fleece Cargo Pant",
+        price: 120,
+        image:
+          "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "exact",
+      },
+      {
+        id: "16-4",
+        category: "Footwear",
+        brand: "Asics",
+        name: "Gel-Kayano 14 Cream",
+        price: 130,
+        image:
+          "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "exact",
+      },
+      {
+        id: "16-5",
+        category: "Bag",
+        brand: "Hägen",
+        name: "Mini Crossbody Bag",
+        price: 58,
+        image:
+          "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "similar",
+      },
+    ],
+  },
+  {
+    id: "17",
+    title: "Soft Neutral",
+    creatorName: "Ava Laurent",
+    creatorHandle: "@avalaurent",
+    creatorAvatar: "https://i.pravatar.cc/150?img=38",
+    image:
+      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=800&q=80",
+    media: singleMedia("https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=800&q=80"),
+    description:
+      "Creams, oats, and warm whites. A tonal outfit built around texture and proportion — nothing shouts, everything speaks.",
+    tags: ["minimal", "clean fit"],
+    items: [
+      {
+        id: "17-1",
+        category: "Outerwear",
+        brand: "& Other Stories",
+        name: "Double-Breasted Trench",
+        price: 249,
+        image:
+          "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "exact",
+      },
+      {
+        id: "17-2",
+        category: "Top",
+        brand: "Uniqlo",
+        name: "Mercerized Cotton Turtleneck",
+        price: 39,
+        image:
+          "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "exact",
+      },
+      {
+        id: "17-3",
+        category: "Bottom",
+        brand: "Toteme",
+        name: "Original Denim Wide",
+        price: 310,
+        image:
+          "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "similar",
+      },
+      {
+        id: "17-4",
+        category: "Footwear",
+        brand: "Loeffler Randall",
+        name: "Leonie Ballet Flat",
+        price: 295,
+        image:
+          "https://images.unsplash.com/photo-1603487742131-4160ec999306?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "exact",
+      },
+    ],
+  },
+  {
+    id: "18",
+    title: "Gorpcore Weekend",
+    creatorName: "Noah Callaway",
+    creatorHandle: "@noahcallaway",
+    creatorAvatar: "https://i.pravatar.cc/150?img=17",
+    image:
+      "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=800&q=80",
+    media: singleMedia("https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=800&q=80"),
+    description:
+      "Technical gear meets street style. Arc'teryx shell, trail runners, and functional layering that looks just as good off the mountain.",
+    tags: ["streetwear", "casual"],
+    items: [
+      {
+        id: "18-1",
+        category: "Outerwear",
+        brand: "Arc'teryx",
+        name: "Beta AR Jacket",
+        price: 795,
+        image:
+          "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "exact",
+      },
+      {
+        id: "18-2",
+        category: "Top",
+        brand: "Patagonia",
+        name: "Synchilla Fleece",
+        price: 139,
+        image:
+          "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "exact",
+      },
+      {
+        id: "18-3",
+        category: "Bottoms",
+        brand: "Gramicci",
+        name: "Cargo Shorts",
+        price: 105,
+        image:
+          "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "similar",
+      },
+      {
+        id: "18-4",
+        category: "Footwear",
+        brand: "Salomon",
+        name: "XT-6 Advanced",
+        price: 160,
+        image:
+          "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "exact",
+      },
+      {
+        id: "18-5",
+        category: "Accessories",
+        brand: "Osprey",
+        name: "Daylite Pack",
+        price: 85,
+        image:
+          "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "similar",
+      },
+    ],
+  },
+  {
+    id: "19",
+    title: "Dark Academia",
+    creatorName: "Cecilia Holt",
+    creatorHandle: "@ceciliaholt",
+    creatorAvatar: "https://i.pravatar.cc/150?img=44",
+    image:
+      "https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?auto=format&fit=crop&w=800&q=80",
+    media: singleMedia("https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?auto=format&fit=crop&w=800&q=80"),
+    description:
+      "Tweed, plaid, and autumnal earth tones. Built for the kind of person who reads between lectures and haunts secondhand bookshops.",
+    tags: ["old money", "formal", "casual"],
+    items: [
+      {
+        id: "19-1",
+        category: "Outerwear",
+        brand: "Harris Tweed",
+        name: "Wool Blazer Herringbone",
+        price: 325,
+        image:
+          "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "exact",
+      },
+      {
+        id: "19-2",
+        category: "Top",
+        brand: "Ralph Lauren",
+        name: "Cable-Knit Crewneck",
+        price: 148,
+        image:
+          "https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "exact",
+      },
+      {
+        id: "19-3",
+        category: "Bottoms",
+        brand: "Polo Ralph Lauren",
+        name: "Plaid Wool Trouser",
+        price: 165,
+        image:
+          "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "similar",
+      },
+      {
+        id: "19-4",
+        category: "Footwear",
+        brand: "Clarks",
+        name: "Desert Boot Beeswax",
+        price: 140,
+        image:
+          "https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "exact",
+      },
+      {
+        id: "19-5",
+        category: "Accessories",
+        brand: "Mulberry",
+        name: "Briefcase Leather",
+        price: 650,
+        image:
+          "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "similar",
+      },
+    ],
+  },
+  {
+    id: "20",
+    title: "Coastal Summer",
+    creatorName: "Luna Ferrara",
+    creatorHandle: "@lunaferrara",
+    creatorAvatar: "https://i.pravatar.cc/150?img=39",
+    image:
+      "https://images.unsplash.com/photo-1467043237213-65f2da53396f?auto=format&fit=crop&w=800&q=80",
+    media: singleMedia("https://images.unsplash.com/photo-1467043237213-65f2da53396f?auto=format&fit=crop&w=800&q=80"),
+    description:
+      "White linen, woven textures, and sun-bleached tones. Mediterranean simplicity dressed for an Amalfi afternoon.",
+    tags: ["summer", "minimal", "casual"],
+    items: [
+      {
+        id: "20-1",
+        category: "Top",
+        brand: "Reformation",
+        name: "Linen Wrap Blouse",
+        price: 128,
+        image:
+          "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "exact",
+      },
+      {
+        id: "20-2",
+        category: "Bottoms",
+        brand: "& Other Stories",
+        name: "Linen Wide-Leg Trouser",
+        price: 99,
+        image:
+          "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "exact",
+      },
+      {
+        id: "20-3",
+        category: "Footwear",
+        brand: "Castañer",
+        name: "Carina Espadrille",
+        price: 135,
+        image:
+          "https://images.unsplash.com/photo-1603487742131-4160ec999306?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "exact",
+      },
+      {
+        id: "20-4",
+        category: "Accessories",
+        brand: "Kayu",
+        name: "Woven Straw Tote",
+        price: 98,
+        image:
+          "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "similar",
+      },
+      {
+        id: "20-5",
+        category: "Accessories",
+        brand: "Le Specs",
+        name: "Air Heart Sunglasses",
+        price: 79,
+        image:
+          "https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "exact",
+      },
+    ],
+  },
+  {
+    id: "21",
+    title: "Quiet Luxury",
+    creatorName: "Petra Malone",
+    creatorHandle: "@petramalone",
+    creatorAvatar: "https://i.pravatar.cc/150?img=49",
+    image:
+      "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&w=800&q=80",
+    media: singleMedia("https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&w=800&q=80"),
+    description:
+      "No logos, no noise. Pure cashmere, impeccable fit, and the kind of quality that only reveals itself up close.",
+    tags: ["old money", "minimal", "clean fit"],
+    items: [
+      {
+        id: "21-1",
+        category: "Top",
+        brand: "The Row",
+        name: "Cashmere Crewneck",
+        price: 990,
+        image:
+          "https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "exact",
+      },
+      {
+        id: "21-2",
+        category: "Bottoms",
+        brand: "Loro Piana",
+        name: "Slim Flannel Trouser",
+        price: 1250,
+        image:
+          "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "similar",
+      },
+      {
+        id: "21-3",
+        category: "Footwear",
+        brand: "Toteme",
+        name: "T-Strap Ballet Flat",
+        price: 480,
+        image:
+          "https://images.unsplash.com/photo-1603487742131-4160ec999306?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "exact",
+      },
+      {
+        id: "21-4",
+        category: "Accessories",
+        brand: "Celine",
+        name: "Triomphe Chain Bag",
+        price: 2250,
+        image:
+          "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "exact",
+      },
+    ],
+  },
+  {
+    id: "22",
+    title: "Techwear Edit",
+    creatorName: "Riku Tanaka",
+    creatorHandle: "@rikutanaka",
+    creatorAvatar: "https://i.pravatar.cc/150?img=19",
+    image:
+      "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?auto=format&fit=crop&w=800&q=80",
+    media: singleMedia("https://images.unsplash.com/photo-1551698618-1dfe5d97d256?auto=format&fit=crop&w=800&q=80"),
+    description:
+      "Utility pockets, water-resistant shells, and blacked-out silhouettes. Functional fashion for the city at night.",
+    tags: ["streetwear", "minimal"],
+    items: [
+      {
+        id: "22-1",
+        category: "Outerwear",
+        brand: "ACRONYM",
+        name: "J1A-GTPL Jacket",
+        price: 1650,
+        image:
+          "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "similar",
+      },
+      {
+        id: "22-2",
+        category: "Top",
+        brand: "Veilance",
+        name: "Frame LS Shirt",
+        price: 295,
+        image:
+          "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "exact",
+      },
+      {
+        id: "22-3",
+        category: "Bottoms",
+        brand: "Satisfy",
+        name: "Justice Sweatpant",
+        price: 195,
+        image:
+          "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "exact",
+      },
+      {
+        id: "22-4",
+        category: "Footwear",
+        brand: "Nike",
+        name: "Air Max 95 Black",
+        price: 175,
+        image:
+          "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "exact",
+      },
+      {
+        id: "22-5",
+        category: "Accessories",
+        brand: "Côte&Ciel",
+        name: "Isar Backpack",
+        price: 275,
+        image:
+          "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=400&q=80",
+        shopLink: "#",
+        shopType: "similar",
+      },
+    ],
+  },
+  {
     id: "12",
     title: "Evening Out Minimal",
     creatorName: "Elena Voss",

@@ -30,7 +30,7 @@ function ConfirmScreen({ email }: { email: string }) {
     setResendStatus("pending");
     setResendError("");
     const callbackUrl = `${window.location.origin}/auth/callback`;
-    console.log("[resend:confirm-screen] email:", email, "| redirectTo:", callbackUrl);
+    if (process.env.NODE_ENV !== "production") console.log("[resend:confirm-screen] email:", email, "| redirectTo:", callbackUrl);
     const supabase = createClient();
     const { error } = await supabase.auth.resend({
       type: "signup",
@@ -46,7 +46,7 @@ function ConfirmScreen({ email }: { email: string }) {
       );
       setResendStatus("error");
     } else {
-      console.log("[resend:confirm-screen] sent successfully");
+      if (process.env.NODE_ENV !== "production") console.log("[resend:confirm-screen] sent successfully");
       setResendStatus("sent");
     }
   };
@@ -123,7 +123,7 @@ function ResendScreen({ initialEmail = "" }: { initialEmail?: string }) {
     setErrorMsg("");
 
     const callbackUrl = `${window.location.origin}/auth/callback`;
-    console.log("[resend:resend-screen] email:", email.trim(), "| redirectTo:", callbackUrl);
+    if (process.env.NODE_ENV !== "production") console.log("[resend:resend-screen] email:", email.trim(), "| redirectTo:", callbackUrl);
     const supabase = createClient();
     const { error } = await supabase.auth.resend({
       type: "signup",
@@ -139,7 +139,7 @@ function ResendScreen({ initialEmail = "" }: { initialEmail?: string }) {
       setErrorMsg(msg);
       setStatus("error");
     } else {
-      console.log("[resend:resend-screen] sent successfully");
+      if (process.env.NODE_ENV !== "production") console.log("[resend:resend-screen] sent successfully");
       setStatus("sent");
     }
   };
@@ -248,7 +248,7 @@ function SignupForm() {
 
     try {
       const callbackUrl = `${window.location.origin}/auth/callback`;
-      console.log("[signup] email:", trimEmail, "| redirectTo:", callbackUrl);
+      if (process.env.NODE_ENV !== "production") console.log("[signup] email:", trimEmail, "| redirectTo:", callbackUrl);
 
       const supabase = createClient();
       const { data, error: authError } = await supabase.auth.signUp({
@@ -263,7 +263,7 @@ function SignupForm() {
         },
       });
 
-      console.log("[signup] user:", data?.user?.id, "| session:", !!data?.session, "| error:", authError?.message);
+      if (process.env.NODE_ENV !== "production") console.log("[signup] user:", data?.user?.id, "| session:", !!data?.session, "| error:", authError?.message);
 
       if (authError) {
         setError(friendlySignupError(authError.message));

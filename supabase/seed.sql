@@ -12,6 +12,8 @@ DECLARE
   creator_id UUID := '00000000-0000-0000-0000-000000000000'; -- ← replace with real user UUID
   o1 UUID; o2 UUID; o3 UUID; o4 UUID; o5 UUID; o6 UUID;
   o7 UUID; o8 UUID; o9 UUID; o10 UUID; o11 UUID; o12 UUID;
+  o13 UUID; o14 UUID; o15 UUID; o16 UUID; o17 UUID;
+  o18 UUID; o19 UUID; o20 UUID; o21 UUID; o22 UUID;
 BEGIN
 
 -- Update the seed creator profile to match mock user
@@ -191,5 +193,151 @@ INSERT INTO outfit_items (outfit_id, name, brand, category, price, image_url, sh
 (o12, 'Slim Crepe Trouser','Saint Laurent', 'Bottoms',    750,  'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=400&q=80', '#', 'exact',   2),
 (o12, 'BB Pump Black',     'Manolo Blahnik','Footwear',   725,  'https://images.unsplash.com/photo-1603487742131-4160ec999306?auto=format&fit=crop&w=400&q=80', '#', 'similar', 3),
 (o12, 'Puzzle Bag Small',  'Loewe',         'Accessories',2650, 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=400&q=80', '#', 'exact',   4);
+
+
+-- ── Outfit 13: Campus Core ────────────────────────────────────────────────────
+INSERT INTO outfits (id, creator_id, title, description, image_url, tags, published)
+VALUES (gen_random_uuid(), creator_id, 'Campus Core',
+  'The go-to campus uniform done right. Comfortable, clean, and always put-together without looking like you tried too hard.',
+  'https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?auto=format&fit=crop&w=800&q=80',
+  ARRAY['campus', 'casual', 'streetwear'], TRUE)
+RETURNING id INTO o13;
+
+INSERT INTO outfit_items (outfit_id, name, brand, category, price, image_url, shop_link, shop_type, display_order) VALUES
+(o13, 'Essential Crewneck',     'Abercrombie',  'Top',        65, 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=400&q=80', '#', 'exact',   1),
+(o13, '512 Slim Taper Jeans',   'Levi''s',       'Bottoms',    88, 'https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&w=400&q=80', '#', 'exact',   2),
+(o13, '574 White',              'New Balance',   'Footwear',   90, 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=400&q=80', '#', 'exact',   3),
+(o13, 'Acrylic Watch Hat',      'Carhartt WIP',  'Accessories',30, 'https://images.unsplash.com/photo-1521369909029-2afed882baee?auto=format&fit=crop&w=400&q=80', '#', 'similar', 4);
+
+-- ── Outfit 14: Night Out Sleek ────────────────────────────────────────────────
+INSERT INTO outfits (id, creator_id, title, description, image_url, tags, published)
+VALUES (gen_random_uuid(), creator_id, 'Night Out Sleek',
+  'Minimal, confident, and dressed for the room. When you want to stand out by standing still.',
+  'https://images.unsplash.com/photo-1516762689617-e1cffcef479d?auto=format&fit=crop&w=800&q=80',
+  ARRAY['night out', 'minimal', 'clean fit'], TRUE)
+RETURNING id INTO o14;
+
+INSERT INTO outfit_items (outfit_id, name, brand, category, price, image_url, shop_link, shop_type, display_order) VALUES
+(o14, 'Twisted Knit Top',      'Toteme',  'Top',        290, 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=400&q=80', '#', 'exact',   1),
+(o14, 'Satin Wide-Leg Trouser','Sandro',  'Bottoms',    295, 'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=400&q=80', '#', 'exact',   2),
+(o14, 'Kylian Strappy Heel',   'Tony Bianco', 'Footwear',175, 'https://images.unsplash.com/photo-1603487742131-4160ec999306?auto=format&fit=crop&w=400&q=80', '#', 'similar', 3),
+(o14, 'Demi-Lune Clutch',      'A.P.C.',  'Accessories',350, 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=400&q=80', '#', 'exact',   4);
+
+-- ── Outfit 15: Prep Season ────────────────────────────────────────────────────
+INSERT INTO outfits (id, creator_id, title, description, image_url, tags, published)
+VALUES (gen_random_uuid(), creator_id, 'Prep Season',
+  'The East Coast classics reimagined for the modern wardrobe. Clean, composed, and built to last.',
+  'https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=800&q=80',
+  ARRAY['old money', 'campus', 'clean fit'], TRUE)
+RETURNING id INTO o15;
+
+INSERT INTO outfit_items (outfit_id, name, brand, category, price, image_url, shop_link, shop_type, display_order) VALUES
+(o15, 'Rugby Stripe Shirt',          'Rowing Blazers',     'Top',        195, 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=400&q=80', '#', 'exact',   1),
+(o15, 'Stretch Classic Chino',       'Polo Ralph Lauren',  'Bottoms',    98,  'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=400&q=80', '#', 'exact',   2),
+(o15, 'Authentic Original Boat Shoe','Sperry',             'Footwear',   110, 'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=400&q=80', '#', 'exact',   3),
+(o15, 'Weekender 38mm',              'Timex',              'Accessories',79,  'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=400&q=80', '#', 'similar', 4);
+
+-- ── Outfit 16: Seoul Street ───────────────────────────────────────────────────
+INSERT INTO outfits (id, creator_id, title, description, image_url, tags, published)
+VALUES (gen_random_uuid(), creator_id, 'Seoul Street',
+  'Hongdae energy. Oversized silhouettes, tonal layers, and statement footwear for those who shape the aesthetic.',
+  'https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?auto=format&fit=crop&w=800&q=80',
+  ARRAY['streetwear', 'casual'], TRUE)
+RETURNING id INTO o16;
+
+INSERT INTO outfit_items (outfit_id, name, brand, category, price, image_url, shop_link, shop_type, display_order) VALUES
+(o16, 'Oversized Nylon Bomber', 'Musinsa Standard', 'Outerwear',  120, 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=400&q=80', '#', 'similar', 1),
+(o16, 'Oversized Graphic Tee',  'Ader Error',       'Top',        165, 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=400&q=80', '#', 'exact',   2),
+(o16, 'Tech Fleece Cargo Pant', 'Nike',             'Bottoms',    120, 'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=400&q=80', '#', 'exact',   3),
+(o16, 'Gel-Kayano 14 Cream',    'Asics',            'Footwear',   130, 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=400&q=80', '#', 'exact',   4),
+(o16, 'Mini Crossbody Bag',     'Hägen',            'Accessories',58,  'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=400&q=80', '#', 'similar', 5);
+
+-- ── Outfit 17: Soft Neutral ───────────────────────────────────────────────────
+INSERT INTO outfits (id, creator_id, title, description, image_url, tags, published)
+VALUES (gen_random_uuid(), creator_id, 'Soft Neutral',
+  'Creams, oats, and warm whites. A tonal outfit built around texture and proportion — nothing shouts, everything speaks.',
+  'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=800&q=80',
+  ARRAY['minimal', 'clean fit'], TRUE)
+RETURNING id INTO o17;
+
+INSERT INTO outfit_items (outfit_id, name, brand, category, price, image_url, shop_link, shop_type, display_order) VALUES
+(o17, 'Double-Breasted Trench',    '& Other Stories', 'Outerwear', 249, 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=400&q=80', '#', 'exact',   1),
+(o17, 'Mercerized Cotton Turtleneck','Uniqlo',         'Top',        39, 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=400&q=80', '#', 'exact',   2),
+(o17, 'Original Denim Wide',        'Toteme',          'Bottoms',   310, 'https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&w=400&q=80', '#', 'similar', 3),
+(o17, 'Leonie Ballet Flat',         'Loeffler Randall','Footwear',  295, 'https://images.unsplash.com/photo-1603487742131-4160ec999306?auto=format&fit=crop&w=400&q=80', '#', 'exact',   4);
+
+-- ── Outfit 18: Gorpcore Weekend ──────────────────────────────────────────────
+INSERT INTO outfits (id, creator_id, title, description, image_url, tags, published)
+VALUES (gen_random_uuid(), creator_id, 'Gorpcore Weekend',
+  'Technical gear meets street style. Arc''teryx shell, trail runners, and functional layering that looks just as good off the mountain.',
+  'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=800&q=80',
+  ARRAY['streetwear', 'casual'], TRUE)
+RETURNING id INTO o18;
+
+INSERT INTO outfit_items (outfit_id, name, brand, category, price, image_url, shop_link, shop_type, display_order) VALUES
+(o18, 'Beta AR Jacket',    'Arc''teryx',  'Outerwear',   795, 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=400&q=80', '#', 'exact',   1),
+(o18, 'Synchilla Fleece',  'Patagonia',   'Top',         139, 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=400&q=80', '#', 'exact',   2),
+(o18, 'Cargo Shorts',      'Gramicci',    'Bottoms',     105, 'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=400&q=80', '#', 'similar', 3),
+(o18, 'XT-6 Advanced',     'Salomon',     'Footwear',    160, 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=400&q=80', '#', 'exact',   4),
+(o18, 'Daylite Pack',      'Osprey',      'Accessories', 85,  'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=400&q=80', '#', 'similar', 5);
+
+-- ── Outfit 19: Dark Academia ──────────────────────────────────────────────────
+INSERT INTO outfits (id, creator_id, title, description, image_url, tags, published)
+VALUES (gen_random_uuid(), creator_id, 'Dark Academia',
+  'Tweed, plaid, and autumnal earth tones. Built for the kind of person who reads between lectures and haunts secondhand bookshops.',
+  'https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?auto=format&fit=crop&w=800&q=80',
+  ARRAY['old money', 'formal', 'casual'], TRUE)
+RETURNING id INTO o19;
+
+INSERT INTO outfit_items (outfit_id, name, brand, category, price, image_url, shop_link, shop_type, display_order) VALUES
+(o19, 'Wool Blazer Herringbone','Harris Tweed',       'Outerwear',   325, 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=400&q=80', '#', 'exact',   1),
+(o19, 'Cable-Knit Crewneck',   'Ralph Lauren',       'Top',         148, 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&w=400&q=80', '#', 'exact',   2),
+(o19, 'Plaid Wool Trouser',    'Polo Ralph Lauren',  'Bottoms',     165, 'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=400&q=80', '#', 'similar', 3),
+(o19, 'Desert Boot Beeswax',   'Clarks',             'Footwear',    140, 'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=400&q=80', '#', 'exact',   4),
+(o19, 'Briefcase Leather',     'Mulberry',           'Accessories', 650, 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=400&q=80', '#', 'similar', 5);
+
+-- ── Outfit 20: Coastal Summer ─────────────────────────────────────────────────
+INSERT INTO outfits (id, creator_id, title, description, image_url, tags, published)
+VALUES (gen_random_uuid(), creator_id, 'Coastal Summer',
+  'White linen, woven textures, and sun-bleached tones. Mediterranean simplicity dressed for an Amalfi afternoon.',
+  'https://images.unsplash.com/photo-1467043237213-65f2da53396f?auto=format&fit=crop&w=800&q=80',
+  ARRAY['summer', 'minimal', 'casual'], TRUE)
+RETURNING id INTO o20;
+
+INSERT INTO outfit_items (outfit_id, name, brand, category, price, image_url, shop_link, shop_type, display_order) VALUES
+(o20, 'Linen Wrap Blouse',       'Reformation',     'Top',         128, 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=400&q=80', '#', 'exact',   1),
+(o20, 'Linen Wide-Leg Trouser',  '& Other Stories', 'Bottoms',     99,  'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=400&q=80', '#', 'exact',   2),
+(o20, 'Carina Espadrille',       'Castañer',        'Footwear',    135, 'https://images.unsplash.com/photo-1603487742131-4160ec999306?auto=format&fit=crop&w=400&q=80', '#', 'exact',   3),
+(o20, 'Woven Straw Tote',        'Kayu',            'Accessories', 98,  'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=400&q=80', '#', 'similar', 4),
+(o20, 'Air Heart Sunglasses',    'Le Specs',        'Accessories', 79,  'https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&w=400&q=80', '#', 'exact',   5);
+
+-- ── Outfit 21: Quiet Luxury ───────────────────────────────────────────────────
+INSERT INTO outfits (id, creator_id, title, description, image_url, tags, published)
+VALUES (gen_random_uuid(), creator_id, 'Quiet Luxury',
+  'No logos, no noise. Pure cashmere, impeccable fit, and the kind of quality that only reveals itself up close.',
+  'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&w=800&q=80',
+  ARRAY['old money', 'minimal', 'clean fit'], TRUE)
+RETURNING id INTO o21;
+
+INSERT INTO outfit_items (outfit_id, name, brand, category, price, image_url, shop_link, shop_type, display_order) VALUES
+(o21, 'Cashmere Crewneck',    'The Row',     'Top',         990,  'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&w=400&q=80', '#', 'exact',   1),
+(o21, 'Slim Flannel Trouser', 'Loro Piana',  'Bottoms',     1250, 'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=400&q=80', '#', 'similar', 2),
+(o21, 'T-Strap Ballet Flat',  'Toteme',      'Footwear',    480,  'https://images.unsplash.com/photo-1603487742131-4160ec999306?auto=format&fit=crop&w=400&q=80', '#', 'exact',   3),
+(o21, 'Triomphe Chain Bag',   'Celine',      'Accessories', 2250, 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=400&q=80', '#', 'exact',   4);
+
+-- ── Outfit 22: Techwear Edit ──────────────────────────────────────────────────
+INSERT INTO outfits (id, creator_id, title, description, image_url, tags, published)
+VALUES (gen_random_uuid(), creator_id, 'Techwear Edit',
+  'Utility pockets, water-resistant shells, and blacked-out silhouettes. Functional fashion for the city at night.',
+  'https://images.unsplash.com/photo-1551698618-1dfe5d97d256?auto=format&fit=crop&w=800&q=80',
+  ARRAY['streetwear', 'minimal'], TRUE)
+RETURNING id INTO o22;
+
+INSERT INTO outfit_items (outfit_id, name, brand, category, price, image_url, shop_link, shop_type, display_order) VALUES
+(o22, 'J1A-GTPL Jacket',  'ACRONYM',    'Outerwear',   1650, 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=400&q=80', '#', 'similar', 1),
+(o22, 'Frame LS Shirt',   'Veilance',   'Top',         295,  'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=400&q=80', '#', 'exact',   2),
+(o22, 'Justice Sweatpant','Satisfy',    'Bottoms',     195,  'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=400&q=80', '#', 'exact',   3),
+(o22, 'Air Max 95 Black', 'Nike',       'Footwear',    175,  'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=400&q=80', '#', 'exact',   4),
+(o22, 'Isar Backpack',    'Côte&Ciel',  'Accessories', 275,  'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=400&q=80', '#', 'similar', 5);
 
 END $$;

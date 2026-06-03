@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log("[set-session] received token exchange request");
+    if (process.env.NODE_ENV !== "production") console.log("[set-session] received token exchange request");
 
     let response = NextResponse.next({ request });
 
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
       destination = profile?.profile_completed ? "/" : "/onboarding";
     }
 
-    console.log("[set-session] success — destination:", destination);
+    if (process.env.NODE_ENV !== "production") console.log("[set-session] success — destination:", destination);
 
     const jsonResponse = NextResponse.json({ redirect: destination });
     response.cookies.getAll().forEach(({ name, value }) => {

@@ -2,6 +2,7 @@
 
 import { startTransition, useActionState, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Layout from "@/components/Layout";
 import MultiMediaUpload from "@/components/MultiMediaUpload";
 import FitBreakdownBuilder, { type Piece } from "@/components/FitBreakdownBuilder";
@@ -11,6 +12,7 @@ interface UploadedMedia {
   media_url: string;
   media_type: "image" | "video";
   position: number;
+  thumbnail_url?: string;
 }
 
 export default function PostOutfitPage() {
@@ -26,14 +28,16 @@ export default function PostOutfitPage() {
   const [mediaError, setMediaError] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  const isSuccess = !!(state && "outfitId" in state && state.outfitId);
-  const errorMsg = state && "error" in state ? state.error : null;
+  const isFullSuccess = !!(state?.outfitId && !state?.error);
+  const isPartialSuccess = !!(state?.outfitId && state?.error);
+  const isSuccess = isFullSuccess || isPartialSuccess;
+  const errorMsg = !state?.outfitId && state?.error ? state.error : null;
 
   useEffect(() => {
-    if (isSuccess && state.outfitId) {
+    if (isFullSuccess && state?.outfitId) {
       router.push(`/outfit/${state.outfitId}`);
     }
-  }, [isSuccess, state, router]);
+  }, [isFullSuccess, state, router]);
 
   const handleMediaChange = useCallback((items: UploadedMedia[]) => {
     setMediaItems(items);
@@ -80,8 +84,24 @@ export default function PostOutfitPage() {
         </div>
       )}
 
-      {/* Success overlay */}
-      {isSuccess && (
+      {/* Partial success — outfit saved but breakdown failed */}
+      {isPartialSuccess && state?.outfitId && (
+        <div className="sticky top-[53px] z-20 bg-amber-50 border-b border-amber-100 px-4 py-3 flex items-start gap-2">
+          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-amber-500 shrink-0 mt-0.5">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+          <div>
+            <p className="text-sm font-medium text-amber-800">{state.error}</p>
+            <Link href={`/outfit/${state.outfitId}`} className="text-xs font-semibold text-amber-900 underline underline-offset-2 mt-1 inline-block">
+              View your post →
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* Full success overlay */}
+      {isFullSuccess && (
         <div className="fixed inset-0 z-50 bg-white flex flex-col items-center justify-center gap-4">
           <div className="w-14 h-14 rounded-full bg-neutral-900 flex items-center justify-center">
             <svg width="24" height="24" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -132,14 +152,20 @@ export default function PostOutfitPage() {
             </div>
 
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-widest text-neutral-400 mb-1.5">
-                Caption
-              </label>
+              <div className="flex items-baseline justify-between mb-1.5">
+                <label className="block text-[10px] font-semibold uppercase tracking-widest text-neutral-400">
+                  Caption
+                </label>
+                <span className={`text-[10px] tabular-nums ${description.length > 480 ? "text-red-400 font-semibold" : "text-neutral-300"}`}>
+                  {description.length}/500
+                </span>
+              </div>
               <textarea
                 name="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={2}
+                maxLength={500}
                 placeholder="Add a caption or describe the vibe…"
                 className="w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-900 resize-none"
               />
@@ -161,7 +187,10 @@ export default function PostOutfitPage() {
 
           {/* 3. Fit Breakdown */}
           <section>
-            <FitBreakdownBuilder pieces={pieces} onChange={setPieces} />
+            {(() => {
+              const coverImageUrl = mediaItems.find((m) => m.media_type === "image")?.media_url ?? mediaItems[0]?.media_url;
+              return <FitBreakdownBuilder pieces={pieces} onChange={setPieces} outfitImageUrl={coverImageUrl} />;
+            })()}
           </section>
 
           {uploading && (

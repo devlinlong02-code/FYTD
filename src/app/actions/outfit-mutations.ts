@@ -92,8 +92,11 @@ export async function takeDownOutfit(id: string): Promise<{ error?: string }> {
   }
 
   if (error) {
-    console.error("[takeDownOutfit]", error);
-    return { error: "Could not take down this post. Please try again." };
+    console.error("[takeDownOutfit] code:", error.code, "msg:", error.message, "hint:", error.hint);
+    const detail = error.code === "42501"
+      ? "RLS policy blocked the operation — apply supabase/migrations/014_fix_takedown_policy.sql in Supabase SQL Editor."
+      : error.message;
+    return { error: `Could not take down this post. ${detail}` };
   }
 
   revalidatePath("/");

@@ -43,7 +43,7 @@ export default function MediaUpload({ onUpload, onClear, currentUrl, currentType
       return;
     }
     if (isVideo && file.size > VIDEO_MAX) {
-      setError("Videos must be under 50MB.");
+      setError(`Videos must be under ${MAX_VIDEO_SIZE_MB}MB.`);
       return;
     }
 
@@ -86,7 +86,7 @@ export default function MediaUpload({ onUpload, onClear, currentUrl, currentType
       } else if (msg.includes("Not signed in")) {
         setError("Please sign in to upload media.");
       } else if (msg.includes("too large") || msg.includes("EntityTooLarge")) {
-        setError(isImage ? "Image must be under 10MB." : "Video must be under 50MB.");
+        setError(isImage ? "Image must be under 10MB." : `Video must be under ${MAX_VIDEO_SIZE_MB}MB.`);
       } else {
         setError(`Upload failed: ${msg}`);
       }
@@ -197,7 +197,7 @@ export default function MediaUpload({ onUpload, onClear, currentUrl, currentType
           <div className="text-center px-6">
             <p className="text-sm font-semibold text-neutral-700">Upload photo or video</p>
             <p className="text-xs text-neutral-400 mt-1">Choose from camera roll or files</p>
-            <p className="text-[10px] text-neutral-300 mt-1.5">JPG, PNG, WEBP · MP4, MOV · Max 10MB / 50MB</p>
+            <p className="text-[10px] text-neutral-300 mt-1.5">{`JPG, PNG, WEBP · MP4, MOV · Max 10MB / ${MAX_VIDEO_SIZE_MB}MB`}</p>
           </div>
         </div>
       )}

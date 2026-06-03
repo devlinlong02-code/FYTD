@@ -15,7 +15,7 @@ export async function toggleSave(outfitId: string): Promise<{ saved: boolean; er
     .select("id")
     .eq("user_id", user.id)
     .eq("outfit_id", outfitId)
-    .single();
+    .maybeSingle();
 
   if (existing) {
     await supabase

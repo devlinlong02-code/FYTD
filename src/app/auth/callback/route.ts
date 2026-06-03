@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   const errorCode = url.searchParams.get("error_code");
   const errorDescription = url.searchParams.get("error_description");
 
-  console.log("[callback] reached — params:", {
+  if (process.env.NODE_ENV !== "production") console.log("[callback] reached — params:", {
     hasCode: !!code,
     hasTokenHash: !!tokenHash,
     type,
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
         (errorDescription?.toLowerCase().includes("expired") ||
           errorDescription?.toLowerCase().includes("invalid")));
     if (isExpired) {
-      console.log("[callback] OTP expired — redirecting to resend screen");
+      if (process.env.NODE_ENV !== "production") console.log("[callback] OTP expired — redirecting to resend screen");
       return NextResponse.redirect(`${origin}/auth/signup?resend=true`);
     }
     // Already confirmed or some other access error
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
 
   // PKCE code flow
   if (code) {
-    console.log("[callback] exchangeCodeForSession");
+    if (process.env.NODE_ENV !== "production") console.log("[callback] exchangeCodeForSession");
     let response = NextResponse.next({ request });
     const supabase = buildSupabaseClient(request, (r) => { response = r; });
     const { error } = await supabase.auth.exchangeCodeForSession(code);
@@ -52,13 +52,13 @@ export async function GET(request: NextRequest) {
       console.error("[callback] exchangeCodeForSession failed:", error.message);
       return loginError(origin, error.message);
     }
-    console.log("[callback] exchangeCodeForSession succeeded");
+    if (process.env.NODE_ENV !== "production") console.log("[callback] exchangeCodeForSession succeeded");
     return buildSuccessRedirect(supabase, origin, next, response);
   }
 
   // Token-hash / OTP flow (used by resend() since it doesn't include a PKCE challenge)
   if (tokenHash) {
-    console.log("[callback] verifyOtp, type:", type);
+    if (process.env.NODE_ENV !== "production") console.log("[callback] verifyOtp, type:", type);
     let response = NextResponse.next({ request });
     const supabase = buildSupabaseClient(request, (r) => { response = r; });
     const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
@@ -66,20 +66,20 @@ export async function GET(request: NextRequest) {
       console.error("[callback] verifyOtp failed:", error.message);
       // If the "signup" type failed, try "email" — some Supabase versions use different type names
       if (type === "signup") {
-        console.log("[callback] retrying verifyOtp with type: email");
+        if (process.env.NODE_ENV !== "production") console.log("[callback] retrying verifyOtp with type: email");
         const { error: error2 } = await supabase.auth.verifyOtp({
           token_hash: tokenHash,
           type: "email",
         });
         if (!error2) {
-          console.log("[callback] verifyOtp with type:email succeeded");
+          if (process.env.NODE_ENV !== "production") console.log("[callback] verifyOtp with type:email succeeded");
           return buildSuccessRedirect(supabase, origin, next, response);
         }
         console.error("[callback] verifyOtp type:email also failed:", error2.message);
       }
       return loginError(origin, error.message);
     }
-    console.log("[callback] verifyOtp succeeded");
+    if (process.env.NODE_ENV !== "production") console.log("[callback] verifyOtp succeeded");
     return buildSuccessRedirect(supabase, origin, next, response);
   }
 
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
   // The browser strips hash fragments before the HTTP request, so we can't read them
   // server-side. Serve an HTML page with a script that reads the fragment and posts
   // the tokens to /api/auth/set-session to complete the session setup server-side.
-  console.log("[callback] no code or token_hash — serving hash-fragment handler");
+  if (process.env.NODE_ENV !== "production") console.log("[callback] no code or token_hash — serving hash-fragment handler");
   return new NextResponse(
     `<!DOCTYPE html>
 <html lang="en">
@@ -204,7 +204,7 @@ async function buildSuccessRedirect(
     }
   }
 
-  console.log("[callback] success — redirecting to:", destination);
+  if (process.env.NODE_ENV !== "production") console.log("[callback] success — redirecting to:", destination);
 
   const redirectResponse = NextResponse.redirect(`${origin}${destination}`);
   cookieResponse.cookies.getAll().forEach(({ name, value }) => {

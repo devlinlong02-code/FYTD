@@ -27,11 +27,11 @@ const FAQ_ITEMS = [
   },
   {
     q: "Why is my upload failing?",
-    a: "Make sure you are signed in and your file is a JPG, PNG, or WEBP image under 10MB (or a video under 50MB). If the problem continues, tap Give Feedback from the Account page to report it.",
+    a: "Make sure you are signed in and your file is a JPG, PNG, or WEBP image under 10MB (or a video under 100MB). If the problem continues, tap Give Feedback from the Account page to report it.",
   },
   {
     q: "Can I delete or edit a posted outfit?",
-    a: "Yes. Go to Account → My Outfits to see all your posts. From there you can edit details or delete an outfit.",
+    a: "Yes. Go to your Profile and tap the Posts tab to see all your posts. From there you can edit details or delete an outfit.",
   },
 ];
 
@@ -94,7 +94,7 @@ export default function HelpPage() {
           <h2 className="text-[10px] font-semibold uppercase tracking-widest text-neutral-400 mb-2 px-1">Contact</h2>
           <div className="bg-white rounded-2xl border border-neutral-100 divide-y divide-neutral-50">
             <a
-              href="mailto:devlinlong02@gmail.com?subject=FYTD Support"
+              href="mailto:support@fytd.org?subject=FYTD Support"
               className="flex items-center gap-3 px-4 py-3.5 hover:bg-neutral-50 transition-colors"
             >
               <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" className="text-neutral-400 shrink-0">
@@ -103,14 +103,14 @@ export default function HelpPage() {
               </svg>
               <div className="flex-1">
                 <p className="text-sm font-medium text-neutral-800">Email Support</p>
-                <p className="text-xs text-neutral-400">devlinlong02@gmail.com</p>
+                <p className="text-xs text-neutral-400">support@fytd.org</p>
               </div>
               <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-neutral-300 shrink-0">
                 <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
               </svg>
             </a>
             <a
-              href="mailto:devlinlong02@gmail.com?subject=FYTD Beta Feedback"
+              href="mailto:support@fytd.org?subject=FYTD Beta Feedback"
               className="flex items-center gap-3 px-4 py-3.5 hover:bg-neutral-50 transition-colors"
             >
               <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" className="text-neutral-400 shrink-0">

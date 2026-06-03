@@ -16,6 +16,11 @@ interface Props {
    * Pass false for feed cards where the badge row is already crowded.
    */
   showCounter?: boolean;
+  /**
+   * Detail-page mode: disables loop, shows a seekable progress bar.
+   * Both modes use the same custom overlay controls — no native browser UI anywhere.
+   */
+  showVideoControls?: boolean;
 }
 
 const SWIPE_THRESHOLD = 40;
@@ -28,13 +33,20 @@ export default function MediaCarousel({
   sizes,
   className = "absolute inset-0",
   showCounter = true,
+  showVideoControls = false,
 }: Props) {
   const [index, setIndex] = useState(0);
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [tapIconVisible, setTapIconVisible] = useState(false);
 
+  const containerRef = useRef<HTMLDivElement>(null);
   const videoRefs = useRef<Map<number, HTMLVideoElement>>(new Map());
+  const isInViewport = useRef(false);
+  const tapIconTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startX = useRef<number | null>(null);
   const startY = useRef<number | null>(null);
   const hasDragged = useRef(false);
@@ -42,22 +54,75 @@ export default function MediaCarousel({
   const count = media.length;
   const safeIndex = Math.min(index, count - 1);
   const current = media[safeIndex];
+  const isCurrentVideo = current?.media_type === "video";
 
   const goTo = (i: number) => setIndex(Math.max(0, Math.min(count - 1, i)));
   const prev = () => goTo(safeIndex - 1);
   const next = () => goTo(safeIndex + 1);
 
-  // Pause off-screen videos; sync mute state
+  // Single effect that owns all video DOM state
   useEffect(() => {
     videoRefs.current.forEach((video, i) => {
       video.muted = isMuted;
-      if (i === safeIndex) {
+      if (i !== safeIndex) {
+        video.pause();
+        return;
+      }
+      if (isPlaying) {
         video.play().catch(() => {});
       } else {
         video.pause();
       }
     });
-  }, [safeIndex, isMuted]);
+  }, [safeIndex, isMuted, isPlaying]);
+
+  // IntersectionObserver — autoplay when ≥50% visible, pause when off-screen
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isInViewport.current = entry.isIntersecting;
+        setIsPlaying(entry.isIntersecting);
+      },
+      { threshold: 0.5 }
+    );
+
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
+  // When the active slide changes, reset progress and resume if in viewport
+  useEffect(() => {
+    setProgress(0);
+    if (isInViewport.current) setIsPlaying(true);
+  }, [safeIndex]);
+
+  // Progress tracking for detail mode
+  useEffect(() => {
+    if (!showVideoControls) return;
+    const video = videoRefs.current.get(safeIndex);
+    if (!video) return;
+
+    const onTime = () => {
+      if (video.duration) setProgress(video.currentTime / video.duration);
+    };
+    const onEnded = () => setIsPlaying(false);
+
+    video.addEventListener("timeupdate", onTime);
+    video.addEventListener("ended", onEnded);
+    return () => {
+      video.removeEventListener("timeupdate", onTime);
+      video.removeEventListener("ended", onEnded);
+    };
+  }, [safeIndex, showVideoControls]);
+
+  const flashTapIcon = () => {
+    setTapIconVisible(true);
+    if (tapIconTimer.current) clearTimeout(tapIconTimer.current);
+    tapIconTimer.current = setTimeout(() => setTapIconVisible(false), 800);
+  };
 
   // ── Pointer / swipe handlers ────────────────────────────────────────────────
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -72,7 +137,6 @@ export default function MediaCarousel({
     if (startX.current === null) return;
     const dx = e.clientX - startX.current;
     const dy = e.clientY - (startY.current ?? e.clientY);
-    // Only track as horizontal drag — ignore mostly-vertical movement
     if (!isDragging && Math.abs(dx) < DRAG_THRESHOLD) return;
     if (Math.abs(dy) > Math.abs(dx) && !isDragging) return;
     hasDragged.current = true;
@@ -100,7 +164,7 @@ export default function MediaCarousel({
     setDragOffset(0);
   };
 
-  // Prevent the wrapping Link/card from navigating when the user swipes
+  // Prevent the wrapping Link from navigating when the user swipes
   const onClickCapture = (e: React.MouseEvent) => {
     if (hasDragged.current) {
       e.preventDefault();
@@ -109,16 +173,34 @@ export default function MediaCarousel({
     }
   };
 
+  // Tap on a video slide → only interactive in detail mode.
+  // In feed mode clicks fall through to the parent Link so the card navigates normally.
+  const onSlideClick = (e: React.MouseEvent) => {
+    if (hasDragged.current || !isCurrentVideo || !showVideoControls) return;
+    e.stopPropagation();
+    e.preventDefault();
+    setIsPlaying((v) => !v);
+    flashTapIcon();
+  };
+
+  // Seekable progress bar (detail mode)
+  const onProgressSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    const video = videoRefs.current.get(safeIndex);
+    if (!video || !video.duration) return;
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    video.currentTime = ratio * video.duration;
+    setProgress(ratio);
+  };
+
   if (!current) return null;
 
-  // Sliding-rail math:
-  //   rail width  = count × containerWidth
-  //   translateX  = -(safeIndex / count) × 100%  (% relative to rail's own width)
-  //   + dragOffset px (live drag preview, 0 when not dragging)
   const railTranslatePct = count > 1 ? (safeIndex / count) * 100 : 0;
 
   return (
     <div
+      ref={containerRef}
       className={`${className} overflow-hidden select-none${count > 1 ? " cursor-grab active:cursor-grabbing" : ""}`}
       style={{ touchAction: count > 1 ? "pan-y" : undefined }}
       onPointerDown={onPointerDown}
@@ -143,6 +225,7 @@ export default function MediaCarousel({
             className="relative h-full flex-none"
             style={{ width: `${100 / count}%` }}
             aria-hidden={i !== safeIndex}
+            onClick={i === safeIndex ? onSlideClick : undefined}
           >
             {item.media_type === "video" ? (
               <video
@@ -151,10 +234,13 @@ export default function MediaCarousel({
                   else videoRefs.current.delete(i);
                 }}
                 src={item.media_url}
-                autoPlay={i === 0}
+                poster={item.thumbnail_url}
                 muted
-                loop
                 playsInline
+                loop={!showVideoControls}
+                preload="metadata"
+                disablePictureInPicture
+                controlsList="nodownload nofullscreen noremoteplayback"
                 className="absolute inset-0 w-full h-full object-cover"
                 aria-label={title}
               />
@@ -173,8 +259,30 @@ export default function MediaCarousel({
         ))}
       </div>
 
-      {/* ── Mute toggle — video slides only ─────────────────────────────────── */}
-      {current.media_type === "video" && (
+      {/* ── Tap-to-play/pause icon flash — detail mode only ─────────────────── */}
+      {isCurrentVideo && showVideoControls && (
+        <div
+          className={`absolute inset-0 z-10 flex items-center justify-center pointer-events-none transition-opacity duration-300 ${
+            tapIconVisible ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+            {isPlaying ? (
+              <svg width="16" height="16" fill="white" viewBox="0 0 24 24">
+                <rect x="6" y="4" width="4" height="16" rx="1" />
+                <rect x="14" y="4" width="4" height="16" rx="1" />
+              </svg>
+            ) : (
+              <svg width="16" height="16" fill="white" viewBox="0 0 24 24">
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Mute toggle — detail mode only ──────────────────────────────────── */}
+      {isCurrentVideo && showVideoControls && (
         <button
           type="button"
           onClick={(e) => {
@@ -182,7 +290,7 @@ export default function MediaCarousel({
             e.preventDefault();
             setIsMuted((v) => !v);
           }}
-          className="absolute top-2.5 left-2.5 z-20 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white"
+          className="absolute bottom-2.5 right-2.5 z-20 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white"
           aria-label={isMuted ? "Unmute video" : "Mute video"}
         >
           {isMuted ? (
@@ -200,10 +308,27 @@ export default function MediaCarousel({
         </button>
       )}
 
+      {/* ── Progress bar — detail mode only ─────────────────────────────────── */}
+      {showVideoControls && isCurrentVideo && (
+        <div
+          className="absolute bottom-0 inset-x-0 z-20 h-[3px] bg-white/25 cursor-pointer group"
+          onClick={onProgressSeek}
+        >
+          <div
+            className="h-full bg-white transition-none"
+            style={{ width: `${progress * 100}%` }}
+          />
+          {/* Scrubber thumb */}
+          <div
+            className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+            style={{ left: `${progress * 100}%`, transform: "translate(-50%, -50%)" }}
+          />
+        </div>
+      )}
+
       {/* ── Multi-slide controls ─────────────────────────────────────────────── */}
       {count > 1 && (
         <>
-          {/* "1 / 3" counter — centered top */}
           {showCounter && (
             <div className="absolute top-2.5 inset-x-0 z-20 flex justify-center pointer-events-none">
               <span className="bg-black/50 backdrop-blur-sm rounded-full px-2.5 py-0.5 text-white text-[10px] font-semibold tabular-nums">
@@ -212,7 +337,6 @@ export default function MediaCarousel({
             </div>
           )}
 
-          {/* Clickable dot indicators — bottom center */}
           <div className="absolute bottom-3 inset-x-0 z-30 flex justify-center items-center gap-[5px]">
             {media.map((_, i) => (
               <button
@@ -232,7 +356,6 @@ export default function MediaCarousel({
               />
             ))}
           </div>
-
         </>
       )}
     </div>

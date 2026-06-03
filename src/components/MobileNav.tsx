@@ -2,13 +2,16 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import { useAuthPrompt, type ActionType } from "@/context/AuthPromptContext";
+import { createClient } from "@/lib/supabase/client";
 
 type NavItem = {
   href: string;
   label: string;
   requiresAuth?: ActionType;
   plus?: boolean;
+  notifications?: boolean;
   icon: (active: boolean) => React.ReactNode;
 };
 
@@ -41,6 +44,18 @@ const NAV_ITEMS: NavItem[] = [
     icon: () => null,
   },
   {
+    href: "/notifications",
+    label: "Activity",
+    requiresAuth: "account",
+    notifications: true,
+    icon: (active) => (
+      <svg width="20" height="20" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? "2.2" : "1.8"} viewBox="0 0 24 24">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+      </svg>
+    ),
+  },
+  {
     href: "/profile",
     label: "Profile",
     requiresAuth: "profile",
@@ -68,6 +83,50 @@ export default function MobileNav() {
   const pathname = usePathname();
   const router = useRouter();
   const { isAuthenticated, authLoaded, openPrompt } = useAuthPrompt();
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Resolve user ID once when auth is ready
+  useEffect(() => {
+    if (!authLoaded || !isAuthenticated) {
+      setUserId(null);
+      setUnreadCount(0);
+      return;
+    }
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserId(user?.id ?? null);
+    });
+  }, [authLoaded, isAuthenticated]);
+
+  const fetchUnreadCount = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const supabase = createClient();
+      const { count } = await supabase
+        .from("notifications")
+        .select("*", { count: "exact", head: true })
+        .eq("recipient_id", userId)
+        .eq("read", false);
+      setUnreadCount(count ?? 0);
+    } catch {
+      // silent — badge failing is non-critical
+    }
+  }, [userId]);
+
+  // Poll every 30 seconds
+  useEffect(() => {
+    if (!userId) return;
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, [userId, fetchUnreadCount]);
+
+  // Refetch on route change (catches "mark all read" on /notifications)
+  useEffect(() => {
+    if (!userId) return;
+    fetchUnreadCount();
+  }, [pathname, userId, fetchUnreadCount]);
 
   const handleClick = (item: NavItem, e: React.MouseEvent) => {
     if (item.requiresAuth && authLoaded && !isAuthenticated) {
@@ -79,7 +138,7 @@ export default function MobileNav() {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-neutral-100 safe-b">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/98 backdrop-blur-xl border-t border-neutral-100/60 safe-b">
       <div className="flex items-center justify-around px-1 py-1.5">
         {NAV_ITEMS.map((item) => {
           const active = pathname === item.href;
@@ -91,13 +150,13 @@ export default function MobileNav() {
                 onClick={(e) => handleClick(item, e)}
                 className="flex flex-col items-center gap-0.5 py-1 px-3"
               >
-                <div className="w-10 h-10 rounded-full bg-neutral-900 flex items-center justify-center shadow-md">
+                <div className="w-11 h-11 rounded-full bg-neutral-900 flex items-center justify-center shadow-lg hover:bg-neutral-800 transition-all duration-200">
                   <svg width="18" height="18" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
                     <line x1="12" y1="5" x2="12" y2="19" />
                     <line x1="5" y1="12" x2="19" y2="12" />
                   </svg>
                 </div>
-                <span className="text-[9px] font-medium text-neutral-400">{item.label}</span>
+                <span className="text-[9px] font-semibold tracking-wide text-neutral-300">{item.label}</span>
               </button>
             );
           }
@@ -108,10 +167,19 @@ export default function MobileNav() {
                 key={item.href}
                 onClick={(e) => handleClick(item, e)}
                 className={`flex flex-col items-center gap-0.5 py-1 px-3 transition-colors ${
-                  active ? "text-neutral-900" : "text-neutral-400"
+                  active ? "text-neutral-900" : "text-neutral-300"
                 }`}
               >
-                {item.icon(active)}
+                <div className="relative">
+                  {item.icon(active)}
+                  {item.notifications && unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-neutral-900 flex items-center justify-center">
+                      <span className="text-white text-[9px] font-bold leading-none">
+                        {unreadCount > 9 ? "9+" : unreadCount}
+                      </span>
+                    </span>
+                  )}
+                </div>
                 <span className="text-[9px] font-medium">{item.label}</span>
               </button>
             );
@@ -122,7 +190,7 @@ export default function MobileNav() {
               key={item.href}
               href={item.href}
               className={`flex flex-col items-center gap-0.5 py-1 px-3 transition-colors ${
-                active ? "text-neutral-900" : "text-neutral-400"
+                active ? "text-neutral-900" : "text-neutral-300"
               }`}
             >
               {item.icon(active)}

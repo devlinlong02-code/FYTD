@@ -19,14 +19,53 @@ interface MediaItem {
   media_url: string;
   media_type: "image" | "video";
   position: number;
+  thumbnail_url?: string;
   uploading: boolean;
   error: string | null;
 }
 
 interface Props {
-  onChange: (items: { media_url: string; media_type: "image" | "video"; position: number }[]) => void;
-  /** Called whenever the "any file still uploading" state changes */
+  onChange: (items: { media_url: string; media_type: "image" | "video"; position: number; thumbnail_url?: string }[]) => void;
   onUploadingChange?: (isUploading: boolean) => void;
+}
+
+// Extract a JPEG frame blob from a video File at ~1.5s. Returns null on any failure.
+function extractVideoFrame(file: File): Promise<Blob | null> {
+  return new Promise((resolve) => {
+    const objectUrl = URL.createObjectURL(file);
+    const video = document.createElement("video");
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = "metadata";
+    video.src = objectUrl;
+
+    let settled = false;
+    const done = (result: Blob | null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      URL.revokeObjectURL(objectUrl);
+      resolve(result);
+    };
+
+    const timeout = setTimeout(() => done(null), 8000);
+    video.onerror = () => done(null);
+
+    video.onloadedmetadata = () => {
+      video.currentTime = Math.min(1.5, video.duration * 0.15);
+    };
+
+    video.onseeked = () => {
+      if (!video.videoWidth || !video.videoHeight) { done(null); return; }
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { done(null); return; }
+      ctx.drawImage(video, 0, 0);
+      canvas.toBlob((blob) => done(blob), "image/jpeg", 0.82);
+    };
+  });
 }
 
 export default function MultiMediaUpload({ onChange, onUploadingChange }: Props) {
@@ -34,61 +73,99 @@ export default function MultiMediaUpload({ onChange, onUploadingChange }: Props)
   const [globalError, setGlobalError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Notify parent after state settles — never during a setState updater
+  // Notify parent after state settles — never inside a setState updater
   useEffect(() => {
     const uploading = items.some((m) => m.uploading);
     onUploadingChange?.(uploading);
     const uploaded = items
       .filter((m) => m.media_url && !m.uploading)
-      .map((m) => ({ media_url: m.media_url, media_type: m.media_type, position: m.position }));
+      .map((m) => ({
+        media_url: m.media_url,
+        media_type: m.media_type,
+        position: m.position,
+        ...(m.thumbnail_url ? { thumbnail_url: m.thumbnail_url } : {}),
+      }));
     onChange(uploaded);
   }, [items, onChange, onUploadingChange]);
 
   const uploadFile = useCallback(async (file: File, localId: string) => {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      setItems((prev) =>
-        prev.map((m) =>
-          m.localId === localId ? { ...m, uploading: false, error: "Please sign in to upload." } : m
-        )
-      );
-      return;
-    }
-
-    const isImage = IMAGE_TYPES.includes(file.type);
-    const ext = file.name.split(".").pop()?.toLowerCase() ?? (isImage ? "jpg" : "mp4");
-    const folder = isImage ? "images" : "videos";
-    const path = `outfits/${user.id}/${folder}/${crypto.randomUUID()}.${ext}`;
-
-    const { error: uploadErr } = await supabase.storage
-      .from("outfit-images")
-      .upload(path, file, { cacheControl: "3600", upsert: false });
-
-    if (uploadErr) {
-      console.error("[MultiMediaUpload] upload error:", uploadErr);
-      const msg = uploadErr.message ?? "";
-      let friendly = `Upload failed: ${msg}`;
-      if (msg.includes("EntityTooLarge") || msg.includes("too large")) {
-        friendly = isImage ? `Image must be under ${IMAGE_MAX_MB}MB.` : `Video must be under ${VIDEO_MAX_MB}MB.`;
-      } else if (msg.includes("security policy") || msg.includes("nauthorized")) {
-        friendly = "Upload not allowed. Check that you are signed in.";
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setItems((prev) =>
+          prev.map((m) =>
+            m.localId === localId ? { ...m, uploading: false, error: "Please sign in to upload." } : m
+          )
+        );
+        return;
       }
+
+      const isImage = IMAGE_TYPES.includes(file.type);
+      const ext = file.name.split(".").pop()?.toLowerCase() ?? (isImage ? "jpg" : "mp4");
+      const folder = isImage ? "images" : "videos";
+      const path = `outfits/${user.id}/${folder}/${crypto.randomUUID()}.${ext}`;
+
+      const { error: uploadErr } = await supabase.storage
+        .from("outfit-images")
+        .upload(path, file, { cacheControl: "3600", upsert: false });
+
+      if (uploadErr) {
+        const msg = uploadErr.message ?? "";
+        let friendly = `Upload failed: ${msg}`;
+        if (msg.includes("EntityTooLarge") || msg.includes("too large")) {
+          friendly = isImage ? `Image must be under ${IMAGE_MAX_MB}MB.` : `Video must be under ${VIDEO_MAX_MB}MB.`;
+        } else if (msg.includes("security policy") || msg.includes("Unauthorized")) {
+          friendly = "Upload not allowed. Check that you are signed in.";
+        }
+        setItems((prev) =>
+          prev.map((m) =>
+            m.localId === localId ? { ...m, uploading: false, error: friendly } : m
+          )
+        );
+        return;
+      }
+
+      const { data: { publicUrl } } = supabase.storage.from("outfit-images").getPublicUrl(path);
       setItems((prev) =>
         prev.map((m) =>
-          m.localId === localId ? { ...m, uploading: false, error: friendly } : m
+          m.localId === localId ? { ...m, uploading: false, media_url: publicUrl } : m
         )
       );
-      return;
+    } catch {
+      setItems((prev) =>
+        prev.map((m) =>
+          m.localId === localId ? { ...m, uploading: false, error: "Upload failed. Check your connection and try again." } : m
+        )
+      );
     }
+  }, []);
 
-    const { data: { publicUrl } } = supabase.storage.from("outfit-images").getPublicUrl(path);
+  // Generate a poster thumbnail for video files and upload it in parallel with the video
+  const generateAndUploadThumbnail = useCallback(async (file: File, localId: string) => {
+    try {
+      const blob = await extractVideoFrame(file);
+      if (!blob) return;
 
-    setItems((prev) =>
-      prev.map((m) =>
-        m.localId === localId ? { ...m, uploading: false, media_url: publicUrl } : m
-      )
-    );
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const path = `outfits/${user.id}/thumbnails/${crypto.randomUUID()}.jpg`;
+      const { error } = await supabase.storage.from("outfit-images").upload(path, blob, {
+        contentType: "image/jpeg",
+        cacheControl: "3600",
+        upsert: false,
+      });
+      if (error) return;
+
+      const { data: { publicUrl } } = supabase.storage.from("outfit-images").getPublicUrl(path);
+      setItems((prev) =>
+        prev.map((m) => m.localId === localId ? { ...m, thumbnail_url: publicUrl } : m)
+      );
+    } catch {
+      // Thumbnail is non-critical — video still uploads, just without a poster frame
+    }
   }, []);
 
   const addFiles = useCallback((files: FileList | File[]) => {
@@ -127,7 +204,7 @@ export default function MultiMediaUpload({ onChange, onUploadingChange }: Props)
         previewUrl: URL.createObjectURL(file),
         media_url: "",
         media_type: isImage ? "image" : "video",
-        position: 0, // recalculated below
+        position: 0,
         uploading: true,
         error: null,
       });
@@ -139,11 +216,14 @@ export default function MultiMediaUpload({ onChange, onUploadingChange }: Props)
       [...prev.filter((m) => !m.error), ...newItems].map((m, i) => ({ ...m, position: i }))
     );
 
-    // start uploads
     newItems.forEach((item, idx) => {
       uploadFile(toAdd[idx], item.localId);
+      // Thumbnail generation runs in parallel with video upload
+      if (item.media_type === "video") {
+        generateAndUploadThumbnail(toAdd[idx], item.localId);
+      }
     });
-  }, [items, uploadFile]);
+  }, [items, uploadFile, generateAndUploadThumbnail]);
 
   const removeItem = (localId: string) => {
     setItems((prev) =>
@@ -179,7 +259,6 @@ export default function MultiMediaUpload({ onChange, onUploadingChange }: Props)
         tabIndex={-1}
       />
 
-      {/* Upload drop zone — shown when empty */}
       {items.length === 0 && (
         <div
           onClick={() => inputRef.current?.click()}
@@ -212,7 +291,6 @@ export default function MultiMediaUpload({ onChange, onUploadingChange }: Props)
         </div>
       )}
 
-      {/* Preview strip */}
       {items.length > 0 && (
         <div className="flex flex-col gap-3">
           <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
@@ -221,14 +299,24 @@ export default function MultiMediaUpload({ onChange, onUploadingChange }: Props)
                 key={item.localId}
                 className="relative shrink-0 w-24 h-32 rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200"
               >
-                {/* Preview */}
                 {item.media_type === "video" ? (
-                  <video
-                    src={item.previewUrl}
-                    muted
-                    playsInline
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
+                  item.thumbnail_url ? (
+                    <Image
+                      src={item.thumbnail_url}
+                      alt={`Video ${idx + 1} thumbnail`}
+                      fill
+                      className="object-cover"
+                      sizes="96px"
+                      unoptimized
+                    />
+                  ) : (
+                    <video
+                      src={item.previewUrl}
+                      muted
+                      playsInline
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  )
                 ) : (
                   <Image
                     src={item.previewUrl}
@@ -240,14 +328,12 @@ export default function MultiMediaUpload({ onChange, onUploadingChange }: Props)
                   />
                 )}
 
-                {/* Uploading overlay */}
                 {item.uploading && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   </div>
                 )}
 
-                {/* Error overlay */}
                 {item.error && (
                   <div className="absolute inset-0 bg-red-900/70 flex items-center justify-center p-1">
                     <svg width="16" height="16" fill="none" stroke="white" strokeWidth="2" viewBox="0 0 24 24">
@@ -258,7 +344,6 @@ export default function MultiMediaUpload({ onChange, onUploadingChange }: Props)
                   </div>
                 )}
 
-                {/* Cover badge */}
                 {idx === 0 && !item.error && (
                   <div className="absolute bottom-1 left-1">
                     <span className="text-[9px] font-bold bg-white/90 text-neutral-900 px-1.5 py-0.5 rounded-full">
@@ -267,7 +352,6 @@ export default function MultiMediaUpload({ onChange, onUploadingChange }: Props)
                   </div>
                 )}
 
-                {/* Video badge */}
                 {item.media_type === "video" && !item.error && !item.uploading && (
                   <div className="absolute top-1 left-1">
                     <span className="bg-black/50 text-white rounded-full p-0.5 flex">
@@ -278,7 +362,6 @@ export default function MultiMediaUpload({ onChange, onUploadingChange }: Props)
                   </div>
                 )}
 
-                {/* Remove button */}
                 <button
                   type="button"
                   onClick={() => removeItem(item.localId)}
@@ -292,7 +375,6 @@ export default function MultiMediaUpload({ onChange, onUploadingChange }: Props)
               </div>
             ))}
 
-            {/* Add more button */}
             {canAddMore && (
               <button
                 type="button"
@@ -308,7 +390,6 @@ export default function MultiMediaUpload({ onChange, onUploadingChange }: Props)
             )}
           </div>
 
-          {/* Status line */}
           <p className="text-xs text-neutral-400">
             {uploadingCount > 0
               ? `Uploading ${uploadingCount} file${uploadingCount !== 1 ? "s" : ""}…`
@@ -317,7 +398,6 @@ export default function MultiMediaUpload({ onChange, onUploadingChange }: Props)
         </div>
       )}
 
-      {/* Per-item errors */}
       {items.some((m) => m.error) && (
         <div className="flex flex-col gap-1">
           {items.filter((m) => m.error).map((m) => (
@@ -326,7 +406,6 @@ export default function MultiMediaUpload({ onChange, onUploadingChange }: Props)
         </div>
       )}
 
-      {/* Global error */}
       {globalError && (
         <p className="text-xs font-medium text-red-500">{globalError}</p>
       )}

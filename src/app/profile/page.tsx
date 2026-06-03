@@ -1,9 +1,11 @@
 import Layout from "@/components/Layout";
 import ProfileHeader from "@/components/ProfileHeader";
-import OutfitCard from "@/components/OutfitCard";
+import ProfileTabContent from "./ProfileTabContent";
 import { getProfile, getSession } from "@/lib/dal";
 import { getCreatorOutfits, getOutfits } from "@/app/actions/outfits";
 import { getSavedOutfitIds } from "@/app/actions/saved";
+import { getSavedItems } from "@/app/actions/saved-items";
+import { getFollowCounts } from "@/app/actions/follows";
 import Link from "next/link";
 
 export default async function ProfilePage() {
@@ -43,11 +45,15 @@ export default async function ProfilePage() {
     );
   }
 
-  const allOutfits = await getOutfits();
+  const [allOutfits, savedItems, followCounts] = await Promise.all([
+    getOutfits(),
+    getSavedItems(),
+    getFollowCounts(user.id),
+  ]);
   const savedOutfits = allOutfits.filter((o) => savedIds.includes(o.id));
 
-  const displayName = profile?.display_name ?? user.email ?? "User";
-  const username = profile?.username ?? user.email?.split("@")[0] ?? "user";
+  const displayName = profile?.display_name ?? "User";
+  const username = profile?.username ?? "user";
   const avatar = profile?.avatar_url ?? null;
   const bio = profile?.bio ?? "";
   const location = profile?.location ?? undefined;
@@ -71,8 +77,8 @@ export default async function ProfilePage() {
 
   const stats = {
     outfits: postedOutfits.length,
-    saves: savedOutfits.length,
-    followers: 0,
+    followers: followCounts.followers,
+    following: followCounts.following,
   };
 
   return (
@@ -101,6 +107,9 @@ export default async function ProfilePage() {
         location={location}
         styleTags={styleTags}
         stats={stats}
+        userId={user.id}
+        isOwnProfile={true}
+        currentUserId={user.id}
         socialLinks={socialLinks}
       />
 
@@ -114,76 +123,14 @@ export default async function ProfilePage() {
         </Link>
       </div>
 
-      {/* Posted outfits */}
-      <div className="px-4 pt-5 pb-4">
-        <div className="flex items-baseline justify-between mb-4">
-          <h2 className="text-base font-bold text-neutral-900">My Outfits</h2>
-          <span className="text-xs text-neutral-400">{postedOutfits.length} posted</span>
-        </div>
-
-        {postedOutfits.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="w-14 h-14 rounded-full bg-neutral-100 flex items-center justify-center mb-4">
-              <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" className="text-neutral-400">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <polyline points="21 15 16 10 5 21" />
-              </svg>
-            </div>
-            <p className="text-neutral-500 text-sm font-medium mb-1">No outfits yet</p>
-            <p className="text-neutral-400 text-sm mb-4">Start posting fits to build your profile.</p>
-            <Link
-              href="/admin/upload"
-              className="text-sm font-semibold bg-neutral-900 text-white px-5 py-2.5 rounded-xl hover:bg-neutral-700 transition-colors"
-            >
-              Post an outfit
-            </Link>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {postedOutfits.map((outfit) => (
-              <OutfitCard
-                key={outfit.id}
-                outfit={outfit}
-                savedIds={savedIds}
-                isAuthenticated={!!user}
-                isOwner
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Saved outfits */}
-      <div className="px-4 pt-2 pb-8 border-t border-neutral-100">
-        <div className="flex items-baseline justify-between mb-4 pt-5">
-          <h2 className="text-base font-bold text-neutral-900">Saved</h2>
-          <span className="text-xs text-neutral-400">{savedOutfits.length} saved</span>
-        </div>
-
-        {savedOutfits.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="w-14 h-14 rounded-full bg-neutral-100 flex items-center justify-center mb-4">
-              <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" className="text-neutral-400">
-                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-              </svg>
-            </div>
-            <p className="text-neutral-500 text-sm font-medium mb-1">Nothing saved yet</p>
-            <p className="text-neutral-400 text-sm">Tap the bookmark on any outfit to save it.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {savedOutfits.map((outfit) => (
-              <OutfitCard
-                key={outfit.id}
-                outfit={outfit}
-                savedIds={savedIds}
-                isAuthenticated={!!user}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+      {/* Tabs: Posts / Saved / Pieces */}
+      <ProfileTabContent
+        postedOutfits={postedOutfits}
+        savedOutfits={savedOutfits}
+        initialSavedItems={savedItems}
+        savedIds={savedIds}
+        isAuthenticated={!!user}
+      />
     </Layout>
   );
 }

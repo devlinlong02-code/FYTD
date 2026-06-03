@@ -33,6 +33,7 @@ function dbRowToOutfit(
         media_url: m.media_url as string,
         media_type: (m.media_type as "image" | "video") ?? "image",
         position: m.position as number,
+        ...(m.thumbnail_url ? { thumbnail_url: m.thumbnail_url as string } : {}),
       }));
   } else {
     // outfit_media not available (migration 008 not run) — use legacy columns
@@ -56,6 +57,9 @@ function dbRowToOutfit(
     creatorName: displayName,
     creatorHandle: `@${username}`,
     creatorAvatar: avatarUrl,
+    likesCount: typeof row.likes_count === "number" ? row.likes_count : 0,
+    commentsCount: typeof row.comments_count === "number" ? row.comments_count : 0,
+    savesCount: typeof row.saves_count === "number" ? row.saves_count : 0,
     items: items.map((item) => ({
       id: item.id as string,
       name: item.name as string,
@@ -65,6 +69,9 @@ function dbRowToOutfit(
       image: item.image_url as string,
       shopLink: (item.shop_link as string) ?? "#",
       shopType: (item.shop_type as "exact" | "similar") ?? "exact",
+      hotspotX: item.hotspot_x != null ? Number(item.hotspot_x) : undefined,
+      hotspotY: item.hotspot_y != null ? Number(item.hotspot_y) : undefined,
+      note: (item.item_note as string) || undefined,
     }) satisfies OutfitItem),
   };
 }
@@ -76,7 +83,7 @@ async function fetchMediaForOutfits(
   if (outfitIds.length === 0) return [];
   const { data, error } = await supabase
     .from("outfit_media")
-    .select("id, outfit_id, media_url, media_type, position, storage_path")
+    .select("id, outfit_id, media_url, media_type, position, storage_path, thumbnail_url")
     .in("outfit_id", outfitIds)
     .order("position");
 

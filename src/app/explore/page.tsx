@@ -13,8 +13,8 @@ export default async function ExplorePage() {
 
   return (
     <Layout>
-      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-neutral-100 px-4 py-3">
-        <span className="font-bold text-xl tracking-tight text-neutral-900">Explore</span>
+      <div className="sticky top-0 z-30 bg-white/98 backdrop-blur-md border-b border-neutral-100/80 px-4 py-3.5">
+        <span className="font-black text-xl tracking-[0.15em] uppercase text-neutral-900">Explore</span>
       </div>
       <div className="px-4 py-4 pb-8">
         <ExploreClient

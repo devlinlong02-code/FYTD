@@ -266,7 +266,7 @@ export default function ExploreClient({ outfits, savedIds, isAuthenticated }: Ex
         </div>
 
         {/* Apply button */}
-        <div className="px-5 pt-3 pb-8 shrink-0 border-t border-neutral-100">
+        <div className="px-5 pt-3 pb-[calc(2rem+env(safe-area-inset-bottom))] shrink-0 border-t border-neutral-100">
           <button
             onClick={() => setDrawerOpen(false)}
             className="w-full py-3.5 rounded-2xl bg-neutral-900 text-white text-sm font-semibold hover:bg-neutral-700 transition-colors"

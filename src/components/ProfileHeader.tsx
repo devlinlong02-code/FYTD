@@ -1,4 +1,6 @@
 import Avatar from "@/components/Avatar";
+import FollowStatsRow from "@/components/FollowStatsRow";
+import FollowButton from "@/components/FollowButton";
 
 interface ProfileHeaderProps {
   avatar?: string | null;
@@ -9,9 +11,13 @@ interface ProfileHeaderProps {
   styleTags: string[];
   stats: {
     outfits: number;
-    saves: number;
     followers: number;
+    following: number;
   };
+  userId: string;
+  isOwnProfile: boolean;
+  currentUserId?: string;
+  isFollowing?: boolean;
   socialLinks?: {
     instagram_url?: string | null;
     tiktok_url?: string | null;
@@ -27,6 +33,10 @@ export default function ProfileHeader({
   location,
   styleTags,
   stats,
+  userId,
+  isOwnProfile,
+  currentUserId,
+  isFollowing: initialIsFollowing,
   socialLinks,
 }: ProfileHeaderProps) {
   return (
@@ -40,8 +50,18 @@ export default function ProfileHeader({
           className="ring-2 ring-neutral-100"
         />
         <div className="flex-1 pt-1">
-          <h1 className="text-lg font-bold text-neutral-900 leading-tight">{displayName}</h1>
-          <p className="text-sm text-neutral-400 font-medium mb-2">@{username}</p>
+          <h1 className="text-lg font-black text-neutral-900 leading-tight tracking-tight">{displayName}</h1>
+          <p className="text-xs text-neutral-400 font-medium tracking-wide mb-2">@{username}</p>
+          {!isOwnProfile && currentUserId && (
+            <div className="mb-2">
+              <FollowButton
+                targetUserId={userId}
+                currentUserId={currentUserId}
+                initialIsFollowing={initialIsFollowing ?? false}
+                size="sm"
+              />
+            </div>
+          )}
           {location && (
             <p className="text-xs text-neutral-400 flex items-center gap-1">
               <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -55,7 +75,7 @@ export default function ProfileHeader({
       </div>
 
       {/* Bio */}
-      <p className="text-sm text-neutral-600 leading-relaxed mb-3">{bio}</p>
+      {bio && <p className="text-sm text-neutral-500 leading-relaxed mb-3">{bio}</p>}
 
       {/* Social links */}
       {(socialLinks?.instagram_url || socialLinks?.tiktok_url || socialLinks?.website_url) && (
@@ -114,26 +134,22 @@ export default function ProfileHeader({
         {styleTags.map((tag) => (
           <span
             key={tag}
-            className="text-xs font-medium bg-neutral-100 text-neutral-600 px-2.5 py-1 rounded-full"
+            className="text-xs font-medium bg-transparent border border-neutral-200 text-neutral-500 px-2.5 py-1 rounded-full"
           >
             {tag}
           </span>
         ))}
       </div>
 
-      {/* Stats row */}
-      <div className="flex gap-5">
-        {[
-          { label: "Outfits", value: stats.outfits },
-          { label: "Saves", value: stats.saves },
-          { label: "Followers", value: stats.followers },
-        ].map(({ label, value }) => (
-          <div key={label} className="flex items-baseline gap-1.5">
-            <span className="text-base font-bold text-neutral-900">{value}</span>
-            <span className="text-xs font-medium text-neutral-400">{label}</span>
-          </div>
-        ))}
-      </div>
+      {/* Stats row — Followers/Following are tappable and update via realtime */}
+      <FollowStatsRow
+        outfits={stats.outfits}
+        initialFollowers={stats.followers}
+        initialFollowing={stats.following}
+        userId={userId}
+        isOwnProfile={isOwnProfile}
+        currentUserId={currentUserId}
+      />
     </div>
   );
 }

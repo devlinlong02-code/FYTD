@@ -53,7 +53,11 @@ export default async function AnalyticsPage() {
               {data.outfitStats.map((outfit) => (
                 <Link key={outfit.id} href={`/outfit/${outfit.id}`} className="flex gap-3 bg-white rounded-2xl border border-neutral-100 p-3 items-center">
                   <div className="relative w-12 h-12 shrink-0 rounded-xl overflow-hidden bg-neutral-100">
-                    <Image src={outfit.image_url} alt={outfit.title} fill className="object-cover" sizes="48px" />
+                    {outfit.image_url ? (
+                      <Image src={outfit.image_url} alt={outfit.title} fill className="object-cover" sizes="48px" />
+                    ) : (
+                      <div className="w-full h-full bg-neutral-200" />
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-neutral-900 truncate">{outfit.title}</p>

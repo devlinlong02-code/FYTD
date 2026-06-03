@@ -87,8 +87,8 @@ export default function PrivacyPage() {
             />
             <Row
               label="Delete account"
-              description="Permanently remove your account and all data."
-              badge="Coming soon"
+              description="Email support@fytd.org to request account deletion. We'll remove your data within 30 days."
+              badge="By request"
             />
           </div>
         </section>
