@@ -2,6 +2,17 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/dal";
+
+async function getBlockedCreatorIds(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string
+): Promise<string[]> {
+  const { data } = await supabase
+    .from("blocks")
+    .select("blocked_id")
+    .eq("blocker_id", userId);
+  return (data ?? []).map((r) => r.blocked_id as string);
+}
 import { outfits as mockOutfits } from "@/data/outfits";
 import type { Outfit, OutfitItem, OutfitMedia } from "@/types";
 
@@ -13,7 +24,7 @@ function hasSupabase() {
   );
 }
 
-function dbRowToOutfit(
+export function dbRowToOutfit(
   row: Record<string, unknown>,
   items: Record<string, unknown>[],
   mediaRows: Record<string, unknown>[] = []
@@ -60,6 +71,7 @@ function dbRowToOutfit(
     likesCount: typeof row.likes_count === "number" ? row.likes_count : 0,
     commentsCount: typeof row.comments_count === "number" ? row.comments_count : 0,
     savesCount: typeof row.saves_count === "number" ? row.saves_count : 0,
+    cardStyle: (row.card_style as "editorial" | "statement" | "streetwear" | undefined) ?? "editorial",
     items: items.map((item) => ({
       id: item.id as string,
       name: item.name as string,
@@ -110,6 +122,10 @@ export async function getOutfits(tag?: string): Promise<Outfit[]> {
 
   const supabase = await createClient();
 
+  // Filter out blocked users' posts if the current user is authenticated
+  const session = await getSession();
+  const blockedIds = session ? await getBlockedCreatorIds(supabase, session.id) : [];
+
   const buildQuery = (withDeletedFilter: boolean) => {
     let q = supabase
       .from("outfits")
@@ -118,6 +134,7 @@ export async function getOutfits(tag?: string): Promise<Outfit[]> {
       .order("created_at", { ascending: false });
     if (withDeletedFilter) q = q.is("deleted_at", null);
     if (tag) q = q.contains("tags", [tag]);
+    if (blockedIds.length > 0) q = q.not("creator_id", "in", `(${blockedIds.join(",")})`);
     return q;
   };
 
@@ -179,6 +196,113 @@ export async function getOutfitById(id: string): Promise<Outfit | null> {
     row as Record<string, unknown>,
     (items ?? []) as Record<string, unknown>[],
     mediaRows
+  );
+}
+
+export async function getTodaysFits(limit = 10): Promise<Outfit[]> {
+  if (!hasSupabase()) return mockOutfits.slice(0, limit);
+  const supabase = await createClient();
+
+  const base = () =>
+    supabase
+      .from("outfits")
+      .select("*, profiles(display_name, username, avatar_url)")
+      .eq("published", true)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+  // Try 24 h → 7 days → all posts (cold-start fallback)
+  const windows = [
+    new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+    new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+    null,
+  ];
+
+  let rows: Record<string, unknown>[] = [];
+  for (const since of windows) {
+    const q = since ? base().gte("created_at", since) : base();
+    const { data, error } = await q;
+    if (!error && data && data.length > 0) {
+      rows = data as Record<string, unknown>[];
+      break;
+    }
+  }
+
+  if (rows.length === 0) return [];
+
+  const outfitIds = rows.map((o) => o.id as string);
+  const [{ data: items }, mediaRows] = await Promise.all([
+    supabase.from("outfit_items").select("*").in("outfit_id", outfitIds).order("display_order"),
+    fetchMediaForOutfits(supabase, outfitIds),
+  ]);
+  return rows.map((row) =>
+    dbRowToOutfit(
+      row,
+      (items ?? []).filter((i) => i.outfit_id === row.id) as Record<string, unknown>[],
+      mediaRows.filter((m) => m.outfit_id === row.id)
+    )
+  );
+}
+
+export async function getMostSavedFits(limit = 8): Promise<Outfit[]> {
+  if (!hasSupabase()) return mockOutfits.slice(0, limit);
+  const supabase = await createClient();
+
+  // No time window — order by saves then likes so something always shows
+  const { data, error } = await supabase
+    .from("outfits")
+    .select("*, profiles(display_name, username, avatar_url)")
+    .eq("published", true)
+    .is("deleted_at", null)
+    .order("saves_count", { ascending: false })
+    .order("likes_count", { ascending: false })
+    .limit(limit);
+
+  if (error || !data || data.length === 0) return [];
+  const outfitIds = data.map((o) => o.id as string);
+  const [{ data: items }, mediaRows] = await Promise.all([
+    supabase.from("outfit_items").select("*").in("outfit_id", outfitIds).order("display_order"),
+    fetchMediaForOutfits(supabase, outfitIds),
+  ]);
+  return data.map((row) =>
+    dbRowToOutfit(
+      row as Record<string, unknown>,
+      (items ?? []).filter((i) => i.outfit_id === row.id) as Record<string, unknown>[],
+      mediaRows.filter((m) => m.outfit_id === row.id)
+    )
+  );
+}
+
+export async function getTrendingOutfits(limit = 8): Promise<Outfit[]> {
+  if (!hasSupabase()) return mockOutfits.slice(0, limit);
+
+  const supabase = await createClient();
+  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  const { data, error } = await supabase
+    .from("outfits")
+    .select("*, profiles(display_name, username, avatar_url)")
+    .eq("published", true)
+    .is("deleted_at", null)
+    .gte("created_at", since)
+    .order("likes_count", { ascending: false })
+    .limit(limit);
+
+  if (error || !data || data.length === 0) return [];
+
+  const outfitIds = data.map((o) => o.id as string);
+  const [{ data: items }, mediaRows] = await Promise.all([
+    supabase.from("outfit_items").select("*").in("outfit_id", outfitIds).order("display_order"),
+    fetchMediaForOutfits(supabase, outfitIds),
+  ]);
+
+  return data.map((row) =>
+    dbRowToOutfit(
+      row as Record<string, unknown>,
+      (items ?? []).filter((i) => i.outfit_id === row.id) as Record<string, unknown>[],
+      mediaRows.filter((m) => m.outfit_id === row.id)
+    )
   );
 }
 

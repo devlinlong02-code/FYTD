@@ -15,6 +15,8 @@ interface Props {
   initialSavedItems: SavedItemData[];
   savedIds: string[];
   isAuthenticated: boolean;
+  currentUserId?: string | null;
+  likedIds?: string[];
 }
 
 type Tab = "posts" | "saved" | "pieces";
@@ -25,6 +27,8 @@ export default function ProfileTabContent({
   initialSavedItems,
   savedIds,
   isAuthenticated,
+  currentUserId,
+  likedIds = [],
 }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("posts");
   const [savedItems, setSavedItems] = useState<SavedItemData[]>(initialSavedItems);
@@ -103,6 +107,8 @@ export default function ProfileTabContent({
                   outfit={outfit}
                   savedIds={savedIds}
                   isAuthenticated={isAuthenticated}
+                  currentUserId={currentUserId}
+                  likedIds={likedIds}
                   isOwner
                 />
               ))}
@@ -132,6 +138,8 @@ export default function ProfileTabContent({
                   outfit={outfit}
                   savedIds={savedIds}
                   isAuthenticated={isAuthenticated}
+                  currentUserId={currentUserId}
+                  likedIds={likedIds}
                 />
               ))}
             </div>

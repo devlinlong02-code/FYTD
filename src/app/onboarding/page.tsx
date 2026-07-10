@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession, getProfile } from "@/lib/dal";
-import ProfileSetupForm from "./ProfileSetupForm";
+import OnboardingWrapper from "./OnboardingWrapper";
 
 export default async function OnboardingPage() {
   const [user, profile] = await Promise.all([getSession(), getProfile()]);
@@ -8,9 +8,12 @@ export default async function OnboardingPage() {
   if (!user) redirect("/auth/login?next=/onboarding");
   if (profile?.profile_completed) redirect("/profile");
 
+  const onboardingCompleted = !!(profile as Record<string, unknown> | null)?.onboarding_completed;
+
   return (
-    <ProfileSetupForm
+    <OnboardingWrapper
       userId={user.id}
+      onboardingCompleted={onboardingCompleted}
       initialData={{
         display_name: profile?.display_name ?? "",
         username: profile?.username ?? "",

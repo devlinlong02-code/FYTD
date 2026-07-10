@@ -20,7 +20,7 @@ const NAV_ITEMS: NavItem[] = [
     href: "/",
     label: "Home",
     icon: (active) => (
-      <svg width="20" height="20" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+      <svg width="22" height="22" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
         <polyline points="9 22 9 12 15 12 15 22" />
       </svg>
@@ -29,8 +29,8 @@ const NAV_ITEMS: NavItem[] = [
   {
     href: "/explore",
     label: "Explore",
-    icon: (active) => (
-      <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth={active ? "2.2" : "1.8"} viewBox="0 0 24 24">
+    icon: (_active) => (
+      <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
         <circle cx="11" cy="11" r="8" />
         <line x1="21" y1="21" x2="16.65" y2="16.65" />
       </svg>
@@ -49,7 +49,7 @@ const NAV_ITEMS: NavItem[] = [
     requiresAuth: "account",
     notifications: true,
     icon: (active) => (
-      <svg width="20" height="20" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? "2.2" : "1.8"} viewBox="0 0 24 24">
+      <svg width="22" height="22" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
         <path d="M13.73 21a2 2 0 0 1-3.46 0" />
       </svg>
@@ -60,24 +60,38 @@ const NAV_ITEMS: NavItem[] = [
     label: "Profile",
     requiresAuth: "profile",
     icon: (active) => (
-      <svg width="20" height="20" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+      <svg width="22" height="22" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
         <circle cx="12" cy="7" r="4" />
       </svg>
     ),
   },
-  {
-    href: "/account",
-    label: "Account",
-    requiresAuth: "account",
-    icon: (active) => (
-      <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth={active ? "2.2" : "1.8"} viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="3" />
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-      </svg>
-    ),
-  },
 ];
+
+function PostButton({ item, handleClick }: { item: NavItem; handleClick: (item: NavItem, e: React.MouseEvent) => void }) {
+  const [isAnimating, setIsAnimating] = useState(false);
+  return (
+    <button
+      onClick={(e) => {
+        setIsAnimating(true);
+        setTimeout(() => setIsAnimating(false), 150);
+        handleClick(item, e);
+      }}
+      className="flex flex-col items-center justify-center flex-1 h-full"
+      aria-label={item.label}
+    >
+      <div
+        className={`w-11 h-11 rounded-full flex items-center justify-center ${isAnimating ? "animate-button-tap" : ""}`}
+        style={{ background: "#0A0A0A" }}
+      >
+        <svg width="18" height="18" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      </div>
+    </button>
+  );
+}
 
 export default function MobileNav() {
   const pathname = usePathname();
@@ -86,7 +100,6 @@ export default function MobileNav() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
 
-  // Resolve user ID once when auth is ready
   useEffect(() => {
     if (!authLoaded || !isAuthenticated) {
       setUserId(null);
@@ -114,15 +127,27 @@ export default function MobileNav() {
     }
   }, [userId]);
 
-  // Poll every 30 seconds
   useEffect(() => {
     if (!userId) return;
     fetchUnreadCount();
     const interval = setInterval(fetchUnreadCount, 30000);
-    return () => clearInterval(interval);
+
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`nav-notifs-${userId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "notifications", filter: `recipient_id=eq.${userId}` },
+        () => setUnreadCount((prev) => prev + 1)
+      )
+      .subscribe();
+
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
   }, [userId, fetchUnreadCount]);
 
-  // Refetch on route change (catches "mark all read" on /notifications)
   useEffect(() => {
     if (!userId) return;
     fetchUnreadCount();
@@ -138,26 +163,26 @@ export default function MobileNav() {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/98 backdrop-blur-xl border-t border-neutral-100/60 safe-b">
-      <div className="flex items-center justify-around px-1 py-1.5">
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-50 border-t"
+      style={{
+        background: "rgba(250,250,250,0.95)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        borderColor: "rgba(10,10,10,0.08)",
+        height: 56,
+      }}
+    >
+      <div
+        className="flex flex-row w-full h-full items-center justify-around"
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+      >
         {NAV_ITEMS.map((item) => {
-          const active = pathname === item.href;
+          const active = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href + "/"));
 
           if (item.plus) {
             return (
-              <button
-                key={item.href}
-                onClick={(e) => handleClick(item, e)}
-                className="flex flex-col items-center gap-0.5 py-1 px-3"
-              >
-                <div className="w-11 h-11 rounded-full bg-neutral-900 flex items-center justify-center shadow-lg hover:bg-neutral-800 transition-all duration-200">
-                  <svg width="18" height="18" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
-                    <line x1="12" y1="5" x2="12" y2="19" />
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                  </svg>
-                </div>
-                <span className="text-[9px] font-semibold tracking-wide text-neutral-300">{item.label}</span>
-              </button>
+              <PostButton key={item.href} item={item} handleClick={handleClick} />
             );
           }
 
@@ -166,21 +191,26 @@ export default function MobileNav() {
               <button
                 key={item.href}
                 onClick={(e) => handleClick(item, e)}
-                className={`flex flex-col items-center gap-0.5 py-1 px-3 transition-colors ${
-                  active ? "text-neutral-900" : "text-neutral-300"
-                }`}
+                className="flex flex-col items-center justify-center flex-1 h-full transition-colors"
+                style={{ color: active ? "#0A0A0A" : "rgba(10,10,10,0.35)" }}
+                aria-label={item.label}
               >
-                <div className="relative">
-                  {item.icon(active)}
-                  {item.notifications && unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-neutral-900 flex items-center justify-center">
-                      <span className="text-white text-[9px] font-bold leading-none">
-                        {unreadCount > 9 ? "9+" : unreadCount}
+                <div className="relative flex flex-col items-center gap-1">
+                  <div className="relative">
+                    {item.icon(active)}
+                    {item.notifications && unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#0A0A0A] flex items-center justify-center">
+                        <span className="text-white text-[9px] font-bold leading-none">
+                          {unreadCount > 9 ? "9+" : unreadCount}
+                        </span>
                       </span>
-                    </span>
-                  )}
+                    )}
+                  </div>
+                  <span
+                    className="w-1 h-1 rounded-full transition-opacity duration-150"
+                    style={{ background: "#0A0A0A", opacity: active ? 1 : 0 }}
+                  />
                 </div>
-                <span className="text-[9px] font-medium">{item.label}</span>
               </button>
             );
           }
@@ -189,12 +219,17 @@ export default function MobileNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center gap-0.5 py-1 px-3 transition-colors ${
-                active ? "text-neutral-900" : "text-neutral-300"
-              }`}
+              className="flex flex-col items-center justify-center flex-1 h-full transition-colors"
+              style={{ color: active ? "#0A0A0A" : "rgba(10,10,10,0.35)" }}
+              aria-label={item.label}
             >
-              {item.icon(active)}
-              <span className="text-[9px] font-medium">{item.label}</span>
+              <div className="flex flex-col items-center gap-1">
+                {item.icon(active)}
+                <span
+                  className="w-1 h-1 rounded-full transition-opacity duration-150"
+                  style={{ background: "#0A0A0A", opacity: active ? 1 : 0 }}
+                />
+              </div>
             </Link>
           );
         })}

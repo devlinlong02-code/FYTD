@@ -1,6 +1,7 @@
+"use client";
+
 import Avatar from "@/components/Avatar";
 import FollowStatsRow from "@/components/FollowStatsRow";
-import FollowButton from "@/components/FollowButton";
 
 interface ProfileHeaderProps {
   avatar?: string | null;
@@ -36,9 +37,9 @@ export default function ProfileHeader({
   userId,
   isOwnProfile,
   currentUserId,
-  isFollowing: initialIsFollowing,
   socialLinks,
 }: ProfileHeaderProps) {
+
   return (
     <div className="px-4 pt-6 pb-5 border-b border-neutral-100">
       {/* Avatar + name row */}
@@ -52,16 +53,6 @@ export default function ProfileHeader({
         <div className="flex-1 pt-1">
           <h1 className="text-lg font-black text-neutral-900 leading-tight tracking-tight">{displayName}</h1>
           <p className="text-xs text-neutral-400 font-medium tracking-wide mb-2">@{username}</p>
-          {!isOwnProfile && currentUserId && (
-            <div className="mb-2">
-              <FollowButton
-                targetUserId={userId}
-                currentUserId={currentUserId}
-                initialIsFollowing={initialIsFollowing ?? false}
-                size="sm"
-              />
-            </div>
-          )}
           {location && (
             <p className="text-xs text-neutral-400 flex items-center gap-1">
               <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -149,6 +140,7 @@ export default function ProfileHeader({
         userId={userId}
         isOwnProfile={isOwnProfile}
         currentUserId={currentUserId}
+        followerCountOverride={stats.followers}
       />
     </div>
   );

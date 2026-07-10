@@ -21,7 +21,7 @@ FOR EACH ROW EXECUTE FUNCTION update_saves_count();
 -- followers_count on profiles (trigger fires on follows table)
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS followers_count INTEGER DEFAULT 0;
 
-CREATE OR REPLACE FUNCTION update_followers_count()
+CREATE OR REPLACE FU  NCTION update_followers_count()
 RETURNS trigger AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN

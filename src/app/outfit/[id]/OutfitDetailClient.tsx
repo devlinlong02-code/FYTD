@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import MediaCarousel from "@/components/MediaCarousel";
-import TagPill from "@/components/TagPill";
 import TakeDownButton from "@/components/TakeDownButton";
 import FollowButton from "@/components/FollowButton";
 import CommentsSection from "@/components/CommentsSection";
@@ -14,6 +13,7 @@ import { trackClick } from "@/app/actions/clicks";
 import { normalizeExternalUrl } from "@/lib/links";
 import { useAuthPrompt } from "@/context/AuthPromptContext";
 import { useToast } from "@/context/ToastContext";
+import { useLikeContext } from "@/context/LikeContext";
 import { createClient } from "@/lib/supabase/client";
 import type { Outfit, OutfitItem } from "@/types";
 
@@ -187,12 +187,34 @@ export default function OutfitDetailClient({
   const [saved, setSaved] = useState(initialSaved);
   const [savedItemIds, setSavedItemIds] = useState<Set<string>>(new Set(initialSavedItemIds));
 
+  const { getLiked, getCount, setLike } = useLikeContext();
+
+  // Seed from context if a like was recorded on the feed card
+  const ctxLiked = getLiked(outfit.id);
+  const ctxCount = getCount(outfit.id);
+
   // Like state
-  const [liked, setLiked] = useState(initialLiked);
-  const [likeCount, setLikeCount] = useState(outfit.likesCount ?? 0);
-  const [likePending, setLikePending] = useState(false);
-  // bounceKey increments on each like → remounts SVG → CSS animation replays
-  const [bounceKey, setBounceKey] = useState(0);
+  const [liked, setLiked] = useState(
+    ctxLiked !== undefined ? ctxLiked : initialLiked
+  );
+  const [likeCount, setLikeCount] = useState(
+    ctxCount !== undefined ? ctxCount : (outfit.likesCount ?? 0)
+  );
+
+  // Refs for rapid-tap safety
+  const likeAnimTimerId = useRef<number>(0);
+  const dbCallTimerId = useRef<number>(0);
+  const countAnimTimerId = useRef<number>(0);
+  const likeCountRef = useRef(
+    ctxCount !== undefined ? ctxCount : (outfit.likesCount ?? 0)
+  );
+
+  // Animation state — only fires on user action
+  const [likeAnimating, setLikeAnimating] = useState(false);
+  const [saveAnimating, setSaveAnimating] = useState(false);
+  const [commentAnimating, setCommentAnimating] = useState(false);
+  const [shareAnimating, setShareAnimating] = useState(false);
+  const [countAnimating, setCountAnimating] = useState(false);
 
   // Heart burst at tap position
   const [heartPos, setHeartPos] = useState<{ x: number; y: number } | null>(null);
@@ -207,49 +229,89 @@ export default function OutfitDetailClient({
   const commentCount = outfit.commentsCount ?? 0;
   const saveCount = outfit.savesCount ?? 0;
 
+  // ── Cleanup timer refs on unmount ─────────────────────────────────────────
+  useEffect(() => {
+    return () => {
+      clearTimeout(likeAnimTimerId.current);
+      clearTimeout(dbCallTimerId.current);
+      clearTimeout(countAnimTimerId.current);
+    };
+  }, []);
+
   // ── Like ────────────────────────────────────────────────────────────────────
-  const handleLike = useCallback(async () => {
-    if (likePending) return;
+  const handleLike = useCallback(() => {
     if (authLoaded && !isAuthenticated) { openPrompt("like"); return; }
     if (!currentUserId) { openPrompt("like"); return; }
 
-    const nextLiked = !liked;
-    setLiked(nextLiked);
-    setLikeCount((c) => c + (nextLiked ? 1 : -1));
-    if (nextLiked) setBounceKey((k) => k + 1);
+    // Restart animation cleanly even on rapid taps
+    clearTimeout(likeAnimTimerId.current);
+    setLikeAnimating(false);
+    requestAnimationFrame(() => {
+      setLikeAnimating(true);
+      likeAnimTimerId.current = window.setTimeout(() => setLikeAnimating(false), 400);
+    });
 
-    setLikePending(true);
-    try {
+    // Count-flip animation
+    clearTimeout(countAnimTimerId.current);
+    setCountAnimating(false);
+    requestAnimationFrame(() => {
+      setCountAnimating(true);
+      countAnimTimerId.current = window.setTimeout(() => setCountAnimating(false), 280);
+    });
+
+    const nextLiked = !liked;
+    const nextCount = nextLiked
+      ? likeCountRef.current + 1
+      : Math.max(0, likeCountRef.current - 1);
+
+    setLiked(nextLiked);
+    setLikeCount(nextCount);
+    likeCountRef.current = nextCount;
+    // Immediately publish to shared context so the feed card reflects this
+    // when the user navigates back without a full refetch.
+    setLike(outfit.id, nextLiked, nextCount);
+
+    // Debounce DB write — only final tap state reaches the server
+    clearTimeout(dbCallTimerId.current);
+    dbCallTimerId.current = window.setTimeout(async () => {
       const supabase = createClient();
-      if (nextLiked) {
-        await supabase.from("likes").insert({ user_id: currentUserId, outfit_id: outfit.id });
-        const { data: outfitRow } = await supabase.from("outfits").select("creator_id").eq("id", outfit.id).maybeSingle();
-        const ownerId = outfitRow?.creator_id as string | undefined;
-        if (ownerId && ownerId !== currentUserId) {
-          await supabase.from("notifications").insert({ recipient_id: ownerId, actor_id: currentUserId, type: "like", outfit_id: outfit.id });
+      try {
+        if (nextLiked) {
+          await supabase.from("likes").upsert(
+            { user_id: currentUserId, outfit_id: outfit.id },
+            { onConflict: "user_id,outfit_id" }
+          );
+          const { data: outfitRow } = await supabase
+            .from("outfits").select("creator_id").eq("id", outfit.id).maybeSingle();
+          const ownerId = outfitRow?.creator_id as string | undefined;
+          if (ownerId && ownerId !== currentUserId) {
+            await supabase.from("notifications").insert({
+              recipient_id: ownerId, actor_id: currentUserId,
+              type: "like", outfit_id: outfit.id,
+            });
+          }
+        } else {
+          await supabase.from("likes").delete()
+            .eq("user_id", currentUserId).eq("outfit_id", outfit.id);
         }
-      } else {
-        await supabase.from("likes").delete().eq("user_id", currentUserId).eq("outfit_id", outfit.id);
+      } catch {
+        // Silent fail — UI is correct; DB will reconcile on next page load
       }
-    } catch {
-      setLiked(!nextLiked);
-      setLikeCount((c) => c + (nextLiked ? -1 : 1));
-    } finally {
-      setLikePending(false);
-    }
-  }, [likePending, liked, currentUserId, outfit.id, authLoaded, isAuthenticated, openPrompt]);
+    }, 500);
+  }, [liked, currentUserId, outfit.id, authLoaded, isAuthenticated, openPrompt, setLike]);
 
   // ── Double-tap to like at position ─────────────────────────────────────────
   const handleDoubleTap = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     if ((e.target as Element).closest("button, a")) return;
 
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const clientX = "touches" in e
-      ? (e.touches[0]?.clientX ?? rect.left + rect.width / 2)
-      : e.clientX;
-    const clientY = "touches" in e
-      ? (e.touches[0]?.clientY ?? rect.top + rect.height / 2)
-      : e.clientY;
+    // touchend: active touches are empty — use changedTouches for the lifted finger
+    const clientX = "changedTouches" in e
+      ? (e.changedTouches[0]?.clientX ?? rect.left + rect.width / 2)
+      : (e as React.MouseEvent).clientX;
+    const clientY = "changedTouches" in e
+      ? (e.changedTouches[0]?.clientY ?? rect.top + rect.height / 2)
+      : (e as React.MouseEvent).clientY;
     const x = clientX - rect.left;
     const y = clientY - rect.top;
 
@@ -267,6 +329,8 @@ export default function OutfitDetailClient({
   // ── Save ────────────────────────────────────────────────────────────────────
   async function handleSaveToggle() {
     if (!isAuthenticated) { openPrompt("save"); return; }
+    setSaveAnimating(true);
+    setTimeout(() => setSaveAnimating(false), 350);
     const result = await toggleSave(outfit.id);
     setSaved(result.saved);
     showToast(result.saved ? "Saved" : "Removed from saved");
@@ -274,6 +338,8 @@ export default function OutfitDetailClient({
 
   // ── Share ───────────────────────────────────────────────────────────────────
   async function handleShare() {
+    setShareAnimating(true);
+    setTimeout(() => setShareAnimating(false), 350);
     const url = `https://fytd.org/outfit/${outfit.id}`;
     const shareData = {
       title: outfit.title,
@@ -298,8 +364,11 @@ export default function OutfitDetailClient({
 
   // ── Scroll to comments ──────────────────────────────────────────────────────
   function scrollToComments() {
+    setCommentAnimating(true);
+    setTimeout(() => setCommentAnimating(false), 300);
     commentsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
+
 
   // ── Intersection observer for sticky header ─────────────────────────────────
   useEffect(() => {
@@ -354,7 +423,7 @@ export default function OutfitDetailClient({
             </svg>
           </button>
           <p className="flex-1 text-sm font-medium text-neutral-900 truncate">{outfit.title}</p>
-          <span className="text-xs text-neutral-400 shrink-0">{outfit.items.length} pcs</span>
+          <span className="text-xs text-neutral-400 shrink-0">{outfit.items.length} {outfit.items.length === 1 ? "pc" : "pcs"}</span>
         </div>
       </div>
 
@@ -417,10 +486,10 @@ export default function OutfitDetailClient({
 
         {/* Hero content — title, creator, follow */}
         <div className="absolute bottom-0 left-0 right-0 px-4 pb-5 z-10 pointer-events-none">
-          <h1 className="text-white text-2xl font-black leading-tight tracking-tight mb-1">{outfit.title}</h1>
-          <p className="text-white/50 text-xs font-medium tracking-wide uppercase mb-3">
-            {outfit.items.length} pieces
-            {outfit.media.length > 1 && ` · ${outfit.media.length} photos`}
+          <h1 className="font-editorial text-white text-[26px] font-medium leading-[1.1] tracking-[-0.02em] mb-1">{outfit.title}</h1>
+          <p className="font-data text-white/55 text-[11px] uppercase tracking-[0.08em] mb-3">
+            {outfit.items.length} {outfit.items.length === 1 ? "piece" : "pieces"}
+            {outfit.media.length > 1 && ` · ${outfit.media.length} ${outfit.media.length === 1 ? "photo" : "photos"}`}
             {fitValue && ` · ${fitValue} fit value`}
           </p>
           {/* Creator row */}
@@ -429,7 +498,7 @@ export default function OutfitDetailClient({
             <div
               className="pointer-events-auto shrink-0"
               style={{ width: 32, height: 32, borderRadius: "50%", overflow: "hidden", background: "rgba(255,255,255,0.2)" }}
-              onClick={(e) => { e.stopPropagation(); if (isOwner) router.push("/profile"); }}
+              onClick={(e) => { e.stopPropagation(); router.push(isOwner ? "/profile" : `/profile/${outfit.creatorHandle.replace("@", "")}`); }}
             >
               {outfit.creatorAvatar ? (
                 <img src={outfit.creatorAvatar} alt={outfit.creatorName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
@@ -444,8 +513,8 @@ export default function OutfitDetailClient({
             {/* Name + handle */}
             <div
               className="flex-1 min-w-0 pointer-events-auto"
-              onClick={(e) => { e.stopPropagation(); if (isOwner) router.push("/profile"); }}
-              style={{ cursor: isOwner ? "pointer" : "default" }}
+              onClick={(e) => { e.stopPropagation(); router.push(isOwner ? "/profile" : `/profile/${outfit.creatorHandle.replace("@", "")}`); }}
+              style={{ cursor: "pointer" }}
             >
               <p style={{ fontSize: 13, fontWeight: 500, color: "white", lineHeight: 1.3, textShadow: "0 1px 2px rgba(0,0,0,0.6)" }} className="truncate">
                 {outfit.creatorName}
@@ -475,19 +544,22 @@ export default function OutfitDetailClient({
         className="flex items-center px-4"
         style={{
           gap: 20,
-          paddingTop: 10,
-          paddingBottom: 10,
-          borderTop: "0.5px solid rgba(0,0,0,0.06)",
-          borderBottom: "0.5px solid rgba(0,0,0,0.06)",
+          paddingTop: 11,
+          paddingBottom: 11,
+          borderTop: "0.5px solid rgba(10,10,10,0.06)",
+          borderBottom: "0.5px solid rgba(10,10,10,0.06)",
         }}
       >
         {/* Like */}
-        <button onClick={handleLike} disabled={likePending} className="flex items-center gap-1.5 disabled:opacity-60">
-          <span key={bounceKey} className={bounceKey > 0 ? "heart-bounce" : ""} style={{ display: "flex" }}>
+        <button onClick={handleLike} className="flex items-center gap-1.5">
+          <span className={likeAnimating ? "animate-like-pop" : ""} style={{ display: "flex" }}>
             <HeartIcon filled={liked} size={20} />
           </span>
-          {likeCount > 0 && (
-            <span style={{ fontSize: 13, color: "rgba(0,0,0,0.6)" }} className="tabular-nums">
+          {typeof likeCount === "number" && likeCount > 0 && (
+            <span
+              className={`font-data tabular-nums ${countAnimating ? "animate-count-flip" : ""}`}
+              style={{ fontSize: 12, color: "#888" }}
+            >
               {likeCount.toLocaleString()}
             </span>
           )}
@@ -495,11 +567,14 @@ export default function OutfitDetailClient({
 
         {/* Comments — scrolls to section */}
         <button onClick={scrollToComments} className="flex items-center gap-1.5">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="1.8">
+          <svg
+            width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" strokeWidth="1.8"
+            className={commentAnimating ? "animate-comment-pulse" : ""}
+          >
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
           {commentCount > 0 && (
-            <span style={{ fontSize: 13, color: "rgba(0,0,0,0.6)" }} className="tabular-nums">
+            <span className="font-data tabular-nums" style={{ fontSize: 12, color: "#888" }}>
               {commentCount.toLocaleString()}
             </span>
           )}
@@ -507,11 +582,15 @@ export default function OutfitDetailClient({
 
         {/* Save/Bookmark */}
         <button onClick={handleSaveToggle} className="flex items-center gap-1.5">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill={saved ? "#000" : "none"} stroke="#000" strokeWidth="1.8">
+          <svg
+            width="20" height="20" viewBox="0 0 24 24"
+            fill={saved ? "#0A0A0A" : "none"} stroke="#0A0A0A" strokeWidth="1.8"
+            className={saveAnimating ? "animate-save-drop" : ""}
+          >
             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
           </svg>
           {saveCount > 0 && (
-            <span style={{ fontSize: 13, color: "rgba(0,0,0,0.6)" }} className="tabular-nums">
+            <span className="font-data tabular-nums" style={{ fontSize: 12, color: "#888" }}>
               {saveCount.toLocaleString()}
             </span>
           )}
@@ -519,7 +598,10 @@ export default function OutfitDetailClient({
 
         {/* Share — pushed to far right */}
         <button onClick={handleShare} className="ml-auto flex items-center">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="1.8">
+          <svg
+            width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" strokeWidth="1.8"
+            className={shareAnimating ? "animate-share-float" : ""}
+          >
             <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
             <polyline points="16 6 12 2 8 6" />
             <line x1="12" y1="2" x2="12" y2="15" />
@@ -528,34 +610,49 @@ export default function OutfitDetailClient({
       </div>
 
       {/* Details */}
-      <div className="px-4 pt-4 pb-6">
-        {outfit.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-3">
-            {outfit.tags.map((tag) => <TagPill key={tag} tag={tag} />)}
-          </div>
-        )}
+      <div className="pt-4 pb-2">
+        <div className="px-4">
+          {/* Tags — plain text, no pills */}
+          {outfit.tags.length > 0 && (
+            <div className="flex flex-wrap gap-4 mb-3">
+              {outfit.tags.map((tag) => (
+                <span key={tag} className="font-data text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: "#888" }}>
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
 
-        {outfit.description && (
-          <p className="text-neutral-500 text-sm leading-relaxed mb-5">{outfit.description}</p>
-        )}
+          {/* Caption */}
+          {outfit.description && (
+            <p className="text-[14px] leading-relaxed mb-4 italic" style={{ color: "rgba(10,10,10,0.55)" }}>{outfit.description}</p>
+          )}
+        </div>
 
-        {/* Breakdown header */}
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <h2 className="text-base font-black text-neutral-900 tracking-tight">The Breakdown</h2>
-            {fitValue
-              ? <p className="text-xs text-neutral-400 mt-0.5">{outfit.items.length} pieces · {fitValue} fit value</p>
-              : <p className="text-xs text-neutral-400 mt-0.5">{outfit.items.length} items</p>
-            }
-          </div>
+        {/* Breakdown section divider */}
+        <div className="flex items-center gap-3 px-4 pt-5 pb-1">
+          <div className="flex-1 h-px" style={{ background: "rgba(10,10,10,0.1)" }} />
+          <span
+            className="font-data text-[9px] font-semibold tracking-[0.16em] uppercase whitespace-nowrap"
+            style={{ color: "rgba(0,0,0,0.4)" }}
+          >
+            The Breakdown
+          </span>
+          <div className="flex-1 h-px" style={{ background: "rgba(10,10,10,0.1)" }} />
+        </div>
+        {/* Item count + tools */}
+        <div className="flex items-center justify-between px-4 pb-2">
+          <span className="font-data text-[10px] tracking-[0.06em]" style={{ color: "#888" }}>
+            {outfit.items.length} {outfit.items.length === 1 ? "item" : "items"}{fitValue ? " ✦" : ""}
+          </span>
           <div className="flex items-center gap-2">
             <CompletenessBadge score={score} />
             <ShareBreakdownButton outfit={outfit} />
           </div>
         </div>
 
-        {/* Item cards */}
-        <div className="flex flex-col gap-2">
+        {/* Item cards — editorial style */}
+        <div>
           {outfit.items.map((item) => {
             const isActive = item.id === activeItemId;
             const isExact = item.shopType !== "similar";
@@ -566,70 +663,117 @@ export default function OutfitDetailClient({
                 key={item.id}
                 id={`item-card-${item.id}`}
                 onClick={() => activateItem(item.id)}
-                className="flex items-center gap-3 cursor-pointer"
-                style={{ background: "#fff", border: `1.5px solid ${isActive ? "#000" : "rgba(0,0,0,0.08)"}`, borderRadius: 14, padding: "10px 12px 10px 10px", transition: "border-color 200ms", minHeight: 80 }}
+                className="flex gap-4 cursor-pointer px-4 py-4 transition-colors"
+                style={{
+                  borderBottom: "0.5px solid rgba(10,10,10,0.08)",
+                  background: isActive ? "#F2F2F0" : "transparent",
+                }}
               >
-                <div className="relative shrink-0" style={{ width: 72, height: 72, borderRadius: 10, overflow: "hidden", background: "#f4f4f4" }}>
+                {/* Item image */}
+                <div
+                  className="relative shrink-0"
+                  style={{ width: 80, height: 80, borderRadius: 4, overflow: "hidden", background: "#F2F2F0" }}
+                >
                   {item.image ? (
-                    <Image src={item.image} alt={item.name} fill className="object-cover" sizes="72px" />
+                    <Image src={item.image} alt={item.name} fill className="object-cover" sizes="80px" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <span style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: "0.08em", color: "#ccc" }}>{item.category}</span>
+                      <span className="font-data" style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: "0.08em", color: "#ccc" }}>{item.category}</span>
                     </div>
                   )}
                 </div>
 
-                <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
-                  <div className="flex items-center gap-1.5">
-                    <span style={{ fontSize: 9, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", color: "#aaa" }}>{item.category}</span>
-                    {!isExact && (
-                      <span style={{ fontSize: 8, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: "#b45309", background: "#fef3c7", padding: "1px 6px", borderRadius: 999 }}>Similar</span>
+                {/* Item info */}
+                <div className="flex-1 min-w-0 flex flex-col justify-between">
+                  <div>
+                    <p className="font-data text-[9px] font-semibold uppercase tracking-[0.12em] mb-0.5" style={{ color: "#888" }}>
+                      {item.category}
+                      {!isExact && <span style={{ color: "#b45309", marginLeft: 6 }}>· Similar</span>}
+                    </p>
+                    {item.brand && (
+                      <p className="font-data text-[10px] font-semibold uppercase tracking-[0.1em]" style={{ color: "#888" }}>{item.brand}</p>
+                    )}
+                    <p className="font-editorial text-[15px] font-medium leading-tight mt-0.5 tracking-[-0.01em] truncate" style={{ color: "#0A0A0A" }}>
+                      {item.name}
+                    </p>
+                    {item.note && (
+                      <p className="text-[10px] italic truncate mt-0.5" style={{ color: "#aaa" }}>{item.note}</p>
+                    )}
+                    {item.price > 0 && (
+                      <p className="font-data text-[13px] mt-1" style={{ color: "#0A0A0A" }}>${item.price.toLocaleString()}</p>
                     )}
                   </div>
-                  {item.brand && <p style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: "#888", lineHeight: 1.2 }}>{item.brand}</p>}
-                  <p className="truncate" style={{ fontSize: 14, fontWeight: 600, color: "#000", lineHeight: 1.3 }}>{item.name}</p>
-                  {item.note && <p className="truncate" style={{ fontSize: 10, fontStyle: "italic", color: "#aaa" }}>{item.note}</p>}
-                  {item.price > 0 && <p style={{ fontSize: 13, color: "#000" }}>${item.price.toLocaleString()}</p>}
-                </div>
 
-                <div className="flex flex-col items-end gap-2 shrink-0">
+                  {/* Shop link — underline arrow style */}
                   {item.shopLink && item.shopLink !== "#" && (
                     <a
                       href={normalizeExternalUrl(item.shopLink) ?? "#"}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => { e.stopPropagation(); trackClick(item.id, outfit.id).catch(() => {}); }}
-                      style={{ fontSize: 11, fontWeight: 600, padding: "6px 14px", borderRadius: 999, background: isExact ? "#000" : "transparent", color: isExact ? "#fff" : "#000", border: isExact ? "none" : "1.5px solid #000", whiteSpace: "nowrap" }}
+                      className="inline-flex items-center gap-1 mt-2 self-start"
+                      style={{
+                        fontFamily: "var(--font-body, inherit)",
+                        fontSize: 11,
+                        fontWeight: 500,
+                        color: "#0A0A0A",
+                        letterSpacing: "0.04em",
+                        borderBottom: "1px solid #0A0A0A",
+                        paddingBottom: 1,
+                        textDecoration: "none",
+                      }}
                     >
-                      {isExact ? "Shop" : "Similar"}
+                      {isExact ? "Shop Exact" : "Shop Similar"} →
                     </a>
                   )}
-                  {isAuthenticated && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleToggleSavedItem(item.id); }}
-                      style={{ color: isSaved ? "#000" : "#d1d1d1", padding: "4px" }}
-                      aria-label={isSaved ? "Unsave item" : "Save item"}
-                    >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
-                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-                      </svg>
-                    </button>
-                  )}
                 </div>
+
+                {/* Save item */}
+                {isAuthenticated && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleToggleSavedItem(item.id); }}
+                    className="shrink-0 self-start mt-0.5"
+                    style={{ color: isSaved ? "#0A0A0A" : "#d1d1d1", padding: "4px" }}
+                    aria-label={isSaved ? "Unsave item" : "Save item"}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
+                      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                    </svg>
+                  </button>
+                )}
               </div>
             );
           })}
         </div>
 
-        {score > 0 && score < 100 && (
-          <p className="text-[11px] text-neutral-300 text-center mt-6 tracking-wide">
-            Add images, prices, and links to reach Complete Fit ✦
-          </p>
+        {/* Total fit value */}
+        {fitValue && (
+          <div
+            className="flex items-baseline justify-between px-4 py-4"
+            style={{ borderTop: "0.5px solid rgba(10,10,10,0.08)" }}
+          >
+            <span className="font-data text-[10px] font-semibold uppercase tracking-[0.1em]" style={{ color: "#888" }}>
+              Total Fit Value
+            </span>
+            <span className="font-data text-[20px] tracking-[-0.02em]" style={{ color: "#0A0A0A" }}>
+              {fitValue}
+            </span>
+          </div>
         )}
       </div>
 
-      {/* Comments */}
-      <div ref={commentsRef} className="border-t border-neutral-100 mt-5">
+      {/* Comments section divider */}
+      <div ref={commentsRef}>
+        <div className="flex items-center gap-3 px-4 pt-6 pb-1">
+          <div className="flex-1 h-px" style={{ background: "rgba(10,10,10,0.1)" }} />
+          <span
+            className="font-data text-[9px] font-semibold tracking-[0.16em] uppercase whitespace-nowrap"
+            style={{ color: "rgba(0,0,0,0.4)" }}
+          >
+            Comments
+          </span>
+          <div className="flex-1 h-px" style={{ background: "rgba(10,10,10,0.1)" }} />
+        </div>
         <CommentsSection
           outfitId={outfit.id}
           currentUserId={currentUserId}

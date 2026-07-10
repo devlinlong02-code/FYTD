@@ -44,6 +44,10 @@ export async function createOutfit(
   const tagsRaw = (formData.get("tags") as string)?.trim();
   const itemsJson = (formData.get("items_json") as string) || "[]";
   const mediaItemsJson = (formData.get("media_items_json") as string) || "[]";
+  const cardStyleRaw = (formData.get("card_style") as string)?.trim();
+  const cardStyle = ["editorial", "statement", "streetwear"].includes(cardStyleRaw)
+    ? (cardStyleRaw as "editorial" | "statement" | "streetwear")
+    : "editorial";
 
   if (!title) return { error: "Title is required." };
   if (description && description.length > 500) return { error: "Caption must be 500 characters or fewer." };
@@ -95,10 +99,30 @@ export async function createOutfit(
       media_type: primaryMedia.media_type,
       tags,
       published: true,
+      card_style: cardStyle,
     })
     .select("id")
     .single();
 
+  // Fallback: card_style column missing (migration 032 not yet applied)
+  if (outfitError?.message?.includes("card_style")) {
+    console.warn("[createOutfit] card_style column missing — apply supabase/migrations/032_card_style.sql");
+    ({ data: outfit, error: outfitError } = await supabase
+      .from("outfits")
+      .insert({
+        creator_id: user.id,
+        title,
+        description,
+        image_url: primaryMedia.media_url,
+        media_type: primaryMedia.media_type,
+        tags,
+        published: true,
+      })
+      .select("id")
+      .single());
+  }
+
+  // Fallback: media_type column missing (migration 004 not yet applied)
   if (outfitError?.message?.includes("media_type")) {
     console.warn("[createOutfit] media_type column missing — apply supabase/migrations/004_media.sql");
     ({ data: outfit, error: outfitError } = await supabase

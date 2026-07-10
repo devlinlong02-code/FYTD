@@ -6,6 +6,7 @@ interface CreatorBadgeProps {
   avatar?: string | null;
   size?: "sm" | "md";
   colorScheme?: "dark" | "light";
+  href?: string;
 }
 
 export default function CreatorBadge({
@@ -14,19 +15,20 @@ export default function CreatorBadge({
   avatar,
   size = "md",
   colorScheme = "dark",
+  href,
 }: CreatorBadgeProps) {
   const imgSize = size === "sm" ? 28 : 36;
   const isLight = colorScheme === "light";
 
-  // Derive initials for the avatar fallback
-  const initials = name
-    .split(" ")
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase() || "?";
+  const initials =
+    name
+      .split(" ")
+      .map((w) => w[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "?";
 
-  return (
+  const inner = (
     <div className="flex items-center gap-2">
       <div
         className="rounded-full overflow-hidden shrink-0 bg-neutral-200 flex items-center justify-center"
@@ -71,4 +73,14 @@ export default function CreatorBadge({
       </div>
     </div>
   );
+
+  if (href) {
+    return (
+      <a href={href} className="inline-flex">
+        {inner}
+      </a>
+    );
+  }
+
+  return inner;
 }

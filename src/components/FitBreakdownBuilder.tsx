@@ -219,15 +219,23 @@ export default function FitBreakdownBuilder({ pieces, onChange, outfitImageUrl }
         </div>
 
         {/* Quick category buttons */}
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className="w-full flex flex-wrap gap-2 mb-4">
           {QUICK_CATEGORIES.map(({ label }) => (
             <button
               key={label}
               type="button"
               onClick={() => openAdd(label === "Shoes" ? "Footwear" : label)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-neutral-200 bg-white text-xs font-semibold text-neutral-700 hover:border-neutral-900 hover:bg-neutral-50 transition-colors"
+              className="flex items-center gap-1.5 bg-white text-neutral-700 hover:bg-neutral-900 hover:text-white hover:border-neutral-900 transition-colors"
+              style={{
+                padding: "8px 16px",
+                borderRadius: 999,
+                border: "1px solid rgba(0,0,0,0.15)",
+                fontSize: 13,
+                fontWeight: 500,
+                lineHeight: 1,
+              }}
             >
-              <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>

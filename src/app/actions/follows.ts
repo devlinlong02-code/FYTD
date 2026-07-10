@@ -82,65 +82,110 @@ export async function isFollowing(targetUserId: string): Promise<boolean> {
 }
 
 export async function getFollowingFeed(userId: string): Promise<import("@/types").Outfit[]> {
+  const { dbRowToOutfit } = await import("@/app/actions/outfits");
+
   const supabase = await createClient();
 
-  const { data: followRows } = await supabase
+  // Step 1: get who this user follows
+  const { data: followRows, error: followError } = await supabase
     .from("follows")
     .select("following_id")
     .eq("follower_id", userId);
 
-  const followingIds = (followRows ?? []).map((r) => r.following_id as string);
+  if (followError) {
+    console.error("[getFollowingFeed] follows query failed:", followError.message);
+    return [];
+  }
+
+  // Filter out blocked users
+  const { data: blockRows } = await supabase
+    .from("blocks")
+    .select("blocked_id")
+    .eq("blocker_id", userId);
+  const blockedSet = new Set((blockRows ?? []).map((r) => r.blocked_id as string));
+
+  const followingIds = (followRows ?? [])
+    .map((r) => r.following_id as string)
+    .filter((id) => !blockedSet.has(id));
   if (followingIds.length === 0) return [];
 
-  const { data: rows } = await supabase
-    .from("outfits")
-    .select(`
-      id, title, description, tags, image_url, media_type, published,
-      creator_id, likes_count, comments_count,
-      profiles!outfits_creator_id_fkey(
-        id, display_name, username, avatar_url
-      ),
-      outfit_media(id, media_url, media_type, position, thumbnail_url)
-    `)
-    .in("creator_id", followingIds)
-    .eq("published", true)
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false })
-    .limit(50);
+  // Step 2: fetch outfits from those users — same pattern as getOutfits()
+  const runQuery = async (withDeletedFilter: boolean) => {
+    const q = supabase
+      .from("outfits")
+      .select("*, profiles(display_name, username, avatar_url)")
+      .in("creator_id", followingIds)
+      .eq("published", true)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    return withDeletedFilter ? q.is("deleted_at", null) : q;
+  };
 
-  if (!rows) return [];
+  let { data, error } = await runQuery(true);
+  if (error?.message?.includes("deleted_at")) {
+    console.warn("[getFollowingFeed] deleted_at column missing — apply migration 009");
+    ({ data, error } = await runQuery(false));
+  }
+  if (error) {
+    console.error("[getFollowingFeed] outfits query failed:", error.message);
+    return [];
+  }
+  if (!data || data.length === 0) return [];
 
-  return rows.map((row) => {
-    const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
-    const mediaRows: import("@/types").OutfitMedia[] = Array.isArray(row.outfit_media)
-      ? row.outfit_media
-          .sort((a: { position: number }, b: { position: number }) => a.position - b.position)
-          .map((m: { id?: string; media_url: string; media_type: string; position: number; thumbnail_url?: string }) => ({
-            id: m.id,
-            media_url: m.media_url,
-            media_type: (m.media_type ?? "image") as "image" | "video",
-            position: m.position,
-            thumbnail_url: m.thumbnail_url,
-          }))
-      : [];
-    const primaryMedia = mediaRows[0] ?? {
-      media_url: row.image_url ?? "",
-      media_type: (row.media_type ?? "image") as "image" | "video",
-      position: 0,
-    };
-    return {
-      id: row.id,
-      title: row.title ?? "",
-      description: row.description ?? "",
-      tags: (row.tags ?? []) as string[],
-      image: primaryMedia.media_url,
-      mediaType: primaryMedia.media_type,
-      media: mediaRows.length > 0 ? mediaRows : [primaryMedia],
-      items: [],
-      creatorId: row.creator_id,
-      creatorName: (profile?.display_name ?? profile?.username ?? "Creator") as string,
-      creatorHandle: `@${(profile?.username ?? "unknown") as string}`,
-      creatorAvatar: (profile?.avatar_url ?? null) as string | null,
-    };
-  });
+  // Step 3: fetch outfit_items and media in parallel
+  const outfitIds = data.map((o) => o.id as string);
+  const [{ data: items }, { data: mediaRows }] = await Promise.all([
+    supabase.from("outfit_items").select("*").in("outfit_id", outfitIds).order("display_order"),
+    supabase.from("outfit_media").select("id, outfit_id, media_url, media_type, position, storage_path, thumbnail_url").in("outfit_id", outfitIds).order("position"),
+  ]);
+
+  return data.map((row) =>
+    dbRowToOutfit(
+      row as Record<string, unknown>,
+      (items ?? []).filter((i) => i.outfit_id === row.id) as Record<string, unknown>[],
+      (mediaRows ?? []).filter((m) => m.outfit_id === row.id) as Record<string, unknown>[]
+    )
+  );
+}
+
+
+export interface RisingCreator {
+  id: string;
+  username: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+  followers_count: number | null;
+  bio: string | null;
+}
+
+export async function getRisingCreators(
+  currentUserId: string | null,
+  limit = 5
+): Promise<RisingCreator[]> {
+  const supabase = await createClient();
+
+  let excludeIds: string[] = [];
+  if (currentUserId) {
+    const { data: following } = await supabase
+      .from("follows")
+      .select("following_id")
+      .eq("follower_id", currentUserId);
+    excludeIds = [
+      ...(following ?? []).map((f) => f.following_id as string),
+      currentUserId,
+    ];
+  }
+
+  let query = supabase
+    .from("profiles")
+    .select("id, username, display_name, avatar_url, followers_count, bio")
+    .order("followers_count", { ascending: false })
+    .limit(limit);
+
+  if (excludeIds.length > 0) {
+    query = query.not("id", "in", `(${excludeIds.join(",")})`);
+  }
+
+  const { data } = await query;
+  return (data ?? []) as RisingCreator[];
 }

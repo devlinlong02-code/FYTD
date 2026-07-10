@@ -25,15 +25,12 @@ Rules:
 export async function POST(request: NextRequest) {
   try {
     const apiKey = process.env.ANTHROPIC_API_KEY;
-    console.log("[analyze-item] API key present:", !!apiKey, "| prefix:", apiKey?.substring(0, 14));
-
     if (!apiKey) {
       return NextResponse.json({ error: "AI service not configured" }, { status: 503 });
     }
 
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    console.log("[analyze-item] auth user:", user?.id ?? "none");
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -49,12 +46,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing imageBase64 or mediaType" }, { status: 400 });
     }
 
+    const ALLOWED_MEDIA_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (!ALLOWED_MEDIA_TYPES.includes(mediaType)) {
+      return NextResponse.json({ error: "Invalid media type" }, { status: 400 });
+    }
+
     if (imageBase64.length > 6_000_000) {
       return NextResponse.json({ error: "Image too large. Please use a smaller image." }, { status: 400 });
     }
-
-    console.log("[analyze-item] image size:", imageBase64.length, "| mediaType:", mediaType);
-    console.log("[analyze-item] calling Anthropic, model:", AI_MODEL);
 
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -77,23 +76,17 @@ export async function POST(request: NextRequest) {
       signal: AbortSignal.timeout(30000),
     });
 
-    console.log("[analyze-item] Anthropic status:", res.status);
-
     if (!res.ok) {
-      const errBody = await res.text();
-      console.error("[analyze-item] Anthropic error:", res.status, errBody);
-      return NextResponse.json({ error: "AI service error", status: res.status }, { status: 502 });
+      console.error("[analyze-item] Anthropic error:", res.status);
+      return NextResponse.json({ error: "AI service error" }, { status: 502 });
     }
 
     const data = await res.json();
     const text = data.content?.[0]?.text ?? "";
-    console.log("[analyze-item] raw response:", text);
-
     const parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
     return NextResponse.json(parsed);
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error("[analyze-item] route crashed:", message, err instanceof Error ? err.stack : "");
-    return NextResponse.json({ error: "AI analysis failed", message }, { status: 500 });
+    console.error("[analyze-item] route error:", err instanceof Error ? err.message : String(err));
+    return NextResponse.json({ error: "AI analysis failed" }, { status: 500 });
   }
 }

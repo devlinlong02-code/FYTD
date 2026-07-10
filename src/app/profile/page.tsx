@@ -6,6 +6,7 @@ import { getCreatorOutfits, getOutfits } from "@/app/actions/outfits";
 import { getSavedOutfitIds } from "@/app/actions/saved";
 import { getSavedItems } from "@/app/actions/saved-items";
 import { getFollowCounts } from "@/app/actions/follows";
+import { getLikedOutfitIds } from "@/app/actions/likes";
 import Link from "next/link";
 
 export default async function ProfilePage() {
@@ -51,6 +52,8 @@ export default async function ProfilePage() {
     getFollowCounts(user.id),
   ]);
   const savedOutfits = allOutfits.filter((o) => savedIds.includes(o.id));
+  const allOutfitIds = [...postedOutfits, ...savedOutfits].map((o) => o.id);
+  const likedIds = allOutfitIds.length > 0 ? await getLikedOutfitIds(allOutfitIds) : [];
 
   const displayName = profile?.display_name ?? "User";
   const username = profile?.username ?? "user";
@@ -87,11 +90,11 @@ export default async function ProfilePage() {
       <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-neutral-100 px-4 py-3 flex items-center justify-between">
         <span className="font-bold text-xl tracking-tight text-neutral-900">Profile</span>
         <Link
-          href="/account"
-          aria-label="Account settings"
-          className="flex items-center justify-center w-9 h-9 rounded-full bg-neutral-100 text-neutral-500 hover:bg-neutral-200 transition-colors"
+          href="/settings"
+          aria-label="Settings"
+          className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-black/5 transition-colors"
         >
-          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="3" />
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
           </svg>
@@ -130,6 +133,8 @@ export default async function ProfilePage() {
         initialSavedItems={savedItems}
         savedIds={savedIds}
         isAuthenticated={!!user}
+        currentUserId={user.id}
+        likedIds={likedIds}
       />
     </Layout>
   );

@@ -25,6 +25,7 @@ export default function PostOutfitPage() {
   const [tags, setTags] = useState("");
   const [mediaItems, setMediaItems] = useState<UploadedMedia[]>([]);
   const [pieces, setPieces] = useState<Piece[]>([]);
+  const [cardStyle, setCardStyle] = useState<"editorial" | "statement" | "streetwear">("editorial");
   const [mediaError, setMediaError] = useState(false);
   const [uploading, setUploading] = useState(false);
 
@@ -60,6 +61,7 @@ export default function PostOutfitPage() {
     fd.set("tags", tags);
     fd.set("media_items_json", JSON.stringify(mediaItems));
     fd.set("items_json", JSON.stringify(pieces));
+    fd.set("card_style", cardStyle);
 
     startTransition(() => { action(fd); });
   };
@@ -191,6 +193,53 @@ export default function PostOutfitPage() {
               const coverImageUrl = mediaItems.find((m) => m.media_type === "image")?.media_url ?? mediaItems[0]?.media_url;
               return <FitBreakdownBuilder pieces={pieces} onChange={setPieces} outfitImageUrl={coverImageUrl} />;
             })()}
+          </section>
+
+          {/* 4. Card Style */}
+          <section>
+            <label className="block text-[10px] font-semibold uppercase tracking-widest text-neutral-400 mb-3">
+              Card Style
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {(["editorial", "statement", "streetwear"] as const).map((style) => {
+                const labels: Record<string, { title: string; desc: string }> = {
+                  editorial: { title: "Editorial", desc: "Clean & minimal" },
+                  statement: { title: "Statement", desc: "Value as hero" },
+                  streetwear: { title: "Streetwear", desc: "Data header" },
+                };
+                const active = cardStyle === style;
+                return (
+                  <button
+                    key={style}
+                    type="button"
+                    onClick={() => setCardStyle(style)}
+                    className="flex flex-col items-center gap-1.5 rounded-xl py-3 px-2 transition-all"
+                    style={{
+                      border: active ? "2px solid #0a0a0a" : "1.5px solid rgba(0,0,0,0.12)",
+                      background: active ? "#0a0a0a" : "transparent",
+                    }}
+                  >
+                    {/* Mini preview */}
+                    <div className="w-full rounded overflow-hidden" style={{ aspectRatio: "3/4", background: "#111", position: "relative" }}>
+                      {style === "statement" && (
+                        <div style={{ position: "absolute", top: 4, left: 4, background: "white", borderRadius: 999, padding: "2px 5px", fontSize: 6, fontWeight: 700, color: "#0a0a0a", fontFamily: "monospace", zIndex: 1 }}>$$$</div>
+                      )}
+                      {style === "streetwear" && (
+                        <div style={{ position: "absolute", top: 0, left: 0, right: 0, background: "rgba(0,0,0,0.7)", padding: "3px 5px", fontSize: 5, color: "rgba(255,255,255,0.6)", fontFamily: "monospace", zIndex: 1 }}>5pc · $2k</div>
+                      )}
+                      {style === "editorial" && (
+                        <div style={{ position: "absolute", bottom: 4, left: 4, right: 4, zIndex: 1 }}>
+                          <div style={{ height: 4, background: "rgba(255,255,255,0.5)", borderRadius: 2, marginBottom: 2, width: "80%" }} />
+                          <div style={{ height: 3, background: "rgba(255,255,255,0.25)", borderRadius: 2, width: "50%" }} />
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-[11px] font-semibold m-0" style={{ color: active ? "white" : "#0a0a0a" }}>{labels[style].title}</p>
+                    <p className="text-[9px] m-0" style={{ color: active ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.4)" }}>{labels[style].desc}</p>
+                  </button>
+                );
+              })}
+            </div>
           </section>
 
           {uploading && (

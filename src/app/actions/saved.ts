@@ -31,6 +31,23 @@ export async function toggleSave(outfitId: string): Promise<{ saved: boolean; er
   await supabase
     .from("saved_outfits")
     .insert({ user_id: user.id, outfit_id: outfitId });
+
+  // Notify outfit owner
+  const { data: outfitRow } = await supabase
+    .from("outfits")
+    .select("creator_id")
+    .eq("id", outfitId)
+    .maybeSingle();
+  const ownerId = outfitRow?.creator_id as string | undefined;
+  if (ownerId && ownerId !== user.id) {
+    await supabase.from("notifications").insert({
+      recipient_id: ownerId,
+      actor_id: user.id,
+      type: "save",
+      outfit_id: outfitId,
+    });
+  }
+
   revalidatePath("/saved");
   revalidatePath("/account");
   return { saved: true };

@@ -215,20 +215,19 @@ async function buildSuccessRedirect(
 
 function loginError(origin: string, supabaseMessage: string): NextResponse {
   const lower = supabaseMessage.toLowerCase();
-  const isExpired =
-    lower.includes("expired") ||
-    lower.includes("invalid") ||
-    lower.includes("otp") ||
-    lower.includes("token");
-  const isAlreadyUsed = lower.includes("already");
 
-  if (isExpired) {
+  // "Flow state not found" / "PKCE flow" = code verifier expired or clicked in a different browser
+  const isAlreadyConfirmed = lower.includes("already confirmed") || lower.includes("already registered");
+
+  // Everything else (expired, invalid, flow state missing, OTP issues, token errors)
+  // should send the user to the resend screen so they can get a fresh link.
+  if (!isAlreadyConfirmed) {
+    if (process.env.NODE_ENV !== "production") {
+      console.log("[callback] loginError — redirecting to resend screen. message:", supabaseMessage);
+    }
     return NextResponse.redirect(`${origin}/auth/signup?resend=true`);
   }
 
-  const msg = isAlreadyUsed
-    ? "Your email is already confirmed. Try signing in."
-    : "Invalid or expired confirmation link. Request a new confirmation email or try signing in.";
-
+  const msg = "Your email is already confirmed. Try signing in.";
   return NextResponse.redirect(`${origin}/auth/login?error=${encodeURIComponent(msg)}`);
 }

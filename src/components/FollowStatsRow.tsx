@@ -11,6 +11,7 @@ interface FollowStatsRowProps {
   userId: string;
   isOwnProfile: boolean;
   currentUserId?: string;
+  followerCountOverride?: number;
 }
 
 export default function FollowStatsRow({
@@ -20,9 +21,17 @@ export default function FollowStatsRow({
   userId,
   isOwnProfile,
   currentUserId,
+  followerCountOverride,
 }: FollowStatsRowProps) {
   const [followers, setFollowers] = useState(initialFollowers);
   const [following, setFollowing] = useState(initialFollowing);
+
+  // Sync when parent updates the count via follow/unfollow action
+  useEffect(() => {
+    if (followerCountOverride !== undefined) {
+      setFollowers(followerCountOverride);
+    }
+  }, [followerCountOverride]);
   const [sheet, setSheet] = useState<"followers" | "following" | null>(null);
 
   // Subscribe to follows table changes for this user so counts update live

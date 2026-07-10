@@ -40,6 +40,7 @@ export interface Outfit {
   likesCount?: number;
   commentsCount?: number;
   savesCount?: number;
+  cardStyle?: "editorial" | "statement" | "streetwear";
 }
 
 export type AestheticTag =

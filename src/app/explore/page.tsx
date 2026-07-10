@@ -1,28 +1,30 @@
 import Layout from "@/components/Layout";
 import ExploreClient from "./ExploreClient";
-import { getOutfits } from "@/app/actions/outfits";
+import { getTodaysFits, getMostSavedFits } from "@/app/actions/outfits";
 import { getSavedOutfitIds } from "@/app/actions/saved";
 import { getSession } from "@/lib/dal";
+import { getRisingCreators } from "@/app/actions/follows";
 
 export default async function ExplorePage() {
-  const [allOutfits, savedIds, user] = await Promise.all([
-    getOutfits(),
+  const user = await getSession();
+
+  const [todaysFits, mostSavedFits, savedIds, risingCreators] = await Promise.all([
+    getTodaysFits(12),
+    getMostSavedFits(8),
     getSavedOutfitIds(),
-    getSession(),
+    getRisingCreators(user?.id ?? null, 5),
   ]);
 
   return (
     <Layout>
-      <div className="sticky top-0 z-30 bg-white/98 backdrop-blur-md border-b border-neutral-100/80 px-4 py-3.5">
-        <span className="font-black text-xl tracking-[0.15em] uppercase text-neutral-900">Explore</span>
-      </div>
-      <div className="px-4 py-4 pb-8">
-        <ExploreClient
-          outfits={allOutfits}
-          savedIds={savedIds}
-          isAuthenticated={!!user}
-        />
-      </div>
+      <ExploreClient
+        risingCreators={risingCreators}
+        todaysFits={todaysFits}
+        mostSavedFits={mostSavedFits}
+        savedIds={savedIds}
+        isAuthenticated={!!user}
+        currentUserId={user?.id ?? null}
+      />
     </Layout>
   );
 }

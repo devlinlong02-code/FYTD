@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 import Avatar from "@/components/Avatar";
 import { getFollowers, getFollowing, toggleFollow, type FollowUser } from "@/app/actions/follows";
 
@@ -20,6 +21,7 @@ export default function FollowListSheet({
   currentUserId,
   onClose,
 }: FollowListSheetProps) {
+  const router = useRouter();
   const [users, setUsers] = useState<FollowUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [followStates, setFollowStates] = useState<Record<string, boolean>>({});
@@ -30,12 +32,19 @@ export default function FollowListSheet({
 
   useEffect(() => {
     setLoading(true);
-    const fetch = type === "followers" ? getFollowers : getFollowing;
-    fetch(userId).then((list) => {
+    const fetchFn = type === "followers" ? getFollowers : getFollowing;
+    fetchFn(userId).then((list) => {
       setUsers(list);
       setLoading(false);
+      // Seed follow states from the list itself when viewing following tab
+      // (all entries on "following" tab are already followed by the profile owner)
+      if (type === "following" && currentUserId === userId) {
+        const seed: Record<string, boolean> = {};
+        list.forEach((u) => { seed[u.id] = true; });
+        setFollowStates(seed);
+      }
     });
-  }, [type, userId]);
+  }, [type, userId, currentUserId]);
 
   async function handleToggleFollow(targetId: string) {
     if (pending) return;
@@ -105,19 +114,30 @@ export default function FollowListSheet({
 
                 return (
                   <li key={user.id} className="flex items-center gap-3 px-5 py-3 border-b border-neutral-50 last:border-0">
-                    <Avatar
-                      avatarUrl={user.avatar_url}
-                      displayName={user.display_name ?? user.username ?? "?"}
-                      size={40}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-neutral-900 truncate">
-                        {user.display_name || user.username || "Unknown"}
-                      </p>
-                      {user.username && (
-                        <p className="text-xs text-neutral-400 truncate">@{user.username}</p>
-                      )}
-                    </div>
+                    <button
+                      type="button"
+                      className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                      onClick={() => {
+                        if (user.username) {
+                          onClose();
+                          router.push(`/profile/${user.username}`);
+                        }
+                      }}
+                    >
+                      <Avatar
+                        avatarUrl={user.avatar_url}
+                        displayName={user.display_name ?? user.username ?? "?"}
+                        size={40}
+                      />
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-neutral-900 truncate">
+                          {user.display_name || user.username || "Unknown"}
+                        </p>
+                        {user.username && (
+                          <p className="text-xs text-neutral-400 truncate">@{user.username}</p>
+                        )}
+                      </div>
+                    </button>
                     {showFollowBtn && (
                       <button
                         type="button"

@@ -1,416 +1,783 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import { createPortal } from "react-dom";
-import OutfitCard from "@/components/OutfitCard";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import FollowButton from "@/components/FollowButton";
+import { createClient } from "@/lib/supabase/client";
 import type { Outfit } from "@/types";
+import type { RisingCreator } from "@/app/actions/follows";
 
-type PriceFilter = "under50" | "under100" | "under200" | null;
-type ShopTypeFilter = "exact" | "similar" | null;
+// ─────────────────────────────────────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────────────────────────────────────
 
-interface ExploreClientProps {
-  outfits: Outfit[];
-  savedIds: string[];
-  isAuthenticated: boolean;
+interface TrendingStyle {
+  tag: string;
+  label: string;
+  topImage: string | null;
+  count: number;
 }
 
-const LENSES: { label: string; tag: string | null }[] = [
-  { label: "For You", tag: null },
-  { label: "Streetwear", tag: "streetwear" },
-  { label: "Clean", tag: "clean fit" },
-  { label: "Going Out", tag: "night out" },
-  { label: "Minimal", tag: "minimal" },
-];
+interface CreatorWithPost extends RisingCreator {
+  bestImage: string | null;
+}
 
-const PRICE_OPTIONS: { label: string; value: PriceFilter }[] = [
-  { label: "Under $50", value: "under50" },
-  { label: "Under $100", value: "under100" },
-  { label: "Under $200", value: "under200" },
-];
+interface ProfileResult {
+  id: string;
+  username: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+  followers_count: number | null;
+}
 
-const SHOP_OPTIONS: { label: string; value: ShopTypeFilter }[] = [
-  { label: "Shop Exact", value: "exact" },
-  { label: "Shop Similar", value: "similar" },
+interface FitResult {
+  id: string;
+  title: string;
+  image_url: string | null;
+}
+
+export interface ExploreClientProps {
+  risingCreators: RisingCreator[];
+  todaysFits: Outfit[];
+  mostSavedFits: Outfit[];
+  savedIds: string[];
+  isAuthenticated: boolean;
+  currentUserId: string | null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────────────────────────────────────
+
+const HERO_MOMENTS = [
+  {
+    title: "The Breakdown",
+    subtitle: "Every piece. Every price. Tap to shop.",
+    gradient: "linear-gradient(160deg, #0a0a0a 0%, #1a1a1a 100%)",
+    action: "Explore fits",
+    route: null,
+  },
+  {
+    title: "Summer Fits",
+    subtitle: "What the community is wearing right now",
+    gradient: "linear-gradient(160deg, #111827 0%, #0a0a0a 100%)",
+    action: "See fits",
+    route: "/?tag=summer",
+  },
+  {
+    title: "Streetwear Season",
+    subtitle: "The best street looks this week",
+    gradient: "linear-gradient(160deg, #1a1a1a 0%, #2d2d2d 100%)",
+    action: "Browse looks",
+    route: "/?tag=streetwear",
+  },
+  {
+    title: "Clean & Minimal",
+    subtitle: "Less is more. The minimalist edits.",
+    gradient: "linear-gradient(160deg, #1c1c1c 0%, #0a0a0a 100%)",
+    action: "View edits",
+    route: "/?tag=minimal",
+  },
 ];
 
 const STYLE_TAGS = [
-  "streetwear", "clean fit", "minimal", "old money", "casual",
-  "formal", "summer", "gym fit", "campus", "night out", "business casual",
+  { tag: "streetwear", label: "Streetwear" },
+  { tag: "minimal", label: "Minimal" },
+  { tag: "old money", label: "Old Money" },
+  { tag: "casual", label: "Casual" },
+  { tag: "gym fit", label: "Gym Fit" },
+  { tag: "formal", label: "Formal" },
 ];
 
-const ITEM_TYPES = ["Tops", "Bottoms", "Shoes", "Accessories"];
+const STYLE_EDITS = [
+  {
+    title: "The Streetwear Edit",
+    subtitle: "Oversized. Layered. On point.",
+    tag: "streetwear",
+    gradient: "linear-gradient(135deg, #1a1a1a 0%, #333 100%)",
+  },
+  {
+    title: "Clean & Minimal",
+    subtitle: "White tees and wide legs.",
+    tag: "minimal",
+    gradient: "linear-gradient(135deg, #2a2a2a 0%, #111 100%)",
+  },
+  {
+    title: "Old Money Aesthetic",
+    subtitle: "Quiet luxury. Loud taste.",
+    tag: "old money",
+    gradient: "linear-gradient(135deg, #1a1a2a 0%, #0a0a0a 100%)",
+  },
+  {
+    title: "Going Out Fits",
+    subtitle: "Dressed up. Nowhere to be.",
+    tag: "going out",
+    gradient: "linear-gradient(135deg, #0a0a1a 0%, #1a1a1a 100%)",
+  },
+];
 
-const ITEM_TYPE_KEYWORDS: Record<string, string[]> = {
-  Tops: ["top", "shirt", "tee", "hoodie", "jacket", "sweater", "blouse", "coat", "vest", "knit"],
-  Bottoms: ["bottom", "pant", "jean", "short", "skirt", "trouser", "cargo", "denim"],
-  Shoes: ["shoe", "sneaker", "boot", "sandal", "heel", "loafer", "trainer", "mule"],
-  Accessories: ["accessory", "hat", "bag", "watch", "belt", "scarf", "jewel", "cap", "sunglasses", "bag"],
-};
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
 
-// Lens tags: tag is shown as active in the lens row, not as a removable chip
-const LENS_TAGS = new Set(LENSES.map((l) => l.tag).filter(Boolean));
+function getFitValue(items: Outfit["items"]): string | null {
+  const total = items.reduce((sum, item) => sum + (item.price ?? 0), 0);
+  return total > 0 ? `$${total.toLocaleString()}` : null;
+}
 
-export default function ExploreClient({ outfits, savedIds, isAuthenticated }: ExploreClientProps) {
-  const [query, setQuery] = useState("");
-  const [activeTag, setActiveTag] = useState<string | null>(null);
-  const [priceFilter, setPriceFilter] = useState<PriceFilter>(null);
-  const [shopTypeFilter, setShopTypeFilter] = useState<ShopTypeFilter>(null);
-  const [itemTypeFilter, setItemTypeFilter] = useState<string | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+// ─────────────────────────────────────────────────────────────────────────────
+// Sub-components
+// ─────────────────────────────────────────────────────────────────────────────
 
-  useEffect(() => { setMounted(true); }, []);
-
-  // Count only drawer-sourced filters for the badge (lens tags are visible in the row)
-  const drawerFilterCount = [
-    priceFilter,
-    shopTypeFilter,
-    itemTypeFilter,
-    activeTag && !LENS_TAGS.has(activeTag) ? activeTag : null,
-  ].filter(Boolean).length;
-
-  const hasAnyFilter = !!(query.trim() || activeTag || priceFilter || shopTypeFilter || itemTypeFilter);
-
-  // Removable chips: drawer-only filters + drawer-set style tags (not lens tags)
-  const activeChips: { label: string; clear: () => void }[] = [];
-  if (priceFilter) {
-    const opt = PRICE_OPTIONS.find((p) => p.value === priceFilter);
-    activeChips.push({ label: opt?.label ?? priceFilter, clear: () => setPriceFilter(null) });
-  }
-  if (shopTypeFilter) {
-    const opt = SHOP_OPTIONS.find((s) => s.value === shopTypeFilter);
-    activeChips.push({ label: opt?.label ?? shopTypeFilter, clear: () => setShopTypeFilter(null) });
-  }
-  if (activeTag && !LENS_TAGS.has(activeTag)) {
-    activeChips.push({ label: activeTag, clear: () => setActiveTag(null) });
-  }
-  if (itemTypeFilter) {
-    activeChips.push({ label: itemTypeFilter, clear: () => setItemTypeFilter(null) });
-  }
-
-  const filtered = useMemo(() => {
-    return outfits.filter((outfit) => {
-      const q = query.trim().toLowerCase();
-      const matchesSearch =
-        !q ||
-        outfit.title.toLowerCase().includes(q) ||
-        outfit.creatorName.toLowerCase().includes(q) ||
-        outfit.creatorHandle.toLowerCase().includes(q) ||
-        outfit.tags.some((t) => t.toLowerCase().includes(q)) ||
-        outfit.items.some(
-          (i) => i.brand.toLowerCase().includes(q) || i.name.toLowerCase().includes(q)
-        );
-
-      const matchesTag = !activeTag || outfit.tags.includes(activeTag);
-
-      const matchesPrice =
-        !priceFilter ||
-        (priceFilter === "under50" && outfit.items.some((i) => i.price < 50)) ||
-        (priceFilter === "under100" && outfit.items.some((i) => i.price < 100)) ||
-        (priceFilter === "under200" && outfit.items.some((i) => i.price < 200));
-
-      const matchesShopType =
-        !shopTypeFilter ||
-        outfit.items.some((i) => (i.shopType ?? "exact") === shopTypeFilter);
-
-      const matchesItemType =
-        !itemTypeFilter ||
-        outfit.items.some((i) =>
-          ITEM_TYPE_KEYWORDS[itemTypeFilter]?.some((kw) =>
-            i.category.toLowerCase().includes(kw)
-          )
-        );
-
-      return matchesSearch && matchesTag && matchesPrice && matchesShopType && matchesItemType;
-    });
-  }, [query, activeTag, priceFilter, shopTypeFilter, itemTypeFilter, outfits]);
-
-  function clearAll() {
-    setQuery("");
-    setActiveTag(null);
-    setPriceFilter(null);
-    setShopTypeFilter(null);
-    setItemTypeFilter(null);
-  }
-
-  function clearDrawerFilters() {
-    setPriceFilter(null);
-    setShopTypeFilter(null);
-    setItemTypeFilter(null);
-    // Only clear tag if it came from the drawer (not a lens)
-    if (activeTag && !LENS_TAGS.has(activeTag)) setActiveTag(null);
-  }
-
-  const hasDrawerFilters = drawerFilterCount > 0;
-
-  const drawer = (
-    <>
-      <div
-        className="fixed inset-0 bg-black/50 z-[100]"
-        onClick={() => setDrawerOpen(false)}
-      />
-      <div className="fixed bottom-0 left-0 right-0 z-[101] bg-white rounded-t-3xl max-h-[82vh] flex flex-col">
-        {/* Handle */}
-        <div className="flex justify-center pt-3 pb-1 shrink-0">
-          <div className="w-9 h-1 rounded-full bg-neutral-200" />
-        </div>
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-2 pb-4 shrink-0">
-          <span className="text-base font-bold text-neutral-900">Tune Fit</span>
-          <div className="flex items-center gap-3">
-            {hasDrawerFilters && (
-              <button
-                onClick={clearDrawerFilters}
-                className="text-xs font-semibold text-neutral-500 hover:text-neutral-900 transition-colors"
-              >
-                Clear
-              </button>
-            )}
-            <button
-              onClick={() => setDrawerOpen(false)}
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-neutral-100 text-neutral-500"
-            >
-              <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {/* Scrollable content */}
-        <div className="overflow-y-auto flex-1 px-5 pb-8">
-          <div className="flex flex-col gap-6">
-
-            {/* Price */}
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 mb-3">Price</p>
-              <div className="flex flex-wrap gap-2">
-                {PRICE_OPTIONS.map(({ label, value }) => (
-                  <button
-                    key={value}
-                    onClick={() => setPriceFilter(priceFilter === value ? null : value)}
-                    className={`text-xs font-semibold px-4 py-2 rounded-full border transition-colors ${
-                      priceFilter === value
-                        ? "bg-neutral-900 text-white border-neutral-900"
-                        : "bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Shopping */}
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 mb-3">Shopping</p>
-              <div className="flex flex-wrap gap-2">
-                {SHOP_OPTIONS.map(({ label, value }) => (
-                  <button
-                    key={value}
-                    onClick={() => setShopTypeFilter(shopTypeFilter === value ? null : value)}
-                    className={`text-xs font-semibold px-4 py-2 rounded-full border transition-colors ${
-                      shopTypeFilter === value
-                        ? "bg-neutral-900 text-white border-neutral-900"
-                        : "bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Style */}
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 mb-3">Style</p>
-              <div className="flex flex-wrap gap-2">
-                {STYLE_TAGS.map((tag) => (
-                  <button
-                    key={tag}
-                    onClick={() => setActiveTag(activeTag === tag ? null : tag)}
-                    className={`text-xs font-semibold px-4 py-2 rounded-full border transition-colors capitalize ${
-                      activeTag === tag
-                        ? "bg-neutral-900 text-white border-neutral-900"
-                        : "bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400"
-                    }`}
-                  >
-                    {tag}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Item Type */}
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 mb-3">Item Type</p>
-              <div className="flex flex-wrap gap-2">
-                {ITEM_TYPES.map((type) => (
-                  <button
-                    key={type}
-                    onClick={() => setItemTypeFilter(itemTypeFilter === type ? null : type)}
-                    className={`text-xs font-semibold px-4 py-2 rounded-full border transition-colors ${
-                      itemTypeFilter === type
-                        ? "bg-neutral-900 text-white border-neutral-900"
-                        : "bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400"
-                    }`}
-                  >
-                    {type}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        {/* Apply button */}
-        <div className="px-5 pt-3 pb-[calc(2rem+env(safe-area-inset-bottom))] shrink-0 border-t border-neutral-100">
-          <button
-            onClick={() => setDrawerOpen(false)}
-            className="w-full py-3.5 rounded-2xl bg-neutral-900 text-white text-sm font-semibold hover:bg-neutral-700 transition-colors"
-          >
-            Show {filtered.length} fit{filtered.length !== 1 ? "s" : ""}
-          </button>
-        </div>
-      </div>
-    </>
-  );
-
+function SectionRule({ label }: { label: string }) {
   return (
-    <>
-      {/* Search */}
-      <div className="relative mb-3">
-        <svg
-          width="15"
-          height="15"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.2"
-          viewBox="0 0 24 24"
-          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none"
-        >
-          <circle cx="11" cy="11" r="8" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search outfits, brands, aesthetics…"
-          className="w-full pl-9 pr-4 py-2.5 bg-neutral-100 rounded-xl text-sm text-neutral-900 placeholder-neutral-400 outline-none focus:ring-2 focus:ring-neutral-900/10 transition"
-        />
-      </div>
+    <div className="flex items-center gap-3 px-4 pt-5 pb-3">
+      <div className="flex-1 h-px" style={{ background: "rgba(0,0,0,0.09)" }} />
+      <span
+        className="font-data text-[9px] font-semibold tracking-[0.16em] uppercase whitespace-nowrap"
+        style={{ color: "rgba(0,0,0,0.38)" }}
+      >
+        {label}
+      </span>
+      <div className="flex-1 h-px" style={{ background: "rgba(0,0,0,0.09)" }} />
+    </div>
+  );
+}
 
-      {/* Lens row + Tune Fit */}
-      <div className="flex items-center gap-2 mb-3">
-        <div className="flex gap-2 overflow-x-auto no-scrollbar flex-1 pb-0.5">
-          {LENSES.map(({ label, tag }) => {
-            const isActive = activeTag === tag;
-            return (
-              <button
-                key={label}
-                onClick={() => setActiveTag(isActive ? null : tag)}
-                className={`shrink-0 text-xs font-semibold px-4 py-2 rounded-full transition-colors whitespace-nowrap ${
-                  isActive
-                    ? "bg-neutral-900 text-white"
-                    : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
-                }`}
-              >
-                {label}
-              </button>
-            );
-          })}
+function HeroBanner({
+  heroIndex,
+  setHeroIndex,
+  router,
+}: {
+  heroIndex: number;
+  setHeroIndex: (i: number) => void;
+  router: ReturnType<typeof useRouter>;
+}) {
+  const moment = HERO_MOMENTS[heroIndex];
+  return (
+    <div className="px-3 pt-3">
+      <div
+        className="relative rounded-2xl overflow-hidden cursor-pointer select-none"
+        style={{ background: moment.gradient, minHeight: 200, padding: "28px 22px 22px" }}
+        onClick={() => moment.route && router.push(moment.route)}
+      >
+        {/* Decorative line */}
+        <div className="absolute top-5 right-5 flex items-center gap-2 opacity-20">
+          <div className="w-9 h-px bg-white" />
+          <div className="w-1 h-1 rounded-full bg-white" />
         </div>
 
-        <button
-          onClick={() => setDrawerOpen(true)}
-          className={`shrink-0 flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-full border transition-colors ${
-            drawerFilterCount > 0
-              ? "bg-neutral-900 text-white border-neutral-900"
-              : "bg-white text-neutral-700 border-neutral-200 hover:border-neutral-400"
-          }`}
-        >
-          <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-            <line x1="4" y1="6" x2="20" y2="6" />
-            <line x1="8" y1="12" x2="16" y2="12" />
-            <line x1="11" y1="18" x2="13" y2="18" />
-          </svg>
-          Tune Fit
-          {drawerFilterCount > 0 && (
-            <span className="bg-white text-neutral-900 text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center leading-none">
-              {drawerFilterCount}
-            </span>
-          )}
-        </button>
-      </div>
-
-      {/* Active filter chips */}
-      {activeChips.length > 0 && (
-        <div className="flex items-center gap-2 mb-3 overflow-x-auto no-scrollbar pb-0.5">
-          {activeChips.map(({ label, clear }) => (
-            <button
-              key={label}
-              onClick={clear}
-              className="shrink-0 flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-neutral-900 text-white capitalize"
-            >
-              {label}
-              <svg width="9" height="9" fill="none" stroke="currentColor" strokeWidth="2.8" viewBox="0 0 24 24">
-                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-          ))}
-          <button
-            onClick={clearAll}
-            className="shrink-0 text-xs font-medium text-neutral-400 hover:text-neutral-700 transition-colors whitespace-nowrap"
+        {/* Content */}
+        <div className="flex flex-col gap-1.5 mb-5">
+          <p
+            className="font-data text-[9px] font-semibold tracking-[0.14em] uppercase m-0"
+            style={{ color: "rgba(255,255,255,0.4)" }}
           >
-            Clear all
-          </button>
-        </div>
-      )}
-
-      {/* Results */}
-      {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center">
-          <div className="w-14 h-14 rounded-full bg-neutral-100 flex items-center justify-center mb-4">
-            <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" className="text-neutral-400">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            FYTD — FIND YOUR FIT DAILY
+          </p>
+          <h2
+            className="font-editorial m-0 leading-[1.05] tracking-[-0.03em]"
+            style={{ fontSize: 30, color: "white", fontWeight: 600 }}
+          >
+            {moment.title}
+          </h2>
+          <p className="text-[13px] m-0 leading-snug" style={{ color: "rgba(255,255,255,0.5)" }}>
+            {moment.subtitle}
+          </p>
+          <div
+            className="flex items-center gap-1.5 mt-1 font-semibold text-white border-b w-fit pb-0.5 text-[11px] tracking-[0.04em]"
+            style={{ borderColor: "rgba(255,255,255,0.35)" }}
+          >
+            <span>{moment.action}</span>
+            <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
             </svg>
           </div>
-          <p className="text-neutral-700 text-sm font-semibold mb-1.5">No fits found</p>
-          <p className="text-neutral-400 text-xs mb-5 leading-relaxed max-w-[220px]">
-            Try removing a filter or searching a different vibe.
-          </p>
-          {hasAnyFilter && (
+        </div>
+
+        {/* Dot indicators */}
+        <div className="flex gap-1.5">
+          {HERO_MOMENTS.map((_, i) => (
             <button
-              onClick={clearAll}
-              className="text-sm font-semibold bg-neutral-900 text-white px-5 py-2.5 rounded-xl hover:bg-neutral-700 transition-colors"
+              key={i}
+              onClick={(e) => { e.stopPropagation(); setHeroIndex(i); }}
+              className="border-none cursor-pointer p-0 transition-all duration-200"
+              style={{
+                width: i === heroIndex ? 16 : 5,
+                height: 5,
+                borderRadius: 999,
+                background: i === heroIndex ? "white" : "rgba(255,255,255,0.3)",
+              }}
+              aria-label={`Slide ${i + 1}`}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TrendingThisWeek({
+  styles,
+  router,
+}: {
+  styles: TrendingStyle[];
+  router: ReturnType<typeof useRouter>;
+}) {
+  if (styles.length === 0) return null;
+  return (
+    <div>
+      <SectionRule label="Trending this week" />
+      <div className="flex gap-2.5 px-3 pb-1 overflow-x-auto no-scrollbar">
+        {styles.map((style) => (
+          <button
+            key={style.tag}
+            onClick={() => router.push(`/?tag=${encodeURIComponent(style.tag)}`)}
+            className="flex-shrink-0 relative border-none bg-transparent p-0 cursor-pointer text-left"
+            style={{ width: 120 }}
+          >
+            <div
+              className="relative rounded-xl overflow-hidden"
+              style={{ width: 120, aspectRatio: "3/4", background: "rgba(0,0,0,0.07)" }}
             >
-              Clear filters
+              {style.topImage ? (
+                <Image src={style.topImage} alt={style.label} fill className="object-cover" sizes="120px" />
+              ) : (
+                <div className="w-full h-full" style={{ background: "linear-gradient(135deg,#1a1a1a,#333)" }} />
+              )}
+              {/* gradient overlay */}
+              <div
+                className="absolute inset-0"
+                style={{ background: "linear-gradient(to top,rgba(0,0,0,0.75) 0%,rgba(0,0,0,0.15) 50%,transparent 100%)" }}
+              />
+              {/* text */}
+              <div className="absolute bottom-2.5 left-2.5 right-2.5">
+                <p className="font-editorial m-0 text-white leading-tight" style={{ fontSize: 13, fontWeight: 500 }}>
+                  {style.label}
+                </p>
+                {style.count > 0 && (
+                  <p className="font-data m-0 mt-0.5" style={{ fontSize: 9, color: "rgba(255,255,255,0.6)", letterSpacing: "0.04em" }}>
+                    +{style.count} fits
+                  </p>
+                )}
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RisingCreators({
+  creators,
+  currentUserId,
+  router,
+}: {
+  creators: CreatorWithPost[];
+  currentUserId: string | null;
+  router: ReturnType<typeof useRouter>;
+}) {
+  if (creators.length === 0) return null;
+  return (
+    <div>
+      <SectionRule label="Rising creators" />
+      <div className="flex gap-2.5 px-3 pb-1 overflow-x-auto no-scrollbar">
+        {creators.map((creator) => (
+          <div key={creator.id} className="flex-shrink-0 relative" style={{ width: 190 }}>
+            {/* card background */}
+            <button
+              className="relative border-none p-0 bg-transparent cursor-pointer block"
+              style={{ width: 190, aspectRatio: "3/4", borderRadius: 14, overflow: "hidden", background: "rgba(0,0,0,0.07)" }}
+              onClick={() => creator.username && router.push(`/profile/${creator.username}`)}
+              aria-label={creator.display_name ?? creator.username ?? "Creator"}
+            >
+              {creator.bestImage ? (
+                <Image src={creator.bestImage} alt={creator.display_name ?? ""} fill className="object-cover" sizes="190px" />
+              ) : (
+                <div
+                  className="w-full h-full flex items-center justify-center font-editorial text-5xl"
+                  style={{ background: "linear-gradient(135deg,#1a1a1a,#2d2d2d)", color: "rgba(255,255,255,0.15)" }}
+                >
+                  {(creator.username ?? "?")[0].toUpperCase()}
+                </div>
+              )}
+              <div
+                className="absolute inset-0"
+                style={{ background: "linear-gradient(to top,rgba(0,0,0,0.88) 0%,rgba(0,0,0,0.25) 40%,transparent 70%)" }}
+              />
+            </button>
+
+            {/* info overlay */}
+            <div className="absolute bottom-0 left-0 right-0 p-3 flex items-end justify-between gap-2">
+              <button
+                onClick={() => creator.username && router.push(`/profile/${creator.username}`)}
+                className="flex items-center gap-2 bg-transparent border-none cursor-pointer p-0 text-left flex-1 min-w-0"
+              >
+                <div
+                  className="flex-shrink-0 rounded-full overflow-hidden flex items-center justify-center text-white font-semibold"
+                  style={{ width: 34, height: 34, background: "rgba(255,255,255,0.18)", border: "1.5px solid rgba(255,255,255,0.45)", fontSize: 13 }}
+                >
+                  {creator.avatar_url ? (
+                    <Image src={creator.avatar_url} alt="" width={34} height={34} className="object-cover w-full h-full" />
+                  ) : (
+                    (creator.username ?? "?")[0].toUpperCase()
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-editorial m-0 text-white truncate" style={{ fontSize: 12, fontWeight: 500, letterSpacing: "-0.01em" }}>
+                    {creator.display_name || creator.username}
+                  </p>
+                  <p className="font-data m-0 mt-0.5 truncate" style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", letterSpacing: "0.04em" }}>
+                    {(creator.followers_count ?? 0) > 0
+                      ? `${(creator.followers_count ?? 0).toLocaleString()} followers`
+                      : "New creator"}
+                  </p>
+                </div>
+              </button>
+              <FollowButton
+                targetUserId={creator.id}
+                currentUserId={currentUserId}
+                variant="overlay"
+                size="sm"
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StyleEdits({ router }: { router: ReturnType<typeof useRouter> }) {
+  return (
+    <div>
+      <SectionRule label="Style edits" />
+      <div className="flex flex-col gap-0.5 px-3">
+        {STYLE_EDITS.map((edit) => (
+          <button
+            key={edit.tag}
+            onClick={() => router.push(`/?tag=${encodeURIComponent(edit.tag)}`)}
+            className="relative w-full text-left border-none cursor-pointer flex items-center justify-between overflow-hidden"
+            style={{ background: edit.gradient, borderRadius: 12, padding: "18px 18px", minHeight: 88 }}
+          >
+            <div className="flex-1">
+              <p className="font-data m-0 mb-1" style={{ fontSize: 8, fontWeight: 600, letterSpacing: "0.14em", color: "rgba(255,255,255,0.3)", textTransform: "uppercase" }}>
+                — {edit.tag.toUpperCase()} —
+              </p>
+              <h3 className="font-editorial m-0 mb-1 leading-tight text-white" style={{ fontSize: 17, fontWeight: 500, letterSpacing: "-0.02em" }}>
+                {edit.title}
+              </h3>
+              <p className="m-0" style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>
+                {edit.subtitle}
+              </p>
+            </div>
+            <div className="flex-shrink-0 ml-4">
+              <svg width="18" height="18" fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="1.8" viewBox="0 0 24 24">
+                <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+              </svg>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FitsGrid({
+  fits,
+  router,
+}: {
+  fits: Outfit[];
+  router: ReturnType<typeof useRouter>;
+}) {
+  if (fits.length === 0) return null;
+  return (
+    <div>
+      <SectionRule label="Latest fits" />
+      <div className="grid grid-cols-2 gap-px">
+        {fits.map((fit) => {
+          const pieceCount = fit.items.length;
+          const fitValue = getFitValue(fit.items);
+          const handle = fit.creatorHandle?.replace("@", "");
+          return (
+            <button
+              key={fit.id}
+              onClick={() => router.push(`/outfit/${fit.id}`)}
+              className="bg-transparent border-none p-0 text-left cursor-pointer flex flex-col"
+            >
+              {/* Image */}
+              <div className="relative w-full overflow-hidden bg-neutral-100" style={{ aspectRatio: "3/4" }}>
+                {fit.image && (
+                  <Image src={fit.image} alt={fit.title} fill className="object-cover" sizes="50vw" />
+                )}
+                {/* overlay */}
+                <div
+                  className="absolute inset-0"
+                  style={{ background: "linear-gradient(to top,rgba(0,0,0,0.38) 0%,transparent 45%)" }}
+                />
+                {/* breakdown badge */}
+                {pieceCount > 0 && (
+                  <div className="absolute top-2 left-2 flex gap-1">
+                    <span
+                      className="font-data text-white"
+                      style={{ fontSize: 9, letterSpacing: "0.04em", background: "rgba(0,0,0,0.52)", borderRadius: 999, padding: "3px 7px", backdropFilter: "blur(4px)" }}
+                    >
+                      {pieceCount}pc
+                    </span>
+                    {fitValue && (
+                      <span
+                        className="font-data text-white"
+                        style={{ fontSize: 9, letterSpacing: "0.04em", background: "rgba(0,0,0,0.52)", borderRadius: 999, padding: "3px 7px", backdropFilter: "blur(4px)" }}
+                      >
+                        {fitValue}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+              {/* Info */}
+              <div className="px-2 pt-2 pb-3">
+                <p className="font-editorial m-0 mb-1 truncate" style={{ fontSize: 13, color: "#0a0a0a", fontWeight: 500, letterSpacing: "-0.01em" }}>
+                  {fit.title}
+                </p>
+                <div className="flex items-center gap-1">
+                  <div
+                    className="flex-shrink-0 rounded-full overflow-hidden flex items-center justify-center"
+                    style={{ width: 16, height: 16, background: "rgba(0,0,0,0.07)", fontSize: 7, fontWeight: 600, color: "rgba(0,0,0,0.35)" }}
+                  >
+                    {fit.creatorAvatar ? (
+                      <Image src={fit.creatorAvatar} alt="" width={16} height={16} className="object-cover w-full h-full" />
+                    ) : (
+                      (handle ?? "?")[0]?.toUpperCase()
+                    )}
+                  </div>
+                  <span className="truncate" style={{ fontSize: 11, color: "rgba(0,0,0,0.38)", fontFamily: "inherit" }}>
+                    @{handle}
+                  </span>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function SearchResults({
+  query,
+  profiles,
+  fits,
+  isLoading,
+  activeTab,
+  onTabChange,
+  currentUserId,
+  router,
+}: {
+  query: string;
+  profiles: ProfileResult[];
+  fits: FitResult[];
+  isLoading: boolean;
+  activeTab: "people" | "fits";
+  onTabChange: (t: "people" | "fits") => void;
+  currentUserId: string | null;
+  router: ReturnType<typeof useRouter>;
+}) {
+  return (
+    <div className="pb-20">
+      {/* Tabs */}
+      <div className="flex border-b" style={{ borderColor: "rgba(0,0,0,0.06)" }}>
+        {(["people", "fits"] as const).map((tab) => {
+          const count = tab === "people" ? profiles.length : fits.length;
+          return (
+            <button
+              key={tab}
+              onClick={() => onTabChange(tab)}
+              className="flex-1 flex items-center justify-center gap-1.5 py-3 bg-transparent border-none border-b-2 cursor-pointer transition-colors"
+              style={{
+                fontSize: 13,
+                fontWeight: 500,
+                color: activeTab === tab ? "#0a0a0a" : "rgba(0,0,0,0.38)",
+                borderBottomColor: activeTab === tab ? "#0a0a0a" : "transparent",
+                borderBottomWidth: 1.5,
+              }}
+            >
+              {tab === "people" ? "People" : "Fits"}
+              {count > 0 && (
+                <span className="font-data" style={{ fontSize: 10, color: "rgba(0,0,0,0.3)" }}>{count}</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-10">
+          <div className="w-5 h-5 rounded-full border-2 border-neutral-200 border-t-neutral-900 animate-spin" />
+        </div>
+      ) : activeTab === "people" ? (
+        profiles.length === 0 ? (
+          <p className="text-center py-10 text-sm text-neutral-400">No people found for &ldquo;{query}&rdquo;</p>
+        ) : (
+          <div>
+            {profiles.map((p) => (
+              <div
+                key={p.id}
+                className="flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 transition-colors"
+                style={{ borderBottom: "0.5px solid rgba(0,0,0,0.04)" }}
+              >
+                <button
+                  onClick={() => p.username && router.push(`/profile/${p.username}`)}
+                  className="flex items-center gap-3 flex-1 min-w-0 bg-transparent border-none cursor-pointer text-left p-0"
+                >
+                  <div
+                    className="flex-shrink-0 rounded-full overflow-hidden flex items-center justify-center"
+                    style={{ width: 44, height: 44, background: "rgba(0,0,0,0.06)", fontSize: 16, fontWeight: 500, color: "rgba(0,0,0,0.28)" }}
+                  >
+                    {p.avatar_url ? (
+                      <Image src={p.avatar_url} alt="" width={44} height={44} className="object-cover w-full h-full" />
+                    ) : (
+                      (p.username ?? "?")[0]?.toUpperCase()
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-editorial m-0 mb-0.5 truncate" style={{ fontSize: 14, color: "#0a0a0a", fontWeight: 500, letterSpacing: "-0.01em" }}>
+                      {p.display_name || p.username}
+                    </p>
+                    <p className="m-0" style={{ fontSize: 12, color: "rgba(0,0,0,0.38)" }}>
+                      @{p.username}
+                      {(p.followers_count ?? 0) > 0 && (
+                        <span style={{ color: "rgba(0,0,0,0.28)" }}> · {(p.followers_count ?? 0).toLocaleString()} followers</span>
+                      )}
+                    </p>
+                  </div>
+                </button>
+                <FollowButton targetUserId={p.id} currentUserId={currentUserId} size="sm" />
+              </div>
+            ))}
+          </div>
+        )
+      ) : (
+        fits.length === 0 ? (
+          <p className="text-center py-10 text-sm text-neutral-400">No fits found for &ldquo;{query}&rdquo;</p>
+        ) : (
+          <div className="grid grid-cols-2 gap-px">
+            {fits.map((fit) => (
+              <button
+                key={fit.id}
+                onClick={() => router.push(`/outfit/${fit.id}`)}
+                className="bg-transparent border-none p-0 cursor-pointer text-left flex flex-col"
+              >
+                <div className="relative w-full bg-neutral-100 overflow-hidden" style={{ aspectRatio: "3/4" }}>
+                  {fit.image_url && (
+                    <Image src={fit.image_url} alt={fit.title} fill className="object-cover" sizes="50vw" />
+                  )}
+                </div>
+                <div className="px-2 pt-2 pb-3">
+                  <p className="font-editorial m-0 truncate" style={{ fontSize: 12, color: "#0a0a0a", fontWeight: 500 }}>{fit.title}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main component
+// ─────────────────────────────────────────────────────────────────────────────
+
+export default function ExploreClient({
+  risingCreators,
+  todaysFits,
+  currentUserId,
+}: ExploreClientProps) {
+  const router = useRouter();
+
+  // ── Hero ───────────────────────────────────────────────────────────────────
+  const [heroIndex, setHeroIndex] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => setHeroIndex((i) => (i + 1) % HERO_MOMENTS.length), 4000);
+    return () => clearInterval(id);
+  }, []);
+
+  // ── Trending styles (client-fetched) ───────────────────────────────────────
+  const [trendingStyles, setTrendingStyles] = useState<TrendingStyle[]>([]);
+
+  useEffect(() => {
+    const supabase = createClient();
+    Promise.all(
+      STYLE_TAGS.map(async ({ tag, label }) => {
+        const [{ data: topPosts }, { count }] = await Promise.all([
+          supabase
+            .from("outfits")
+            .select("image_url")
+            .contains("tags", [tag])
+            .eq("published", true)
+            .order("likes_count", { ascending: false })
+            .limit(1),
+          supabase
+            .from("outfits")
+            .select("*", { count: "exact", head: true })
+            .contains("tags", [tag])
+            .eq("published", true),
+        ]);
+        return {
+          tag,
+          label,
+          topImage: (topPosts?.[0]?.image_url as string | null) ?? null,
+          count: count ?? 0,
+        };
+      })
+    ).then((results) =>
+      setTrendingStyles(results.filter((s) => s.count > 0).sort((a, b) => b.count - a.count))
+    );
+  }, []);
+
+  // ── Creator best posts (client-fetched) ────────────────────────────────────
+  const [creatorsWithPosts, setCreatorsWithPosts] = useState<CreatorWithPost[]>([]);
+
+  useEffect(() => {
+    if (risingCreators.length === 0) return;
+    const supabase = createClient();
+    Promise.all(
+      risingCreators.map(async (creator) => {
+        const { data } = await supabase
+          .from("outfits")
+          .select("image_url")
+          .eq("creator_id", creator.id)
+          .eq("published", true)
+          .order("likes_count", { ascending: false })
+          .limit(1);
+        return { ...creator, bestImage: (data?.[0]?.image_url as string | null) ?? null };
+      })
+    ).then(setCreatorsWithPosts);
+  }, [risingCreators]);
+
+  // ── Search ─────────────────────────────────────────────────────────────────
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchActive, setIsSearchActive] = useState(false);
+  const [isSearchLoading, setIsSearchLoading] = useState(false);
+  const [profileResults, setProfileResults] = useState<ProfileResult[]>([]);
+  const [fitResults, setFitResults] = useState<FitResult[]>([]);
+  const [searchTab, setSearchTab] = useState<"people" | "fits">("people");
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const runSearch = useCallback(async (term: string) => {
+    const supabase = createClient();
+    const [{ data: profiles }, { data: fits }] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id, username, display_name, avatar_url, followers_count")
+        .or(`username.ilike.%${term}%,display_name.ilike.%${term}%`)
+        .order("followers_count", { ascending: false })
+        .limit(20),
+      supabase
+        .from("outfits")
+        .select("id, title, image_url")
+        .or(`title.ilike.%${term}%,description.ilike.%${term}%`)
+        .eq("published", true)
+        .order("likes_count", { ascending: false })
+        .limit(20),
+    ]);
+    setProfileResults((profiles ?? []) as ProfileResult[]);
+    setFitResults(
+      (fits ?? []).map((f) => ({
+        id: f.id as string,
+        title: f.title as string,
+        image_url: f.image_url as string | null,
+      }))
+    );
+    setIsSearchLoading(false);
+  }, []);
+
+  function handleSearchChange(value: string) {
+    setSearchQuery(value);
+    if (!value.trim()) {
+      setIsSearchActive(false);
+      setProfileResults([]);
+      setFitResults([]);
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+      return;
+    }
+    setIsSearchActive(true);
+    setIsSearchLoading(true);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => runSearch(value.trim()), 300);
+  }
+
+  function clearSearch() {
+    setSearchQuery("");
+    setIsSearchActive(false);
+    setProfileResults([]);
+    setFitResults([]);
+    setIsSearchLoading(false);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+  }
+
+  return (
+    <div className="pb-20">
+      {/* ── Sticky search bar ─────────────────────────────────────────────── */}
+      <div
+        className="sticky top-0 z-30 px-3 py-2.5"
+        style={{
+          background: "rgba(250,250,250,0.96)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          borderBottom: "0.5px solid rgba(0,0,0,0.06)",
+        }}
+      >
+        <div
+          className="flex items-center gap-2 rounded-full px-3.5 py-2.5"
+          style={{ background: "rgba(0,0,0,0.05)" }}
+        >
+          <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ color: "rgba(0,0,0,0.33)", flexShrink: 0 }}>
+            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            placeholder="Search people, styles, brands…"
+            className="flex-1 bg-transparent border-none outline-none text-sm text-neutral-900 placeholder:text-neutral-400"
+          />
+          {searchQuery && (
+            <button onClick={clearSearch} className="bg-transparent border-none cursor-pointer p-0 flex items-center" style={{ color: "rgba(0,0,0,0.33)" }}>
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
             </button>
           )}
         </div>
-      ) : (
-        <>
-          <p className="text-xs text-neutral-400 mb-3">
-            {filtered.length} fit{filtered.length !== 1 ? "s" : ""}
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            {filtered.map((outfit) => (
-              <OutfitCard
-                key={outfit.id}
-                outfit={outfit}
-                savedIds={savedIds}
-                isAuthenticated={isAuthenticated}
-              />
-            ))}
-          </div>
-        </>
-      )}
+      </div>
 
-      {drawerOpen && mounted && createPortal(drawer, document.body)}
-    </>
+      {/* ── Search results ─────────────────────────────────────────────────── */}
+      {isSearchActive ? (
+        <SearchResults
+          query={searchQuery}
+          profiles={profileResults}
+          fits={fitResults}
+          isLoading={isSearchLoading}
+          activeTab={searchTab}
+          onTabChange={setSearchTab}
+          currentUserId={currentUserId}
+          router={router}
+        />
+      ) : (
+        /* ── Discovery mode ───────────────────────────────────────────────── */
+        <div>
+          <HeroBanner heroIndex={heroIndex} setHeroIndex={setHeroIndex} router={router} />
+          <TrendingThisWeek styles={trendingStyles} router={router} />
+          <RisingCreators creators={creatorsWithPosts} currentUserId={currentUserId} router={router} />
+          <StyleEdits router={router} />
+          <FitsGrid fits={todaysFits} router={router} />
+        </div>
+      )}
+    </div>
   );
 }
