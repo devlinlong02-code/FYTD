@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, type SVGAttributes } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import MediaCarousel from "@/components/MediaCarousel";
@@ -56,6 +56,14 @@ function SaveBtn({ saved, animating, onClick }: { saved: boolean; animating: boo
   );
 }
 
+function ShirtIcon({ size = 20, color = "white" }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20.38 3.46L16 2a4 4 0 01-8 0L3.62 3.46a2 2 0 00-1.34 2.23l.58 3.57a1 1 0 00.99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 002-2V10h2.15a1 1 0 00.99-.84l.58-3.57a2 2 0 00-1.34-2.23z" />
+    </svg>
+  );
+}
+
 function HeartBurst({ pos }: { pos: { x: number; y: number } }) {
   return (
     <div className="pointer-events-none absolute" style={{ left: pos.x, top: pos.y, zIndex: 20 }}>
@@ -75,6 +83,8 @@ function DarkSocialBar({
   commentsCount: number; handleLike: () => void; handleComment: (e: React.MouseEvent) => void;
   handleShare: (e: React.MouseEvent) => void; router: ReturnType<typeof useRouter>; outfitId: string;
 }) {
+  const [shirtHover, setShirtHover] = useState(false);
+
   return (
     <div style={{ padding: "10px 14px 8px", display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between", background: "#0a0a0a" }}>
       <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 16 }}>
@@ -105,12 +115,25 @@ function DarkSocialBar({
           </svg>
         </button>
       </div>
-      {/* View breakdown */}
+
+      {/* Shirt icon — navigates to breakdown */}
       <button
-        onClick={() => router.push(`/outfit/${outfitId}`)}
-        style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", borderBottom: "1px solid rgba(255,255,255,0.25)", paddingBottom: 1, cursor: "pointer", fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 600, color: "white", letterSpacing: "0.02em", whiteSpace: "nowrap" }}
+        onClick={(e) => { e.stopPropagation(); router.push(`/outfit/${outfitId}`); }}
+        onMouseEnter={() => setShirtHover(true)}
+        onMouseLeave={() => setShirtHover(false)}
+        style={{
+          width: 36, height: 36, flexShrink: 0,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          background: shirtHover ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.08)",
+          border: "0.5px solid rgba(255,255,255,0.15)",
+          borderRadius: "50%",
+          cursor: "pointer",
+          transition: "background 150ms ease",
+        }}
+        aria-label="View breakdown"
+        title="View breakdown"
       >
-        View breakdown →
+        <ShirtIcon size={17} color={shirtHover ? "white" : "rgba(255,255,255,0.8)"} />
       </button>
     </div>
   );
