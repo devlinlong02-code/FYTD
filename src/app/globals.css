@@ -100,6 +100,86 @@
   --tab-underline: #0a0a0a;
 }
 
+/* ── FEED-SPECIFIC VARIABLES (dark) ──────────────────────────────────────── */
+:root, [data-theme="dark"] {
+  --feed-bg: #0a0a0a;
+  --feed-card-bg: #0a0a0a;
+  --feed-card-secondary-bg: #111111;
+  --feed-header-bg: rgba(10,10,10,0.97);
+  --feed-border: rgba(255,255,255,0.06);
+  --feed-text-primary: #ffffff;
+  --feed-text-secondary: rgba(255,255,255,0.6);
+  --feed-text-muted: rgba(255,255,255,0.35);
+  --feed-icon: rgba(255,255,255,0.6);
+  --feed-surface: rgba(255,255,255,0.08);
+  --feed-social-bar-bg: #0a0a0a;
+  --feed-social-count: rgba(255,255,255,0.5);
+  --feed-nav-bg: rgba(10,10,10,0.97);
+  --feed-nav-border: rgba(255,255,255,0.06);
+  --feed-nav-icon: rgba(255,255,255,0.3);
+  --feed-nav-active: rgba(255,255,255,0.9);
+  --feed-nav-dot: rgba(255,255,255,1);
+  --feed-post-btn-bg: #ffffff;
+  --feed-post-btn-icon: #0a0a0a;
+  --feed-card-border: rgba(255,255,255,0.03);
+  --feed-tab-active: #ffffff;
+  --feed-tab-inactive: rgba(255,255,255,0.35);
+  --feed-tab-underline: #ffffff;
+  --shirt-btn-bg: rgba(255,255,255,0.08);
+  --shirt-btn-border: rgba(255,255,255,0.15);
+  --shirt-icon-color: rgba(255,255,255,0.8);
+  --story-ring-gradient: linear-gradient(135deg, #ffffff, rgba(255,255,255,0.3));
+  --story-avatar-border: #0a0a0a;
+  --story-avatar-bg: #1a1a1a;
+  --story-username-color: rgba(255,255,255,0.45);
+  --creator-pill-bg: rgba(0,0,0,0.52);
+  --save-btn-bg: rgba(0,0,0,0.5);
+  --caption-username-color: rgba(255,255,255,0.85);
+  --caption-text-color: rgba(255,255,255,0.65);
+  --comments-link-color: rgba(255,255,255,0.35);
+  --feed-heart-stroke: rgba(255,255,255,0.55);
+}
+
+/* ── FEED-SPECIFIC VARIABLES (light) ─────────────────────────────────────── */
+[data-theme="light"] {
+  --feed-bg: #fafafa;
+  --feed-card-bg: #ffffff;
+  --feed-card-secondary-bg: #f8f8f8;
+  --feed-header-bg: rgba(250,250,250,0.97);
+  --feed-border: rgba(0,0,0,0.06);
+  --feed-text-primary: #0a0a0a;
+  --feed-text-secondary: rgba(0,0,0,0.6);
+  --feed-text-muted: rgba(0,0,0,0.35);
+  --feed-icon: rgba(0,0,0,0.6);
+  --feed-surface: rgba(0,0,0,0.05);
+  --feed-social-bar-bg: #ffffff;
+  --feed-social-count: rgba(0,0,0,0.5);
+  --feed-nav-bg: rgba(250,250,250,0.97);
+  --feed-nav-border: rgba(0,0,0,0.06);
+  --feed-nav-icon: rgba(0,0,0,0.35);
+  --feed-nav-active: #0a0a0a;
+  --feed-nav-dot: #0a0a0a;
+  --feed-post-btn-bg: #0a0a0a;
+  --feed-post-btn-icon: #ffffff;
+  --feed-card-border: rgba(0,0,0,0.04);
+  --feed-tab-active: #0a0a0a;
+  --feed-tab-inactive: rgba(0,0,0,0.35);
+  --feed-tab-underline: #0a0a0a;
+  --shirt-btn-bg: rgba(0,0,0,0.06);
+  --shirt-btn-border: rgba(0,0,0,0.12);
+  --shirt-icon-color: rgba(0,0,0,0.6);
+  --story-ring-gradient: linear-gradient(135deg, #0a0a0a, rgba(0,0,0,0.4));
+  --story-avatar-border: #fafafa;
+  --story-avatar-bg: #e8e8e8;
+  --story-username-color: rgba(0,0,0,0.45);
+  --creator-pill-bg: rgba(0,0,0,0.45);
+  --save-btn-bg: rgba(0,0,0,0.4);
+  --caption-username-color: #0a0a0a;
+  --caption-text-color: rgba(0,0,0,0.7);
+  --comments-link-color: rgba(0,0,0,0.35);
+  --feed-heart-stroke: rgba(0,0,0,0.55);
+}
+
 /* Editorial serif — Playfair Display */
 .font-editorial {
   font-family: var(--font-display), 'Playfair Display', Georgia, serif;
@@ -618,20 +698,20 @@ html {
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background: var(--header-bg);
+  background: var(--feed-header-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   position: sticky;
   top: 0;
   z-index: 30;
-  border-bottom: 0.5px solid var(--border-primary);
+  border-bottom: 0.5px solid var(--feed-border);
 }
 
 .home-wordmark {
   font-family: var(--font-display);
   font-size: 22px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--feed-text-primary);
   letter-spacing: -0.03em;
 }
 
@@ -651,13 +731,13 @@ html {
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--icon-primary);
+  color: var(--feed-icon);
   border-radius: 50%;
   transition: background 150ms ease;
   text-decoration: none;
 }
 
-.home-icon-btn:hover { background: var(--bg-surface); }
+.home-icon-btn:hover { background: var(--feed-surface); }
 
 .home-badge {
   position: absolute;
@@ -665,8 +745,8 @@ html {
   right: -4px;
   min-width: 15px;
   height: 15px;
-  background: var(--text-primary);
-  color: var(--bg-primary);
+  background: var(--feed-text-primary);
+  color: var(--feed-bg);
   border-radius: 999px;
   font-size: 8px;
   font-weight: 700;
@@ -682,8 +762,8 @@ html {
    ========================================== */
 
 .stories-row {
-  background: var(--bg-primary);
-  border-bottom: 0.5px solid var(--border-primary);
+  background: var(--feed-bg);
+  border-bottom: 0.5px solid var(--feed-border);
   width: 100%;
 }
 
@@ -718,7 +798,7 @@ html {
   width: 58px;
   height: 58px;
   border-radius: 50%;
-  background: var(--story-ring);
+  background: var(--story-ring-gradient);
   padding: 1.5px;
   display: flex;
   align-items: center;
@@ -741,13 +821,13 @@ html {
   font-family: var(--font-body);
   font-size: 17px;
   font-weight: 500;
-  color: var(--story-avatar-fallback);
+  color: var(--story-avatar-fallback, rgba(255,255,255,0.4));
 }
 
 .story-username {
   font-family: var(--font-body);
   font-size: 10px;
-  color: var(--story-text);
+  color: var(--story-username-color);
   font-weight: 500;
   margin: 0;
   letter-spacing: 0.01em;
@@ -765,8 +845,8 @@ html {
   display: flex;
   flex-direction: row;
   align-items: center;
-  background: var(--bg-primary);
-  border-bottom: 0.5px solid var(--border-primary);
+  background: var(--feed-bg);
+  border-bottom: 0.5px solid var(--feed-border);
   position: sticky;
   top: 57px;
   z-index: 20;
@@ -778,7 +858,7 @@ html {
   font-family: var(--font-body);
   font-size: 13px;
   font-weight: 500;
-  color: var(--tab-inactive);
+  color: var(--feed-tab-inactive);
   background: none;
   border: none;
   border-top: none;
@@ -796,8 +876,8 @@ html {
 }
 
 .feed-tab.active {
-  color: var(--tab-active);
-  border-bottom-color: var(--tab-underline);
+  color: var(--feed-tab-active);
+  border-bottom-color: var(--feed-tab-underline);
 }
 
 /* ==========================================

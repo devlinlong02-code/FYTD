@@ -6,25 +6,27 @@ type Theme = "dark" | "light";
 
 interface ThemeContextType {
   theme: Theme;
+  setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
   isDark: boolean;
 }
 
 const ThemeContext = createContext<ThemeContextType>({
   theme: "dark",
+  setTheme: () => {},
   toggleTheme: () => {},
   isDark: true,
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("dark");
+  const [theme, setThemeState] = useState<Theme>("dark");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     const saved = localStorage.getItem("fytd-theme") as Theme;
     if (saved === "light" || saved === "dark") {
-      setTheme(saved);
+      setThemeState(saved);
     }
   }, []);
 
@@ -34,12 +36,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme, mounted]);
 
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
-  };
+  const setTheme = (t: Theme) => setThemeState(t);
+  const toggleTheme = () => setThemeState((prev) => (prev === "dark" ? "light" : "dark"));
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, isDark: theme === "dark" }}>
+    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme, isDark: theme === "dark" }}>
       {children}
     </ThemeContext.Provider>
   );

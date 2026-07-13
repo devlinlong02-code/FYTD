@@ -56,7 +56,7 @@ function SaveBtn({ saved, animating, onClick }: { saved: boolean; animating: boo
   );
 }
 
-function ShirtIcon({ size = 20, color = "var(--breakdown-btn-icon)" }: { size?: number; color?: string }) {
+function ShirtIcon({ size = 20, color = "var(--shirt-icon-color)" }: { size?: number; color?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={{ stroke: color }} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
       <path d="M20.38 3.46L16 2a4 4 0 01-8 0L3.62 3.46a2 2 0 00-1.34 2.23l.58 3.57a1 1 0 00.99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 002-2V10h2.15a1 1 0 00.99-.84l.58-3.57a2 2 0 00-1.34-2.23z" />
@@ -86,29 +86,29 @@ function DarkSocialBar({
   const [shirtHover, setShirtHover] = useState(false);
 
   return (
-    <div style={{ padding: "10px 14px 8px", display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between", background: "var(--social-bar-bg)" }}>
+    <div style={{ padding: "10px 14px 8px", display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between", background: "var(--feed-social-bar-bg)" }}>
       <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 16 }}>
         {/* Like */}
         <button onClick={handleLike} style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", padding: 0 }} aria-label={liked ? "Unlike" : "Like"}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill={liked ? "var(--text-primary)" : "none"} style={{ stroke: liked ? "var(--text-primary)" : "var(--heart-stroke)" }} strokeWidth="1.8" className={likeAnimating ? "animate-like-pop" : ""}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill={liked ? "var(--feed-text-primary)" : "none"} style={{ stroke: liked ? "var(--feed-text-primary)" : "var(--feed-heart-stroke)" }} strokeWidth="1.8" className={likeAnimating ? "animate-like-pop" : ""}>
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
           </svg>
           {likeCount > 0 && (
-            <span className={`font-data text-[12px] ${countAnimating ? "animate-count-flip" : ""}`} style={{ color: "var(--action-count-color)" }}>{likeCount.toLocaleString()}</span>
+            <span className={`font-data text-[12px] ${countAnimating ? "animate-count-flip" : ""}`} style={{ color: "var(--feed-social-count)" }}>{likeCount.toLocaleString()}</span>
           )}
         </button>
         {/* Comment */}
         <button onClick={handleComment} style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", padding: 0 }} aria-label="Comments">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{ stroke: "var(--heart-stroke)" }} strokeWidth="1.8">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{ stroke: "var(--feed-heart-stroke)" }} strokeWidth="1.8">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
           {commentsCount > 0 && (
-            <span className="font-data text-[12px]" style={{ color: "var(--action-count-color)" }}>{commentsCount.toLocaleString()}</span>
+            <span className="font-data text-[12px]" style={{ color: "var(--feed-social-count)" }}>{commentsCount.toLocaleString()}</span>
           )}
         </button>
         {/* Share */}
         <button onClick={handleShare} style={{ display: "flex", alignItems: "center", background: "none", border: "none", cursor: "pointer", padding: 0 }} aria-label="Share">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ stroke: "var(--icon-muted)" }} strokeWidth="1.8">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ stroke: "var(--feed-icon)" }} strokeWidth="1.8">
             <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
             <polyline points="16 6 12 2 8 6" />
             <line x1="12" y1="2" x2="12" y2="15" />
@@ -124,8 +124,8 @@ function DarkSocialBar({
         style={{
           width: 36, height: 36, flexShrink: 0,
           display: "flex", alignItems: "center", justifyContent: "center",
-          background: shirtHover ? "var(--bg-surface-hover)" : "var(--breakdown-btn-bg)",
-          border: "0.5px solid var(--breakdown-btn-border)",
+          background: shirtHover ? "var(--feed-surface)" : "var(--shirt-btn-bg)",
+          border: "0.5px solid var(--shirt-btn-border)",
           borderRadius: "50%",
           cursor: "pointer",
           transition: "background 150ms ease",
@@ -133,7 +133,7 @@ function DarkSocialBar({
         aria-label="View breakdown"
         title="View breakdown"
       >
-        <ShirtIcon size={17} color={shirtHover ? "var(--text-primary)" : "var(--breakdown-btn-icon)"} />
+        <ShirtIcon size={17} color={shirtHover ? "var(--feed-text-primary)" : "var(--shirt-icon-color)"} />
       </button>
     </div>
   );
@@ -287,22 +287,22 @@ export default function HomeFeedCard({
         handleShare={handleShare} router={router} outfitId={outfit.id}
       />
       {likeCount > 0 && (
-        <div style={{ padding: "2px 14px 3px", background: "var(--social-bar-bg)" }}>
-          <span className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{likeCount.toLocaleString()} {likeCount === 1 ? "like" : "likes"}</span>
+        <div style={{ padding: "2px 14px 3px", background: "var(--feed-social-bar-bg)" }}>
+          <span className="text-[13px] font-semibold" style={{ color: "var(--feed-text-primary)" }}>{likeCount.toLocaleString()} {likeCount === 1 ? "like" : "likes"}</span>
         </div>
       )}
       {outfit.description && (
-        <div style={{ padding: "2px 14px 4px", background: "var(--social-bar-bg)" }}>
-          <span className="text-[13px] font-semibold mr-1" style={{ color: "var(--text-primary)" }}>{creatorUsername}</span>
-          <span className="text-[13px]" style={{ color: "var(--text-secondary)" }}>
+        <div style={{ padding: "2px 14px 4px", background: "var(--feed-social-bar-bg)" }}>
+          <span className="text-[13px] font-semibold mr-1" style={{ color: "var(--caption-username-color)" }}>{creatorUsername}</span>
+          <span className="text-[13px]" style={{ color: "var(--caption-text-color)" }}>
             {outfit.description.length > 120
-              ? <>{outfit.description.slice(0, 120)}<span style={{ color: "var(--text-muted)", fontWeight: 500 }}> more</span></>
+              ? <>{outfit.description.slice(0, 120)}<span style={{ color: "var(--feed-text-muted)", fontWeight: 500 }}> more</span></>
               : outfit.description}
           </span>
         </div>
       )}
       {commentsCount > 0 && (
-        <button onClick={handleComment} style={{ display: "block", width: "100%", textAlign: "left", padding: "2px 14px 12px", background: "var(--social-bar-bg)", border: "none", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: 12, color: "var(--text-muted)", fontWeight: 500 }}>
+        <button onClick={handleComment} style={{ display: "block", width: "100%", textAlign: "left", padding: "2px 14px 12px", background: "var(--feed-social-bar-bg)", border: "none", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: 12, color: "var(--comments-link-color)", fontWeight: 500 }}>
           View all {commentsCount} {commentsCount === 1 ? "comment" : "comments"}
         </button>
       )}
@@ -312,7 +312,7 @@ export default function HomeFeedCard({
   // ── EDITORIAL style ────────────────────────────────────────────────────────
   if (cardStyle === "editorial") {
     return (
-      <article style={{ background: "var(--bg-card)", borderBottom: "6px solid var(--card-separator)", width: "100%" }}>
+      <article style={{ background: "var(--feed-card-bg)", borderBottom: "6px solid var(--feed-card-border)", width: "100%" }}>
         <div className="relative aspect-[4/5] w-full overflow-hidden select-none" style={{ background: "#111", cursor: "pointer" }} onClick={handleImageTap}>
           <MediaCarousel media={outfit.media} title={outfit.title} priority={priority} sizes="(max-width: 480px) 100vw, 480px" showCounter={false} />
           <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(to top,rgba(0,0,0,0.85) 0%,rgba(0,0,0,0.3) 40%,transparent 70%)", zIndex: 5 }} />
@@ -360,7 +360,7 @@ export default function HomeFeedCard({
   // ── STATEMENT style ────────────────────────────────────────────────────────
   if (cardStyle === "statement") {
     return (
-      <article style={{ background: "var(--bg-card)", borderBottom: "6px solid var(--card-separator)", width: "100%" }}>
+      <article style={{ background: "var(--feed-card-bg)", borderBottom: "6px solid var(--feed-card-border)", width: "100%" }}>
         <div className="relative aspect-[4/5] w-full overflow-hidden select-none" style={{ background: "#111", cursor: "pointer" }} onClick={handleImageTap}>
           <MediaCarousel media={outfit.media} title={outfit.title} priority={priority} sizes="(max-width: 480px) 100vw, 480px" showCounter={false} />
           <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(to top,rgba(0,0,0,0.88) 0%,rgba(0,0,0,0.15) 60%,transparent 100%)", zIndex: 5 }} />
@@ -401,23 +401,23 @@ export default function HomeFeedCard({
 
   // ── STREETWEAR style ───────────────────────────────────────────────────────
   return (
-    <article style={{ background: "var(--bg-secondary)", borderBottom: "6px solid var(--card-separator)", width: "100%" }}>
+    <article style={{ background: "var(--feed-card-secondary-bg)", borderBottom: "6px solid var(--feed-card-border)", width: "100%" }}>
       {/* Data header — ABOVE the image */}
-      <div style={{ padding: "10px 14px", display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderBottom: "0.5px solid var(--border-primary)" }}>
+      <div style={{ padding: "10px 14px", display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderBottom: "0.5px solid var(--feed-border)" }}>
         <button
           onClick={() => router.push(`/profile/${creatorUsername}`)}
           style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", cursor: "pointer", textAlign: "left", flex: 1, minWidth: 0, padding: 0 }}
         >
-          <div className="rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center" style={{ width: 32, height: 32, background: "rgba(255,255,255,0.1)" }}>
+          <div className="rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center" style={{ width: 32, height: 32, background: "var(--feed-surface)" }}>
             {outfit.creatorAvatar
               ? <Image src={outfit.creatorAvatar} alt={outfit.creatorName} width={32} height={32} className="object-cover w-full h-full" />
-              : <span style={{ fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.4)" }}>{(outfit.creatorName || "?")[0].toUpperCase()}</span>}
+              : <span style={{ fontSize: 12, fontWeight: 500, color: "var(--feed-text-muted)" }}>{(outfit.creatorName || "?")[0].toUpperCase()}</span>}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <div style={{ fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 600, color: "var(--feed-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {outfit.creatorName}
             </div>
-            <div className="font-data" style={{ fontSize: 9, color: "var(--text-muted)", letterSpacing: "0.06em", textTransform: "uppercase", marginTop: 1 }}>
+            <div className="font-data" style={{ fontSize: 9, color: "var(--feed-text-muted)", letterSpacing: "0.06em", textTransform: "uppercase", marginTop: 1 }}>
               {pieceCount > 0 && `${pieceCount} pieces`}
               {fitValueNum > 0 && ` · ${fitValueStr} fit`}
             </div>
@@ -425,13 +425,13 @@ export default function HomeFeedCard({
         </button>
         <div className="flex items-center gap-2">
           {complete && (
-            <span className="font-data" style={{ background: "var(--bg-surface)", borderRadius: 999, padding: "3px 8px", fontSize: 8, fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+            <span className="font-data" style={{ background: "var(--feed-surface)", borderRadius: 999, padding: "3px 8px", fontSize: 8, fontWeight: 600, color: "var(--feed-text-secondary)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
               COMPLETE ✦
             </span>
           )}
           <button onClick={() => router.push(`/outfit/${outfit.id}`)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }} aria-label="More">
-            <svg width="16" height="16" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.8" viewBox="0 0 24 24">
-              <circle cx="12" cy="5" r="1" fill="rgba(255,255,255,0.3)" /><circle cx="12" cy="12" r="1" fill="rgba(255,255,255,0.3)" /><circle cx="12" cy="19" r="1" fill="rgba(255,255,255,0.3)" />
+            <svg width="16" height="16" fill="none" style={{ stroke: "var(--feed-text-muted)" }} strokeWidth="1.8" viewBox="0 0 24 24">
+              <circle cx="12" cy="5" r="1" style={{ fill: "var(--feed-text-muted)" }} /><circle cx="12" cy="12" r="1" style={{ fill: "var(--feed-text-muted)" }} /><circle cx="12" cy="19" r="1" style={{ fill: "var(--feed-text-muted)" }} />
             </svg>
           </button>
         </div>

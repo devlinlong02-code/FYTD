@@ -3,54 +3,58 @@
 import { useTheme } from "@/context/ThemeContext";
 
 export default function ThemeToggleRow() {
-  const { isDark, toggleTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
 
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "14px 16px",
-      }}
-    >
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px" }}>
       <div>
-        <p style={{ fontFamily: "var(--font-body)", fontSize: 14, fontWeight: 500, color: "var(--text-primary)", margin: "0 0 2px" }}>
-          {isDark ? "Dark mode" : "Light mode"}
+        <p style={{ fontFamily: "var(--font-body)", fontSize: 14, fontWeight: 500, color: "#0a0a0a", margin: "0 0 2px" }}>
+          Theme
         </p>
-        <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--text-muted)", margin: 0 }}>
-          {isDark ? "Switch to light theme" : "Switch to dark theme"}
+        <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "rgba(0,0,0,0.4)", margin: 0 }}>
+          {theme === "dark" ? "Dark mode" : "Light mode"}
         </p>
       </div>
 
-      <button
-        onClick={toggleTheme}
-        style={{
-          width: 44,
-          height: 26,
-          borderRadius: 999,
-          background: isDark ? "var(--text-primary)" : "var(--bg-surface)",
-          border: "0.5px solid var(--border-secondary)",
-          position: "relative",
-          cursor: "pointer",
-          transition: "background 200ms ease",
-          flexShrink: 0,
-        }}
-        aria-label="Toggle theme"
-      >
-        <div
+      {/* Segmented control — iOS style */}
+      <div style={{ display: "flex", background: "rgba(0,0,0,0.06)", borderRadius: 8, padding: 2, gap: 2 }}>
+        <button
+          onClick={() => setTheme("dark")}
           style={{
-            position: "absolute",
-            top: 3,
-            left: isDark ? "calc(100% - 23px)" : 3,
-            width: 20,
-            height: 20,
-            borderRadius: "50%",
-            background: isDark ? "var(--bg-primary)" : "var(--text-primary)",
-            transition: "left 200ms ease",
+            padding: "6px 14px",
+            borderRadius: 6,
+            border: "none",
+            cursor: "pointer",
+            fontFamily: "var(--font-body)",
+            fontSize: 13,
+            fontWeight: 500,
+            background: theme === "dark" ? "#0a0a0a" : "transparent",
+            color: theme === "dark" ? "white" : "rgba(0,0,0,0.45)",
+            transition: "all 200ms ease",
+            whiteSpace: "nowrap",
           }}
-        />
-      </button>
+        >
+          Dark
+        </button>
+        <button
+          onClick={() => setTheme("light")}
+          style={{
+            padding: "6px 14px",
+            borderRadius: 6,
+            border: "none",
+            cursor: "pointer",
+            fontFamily: "var(--font-body)",
+            fontSize: 13,
+            fontWeight: 500,
+            background: theme === "light" ? "#0a0a0a" : "transparent",
+            color: theme === "light" ? "white" : "rgba(0,0,0,0.45)",
+            transition: "all 200ms ease",
+            whiteSpace: "nowrap",
+          }}
+        >
+          Light
+        </button>
+      </div>
     </div>
   );
 }
