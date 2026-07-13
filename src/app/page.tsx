@@ -3,6 +3,7 @@ import Layout from "@/components/Layout";
 import HomeFeedCard from "@/components/HomeFeedCard";
 import CreatorStoriesRow from "@/components/CreatorStoriesRow";
 import MessagesHeaderButton from "@/components/MessagesHeaderButton";
+import ThemeToggleButton from "@/components/ThemeToggleButton";
 import { getOutfits } from "@/app/actions/outfits";
 import { getSavedOutfitIds } from "@/app/actions/saved";
 import { getFollowingFeed } from "@/app/actions/follows";
@@ -38,6 +39,7 @@ export default async function HomePage({ searchParams }: HomeProps) {
       <header className="home-header">
         <span className="home-wordmark">FYTD</span>
         <div className="home-header-icons">
+          <ThemeToggleButton />
           <Link
             href="/explore"
             aria-label="Search"
@@ -72,7 +74,7 @@ export default async function HomePage({ searchParams }: HomeProps) {
       </div>
 
       {/* ── Feed ───────────────────────────────────────────────────────────── */}
-      <div className="pb-24" style={{ background: "#0a0a0a" }}>
+      <div className="pb-24" style={{ background: "var(--bg-primary)" }}>
         {allOutfits.length === 0 ? (
           isFollowing ? (
             <div className="feed-empty">

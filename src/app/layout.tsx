@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthPromptProvider } from "@/context/AuthPromptContext";
 import { ToastProvider } from "@/context/ToastContext";
 import { LikeProvider } from "@/context/LikeContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 import FeedbackButton from "@/components/FeedbackButton";
 
 const playfair = Playfair_Display({
@@ -38,16 +39,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className={`${inter.variable} ${playfair.variable} ${ibmPlexMono.variable} ${inter.className} antialiased bg-[#FAFAFA] text-[#0A0A0A] selection:bg-neutral-900 selection:text-white`} suppressHydrationWarning={true}>
-        <AuthPromptProvider>
-          <ToastProvider>
-            <LikeProvider>
-              {children}
-              <FeedbackButton />
-            </LikeProvider>
-          </ToastProvider>
-        </AuthPromptProvider>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('fytd-theme')||'dark';document.documentElement.setAttribute('data-theme',t)}catch(e){}` }} />
+      </head>
+      <body className={`${inter.variable} ${playfair.variable} ${ibmPlexMono.variable} ${inter.className} antialiased selection:bg-neutral-900 selection:text-white`} suppressHydrationWarning={true}>
+        <ThemeProvider>
+          <AuthPromptProvider>
+            <ToastProvider>
+              <LikeProvider>
+                {children}
+                <FeedbackButton />
+              </LikeProvider>
+            </ToastProvider>
+          </AuthPromptProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -2,6 +2,7 @@ import Link from "next/link";
 import Avatar from "@/components/Avatar";
 import Layout from "@/components/Layout";
 import SignOutButton from "@/components/SignOutButton";
+import ThemeToggleRow from "@/components/ThemeToggleRow";
 import { getProfile, getSession } from "@/lib/dal";
 
 const SETTINGS_ITEMS = [
@@ -142,6 +143,11 @@ export default async function AccountPage() {
               </svg>
             </Link>
           ))}
+        </div>
+
+        {/* Appearance */}
+        <div className="bg-white rounded-2xl border border-neutral-100">
+          <ThemeToggleRow />
         </div>
 
         {/* Settings */}

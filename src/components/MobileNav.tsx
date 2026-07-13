@@ -82,9 +82,9 @@ function PostButton({ item, handleClick }: { item: NavItem; handleClick: (item: 
     >
       <div
         className={`w-11 h-11 rounded-full flex items-center justify-center ${isAnimating ? "animate-button-tap" : ""}`}
-        style={{ background: "#0A0A0A" }}
+        style={{ background: "var(--text-primary)" }}
       >
-        <svg width="18" height="18" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
+        <svg width="18" height="18" fill="none" stroke="var(--bg-primary)" strokeWidth="2.5" viewBox="0 0 24 24">
           <line x1="12" y1="5" x2="12" y2="19" />
           <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
@@ -166,10 +166,10 @@ export default function MobileNav() {
     <nav
       className="fixed bottom-0 left-0 right-0 z-50 border-t"
       style={{
-        background: "rgba(250,250,250,0.95)",
+        background: "var(--nav-bg)",
         backdropFilter: "blur(12px)",
         WebkitBackdropFilter: "blur(12px)",
-        borderColor: "rgba(10,10,10,0.08)",
+        borderColor: "var(--border-primary)",
         height: 56,
       }}
     >
@@ -192,15 +192,15 @@ export default function MobileNav() {
                 key={item.href}
                 onClick={(e) => handleClick(item, e)}
                 className="flex flex-col items-center justify-center flex-1 h-full transition-colors"
-                style={{ color: active ? "#0A0A0A" : "rgba(10,10,10,0.35)" }}
+                style={{ color: active ? "var(--text-primary)" : "var(--text-muted)" }}
                 aria-label={item.label}
               >
                 <div className="relative flex flex-col items-center gap-1">
                   <div className="relative">
                     {item.icon(active)}
                     {item.notifications && unreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#0A0A0A] flex items-center justify-center">
-                        <span className="text-white text-[9px] font-bold leading-none">
+                      <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: "var(--text-primary)" }}>
+                        <span className="text-[9px] font-bold leading-none" style={{ color: "var(--bg-primary)" }}>
                           {unreadCount > 9 ? "9+" : unreadCount}
                         </span>
                       </span>
@@ -208,7 +208,7 @@ export default function MobileNav() {
                   </div>
                   <span
                     className="w-1 h-1 rounded-full transition-opacity duration-150"
-                    style={{ background: "#0A0A0A", opacity: active ? 1 : 0 }}
+                    style={{ background: "var(--text-primary)", opacity: active ? 1 : 0 }}
                   />
                 </div>
               </button>
@@ -220,14 +220,14 @@ export default function MobileNav() {
               key={item.href}
               href={item.href}
               className="flex flex-col items-center justify-center flex-1 h-full transition-colors"
-              style={{ color: active ? "#0A0A0A" : "rgba(10,10,10,0.35)" }}
+              style={{ color: active ? "var(--text-primary)" : "var(--text-muted)" }}
               aria-label={item.label}
             >
               <div className="flex flex-col items-center gap-1">
                 {item.icon(active)}
                 <span
                   className="w-1 h-1 rounded-full transition-opacity duration-150"
-                  style={{ background: "#0A0A0A", opacity: active ? 1 : 0 }}
+                  style={{ background: "var(--text-primary)", opacity: active ? 1 : 0 }}
                 />
               </div>
             </Link>
