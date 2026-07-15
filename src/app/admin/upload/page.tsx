@@ -243,8 +243,8 @@ export default function PostOutfitPage() {
 
   return (
     <Layout>
-      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-neutral-100 px-4 py-3">
-        <span className="font-bold text-xl tracking-tight text-neutral-900">Post Outfit</span>
+      <div className="sticky top-0 z-30 backdrop-blur-md px-4 py-3" style={{ background: "var(--page-bg)", borderBottom: "0.5px solid var(--page-border)" }}>
+        <span className="font-bold text-xl tracking-tight" style={{ color: "var(--page-text-primary)" }}>Post Outfit</span>
       </div>
 
       {/* Sticky error banner */}
@@ -279,28 +279,28 @@ export default function PostOutfitPage() {
 
       {/* Full success overlay */}
       {isFullSuccess && (
-        <div className="fixed inset-0 z-50 bg-white flex flex-col items-center justify-center gap-4">
-          <div className="w-14 h-14 rounded-full bg-neutral-900 flex items-center justify-center">
-            <svg width="24" height="24" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4" style={{ background: "var(--page-bg)" }}>
+          <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: "var(--btn-primary-bg)" }}>
+            <svg width="24" height="24" fill="none" stroke="var(--btn-primary-text)" strokeWidth="2.5" viewBox="0 0 24 24">
               <polyline points="20 6 9 17 4 12" />
             </svg>
           </div>
-          <p className="text-base font-bold text-neutral-900">Outfit posted!</p>
-          <p className="text-sm text-neutral-400">Taking you there now…</p>
+          <p className="text-base font-bold" style={{ color: "var(--page-text-primary)" }}>Outfit posted!</p>
+          <p className="text-sm" style={{ color: "var(--page-text-muted)" }}>Taking you there now…</p>
         </div>
       )}
 
       <div className="px-4 py-6">
-        <p className="text-sm text-neutral-400 mb-6">Share a fit and add the pieces people can shop.</p>
+        <p className="text-sm mb-6" style={{ color: "var(--page-text-secondary)" }}>Share a fit and add the pieces people can shop.</p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-7">
 
           {/* 1. Media */}
           <section>
-            <h2 className="text-sm font-bold text-neutral-900 mb-1">
-              Photos or Videos <span className="text-red-400">*</span>
+            <h2 className="text-sm font-bold mb-1" style={{ color: "var(--page-text-primary)" }}>
+              Photos or Videos <span style={{ color: "#ff4444" }}>*</span>
             </h2>
-            <p className="text-xs text-neutral-400 mb-3">Add up to 5 photos or videos — first one is the cover.</p>
+            <p className="text-xs mb-3" style={{ color: "var(--page-text-muted)" }}>Add up to 5 photos or videos — first one is the cover.</p>
             <MultiMediaUpload
               onChange={handleMediaChange}
               onUploadingChange={setUploading}
@@ -312,11 +312,11 @@ export default function PostOutfitPage() {
 
           {/* 2. Details */}
           <section className="flex flex-col gap-4">
-            <h2 className="text-sm font-bold text-neutral-900">Details</h2>
+            <h2 className="text-sm font-bold" style={{ color: "var(--page-text-primary)" }}>Details</h2>
 
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-widest text-neutral-400 mb-1.5">
-                Title <span className="text-red-400">*</span>
+              <label className="block text-[10px] font-semibold uppercase tracking-widest mb-1.5" style={{ color: "var(--page-text-secondary)" }}>
+                Title <span style={{ color: "#ff4444" }}>*</span>
               </label>
               <input
                 name="title"
@@ -324,16 +324,17 @@ export default function PostOutfitPage() {
                 onChange={(e) => setTitle(e.target.value)}
                 required
                 placeholder="e.g. Tokyo Streetwear"
-                className="w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                className="w-full rounded-xl px-3.5 py-2.5 text-sm focus:outline-none"
+                style={{ border: "0.5px solid var(--page-border)" }}
               />
             </div>
 
             <div>
               <div className="flex items-baseline justify-between mb-1.5">
-                <label className="block text-[10px] font-semibold uppercase tracking-widest text-neutral-400">
+                <label className="block text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--page-text-secondary)" }}>
                   Caption
                 </label>
-                <span className={`text-[10px] tabular-nums ${description.length > 480 ? "text-red-400 font-semibold" : "text-neutral-300"}`}>
+                <span className="text-[10px] tabular-nums" style={{ color: description.length > 480 ? "#ff4444" : "var(--page-text-muted)" }}>
                   {description.length}/500
                 </span>
               </div>
@@ -344,20 +345,22 @@ export default function PostOutfitPage() {
                 rows={2}
                 maxLength={500}
                 placeholder="Add a caption or describe the vibe…"
-                className="w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-900 resize-none"
+                className="w-full rounded-xl px-3.5 py-2.5 text-sm focus:outline-none resize-none"
+                style={{ border: "0.5px solid var(--page-border)" }}
               />
             </div>
 
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-widest text-neutral-400 mb-1.5">
-                Tags <span className="text-neutral-300 normal-case">(comma-separated)</span>
+              <label className="block text-[10px] font-semibold uppercase tracking-widest mb-1.5" style={{ color: "var(--page-text-secondary)" }}>
+                Tags <span className="normal-case" style={{ color: "var(--page-text-muted)" }}>(comma-separated)</span>
               </label>
               <input
                 name="tags"
                 value={tags}
                 onChange={(e) => setTags(e.target.value)}
                 placeholder="streetwear, minimal, casual"
-                className="w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                className="w-full rounded-xl px-3.5 py-2.5 text-sm focus:outline-none"
+                style={{ border: "0.5px solid var(--page-border)" }}
               />
             </div>
           </section>
@@ -385,7 +388,7 @@ export default function PostOutfitPage() {
           </section>
 
           {uploading && (
-            <p className="text-xs text-neutral-400 text-center -mb-4">
+            <p className="text-xs text-center -mb-4" style={{ color: "var(--page-text-muted)" }}>
               Wait for all files to finish uploading before posting.
             </p>
           )}
@@ -393,7 +396,8 @@ export default function PostOutfitPage() {
           <button
             type="submit"
             disabled={pending || isSuccess || uploading}
-            className="w-full py-3.5 rounded-2xl bg-neutral-900 text-white text-sm font-semibold hover:bg-neutral-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+            className="w-full py-3.5 rounded-2xl text-sm font-semibold transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+            style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)" }}
           >
             {pending ? (
               <>
@@ -408,7 +412,7 @@ export default function PostOutfitPage() {
           </button>
 
           {pieces.length === 0 && !pending && (
-            <p className="text-center text-xs text-neutral-400 -mt-4">
+            <p className="text-center text-xs -mt-4" style={{ color: "var(--page-text-muted)" }}>
               You can add the fit breakdown now or post first and edit later.
             </p>
           )}

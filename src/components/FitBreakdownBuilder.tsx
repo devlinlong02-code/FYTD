@@ -56,15 +56,16 @@ function SortablePieceRow({ piece, onEdit, onRemove }: SortablePieceRowProps) {
   return (
     <div
       ref={setNodeRef}
-      style={style}
-      className="flex items-center gap-2 bg-neutral-50 rounded-xl px-3 py-3"
+      style={{ ...style, background: "var(--page-surface)" }}
+      className="flex items-center gap-2 rounded-xl px-3 py-3"
     >
       {/* Drag handle */}
       <button
         type="button"
         {...attributes}
         {...listeners}
-        className="cursor-grab active:cursor-grabbing p-1 text-neutral-300 hover:text-neutral-500 touch-none shrink-0"
+        className="cursor-grab active:cursor-grabbing p-1 touch-none shrink-0"
+        style={{ color: "var(--page-text-muted)" }}
         tabIndex={-1}
         aria-label="Drag to reorder"
       >
@@ -79,7 +80,7 @@ function SortablePieceRow({ piece, onEdit, onRemove }: SortablePieceRowProps) {
       </button>
 
       {/* Thumbnail */}
-      <div className="w-10 h-10 rounded-lg overflow-hidden bg-neutral-200 shrink-0">
+      <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0" style={{ background: "var(--page-border)" }}>
         {piece.imageUrl ? (
           <Image
             src={piece.imageUrl}
@@ -97,7 +98,7 @@ function SortablePieceRow({ piece, onEdit, onRemove }: SortablePieceRowProps) {
               stroke="currentColor"
               strokeWidth="1.8"
               viewBox="0 0 24 24"
-              className="text-neutral-400"
+              style={{ color: "var(--page-text-muted)" }}
             >
               <rect x="3" y="3" width="18" height="18" rx="2" />
               <circle cx="8.5" cy="8.5" r="1.5" />
@@ -109,16 +110,16 @@ function SortablePieceRow({ piece, onEdit, onRemove }: SortablePieceRowProps) {
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-neutral-900 leading-tight truncate">
+        <p className="text-sm font-semibold leading-tight truncate" style={{ color: "var(--page-text-primary)" }}>
           {piece.name}
         </p>
-        <p className="text-xs text-neutral-400 truncate">
+        <p className="text-xs truncate" style={{ color: "var(--page-text-muted)" }}>
           {[piece.brand, piece.category, piece.price ? `$${piece.price}` : ""]
             .filter(Boolean)
             .join(" · ")}
         </p>
         {piece.note && (
-          <p className="text-[10px] italic text-neutral-300 truncate">{piece.note}</p>
+          <p className="text-[10px] italic truncate" style={{ color: "var(--page-text-muted)" }}>{piece.note}</p>
         )}
         {piece.shopLink && (
           <span className="text-[10px] font-medium text-emerald-600">Shop link added</span>
@@ -130,7 +131,8 @@ function SortablePieceRow({ piece, onEdit, onRemove }: SortablePieceRowProps) {
         <button
           type="button"
           onClick={() => onEdit(piece)}
-          className="w-7 h-7 rounded-lg bg-white border border-neutral-200 flex items-center justify-center text-neutral-500 hover:bg-neutral-100 transition-colors"
+          className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
+          style={{ background: "var(--page-surface)", border: "0.5px solid var(--page-border)", color: "var(--page-text-secondary)" }}
         >
           <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -140,7 +142,8 @@ function SortablePieceRow({ piece, onEdit, onRemove }: SortablePieceRowProps) {
         <button
           type="button"
           onClick={() => onRemove(piece.id)}
-          className="w-7 h-7 rounded-lg bg-white border border-neutral-200 flex items-center justify-center text-neutral-400 hover:text-red-500 hover:border-red-200 transition-colors"
+          className="w-7 h-7 rounded-lg flex items-center justify-center hover:text-red-500 transition-colors"
+          style={{ background: "var(--page-surface)", border: "0.5px solid var(--page-border)", color: "var(--page-text-muted)" }}
         >
           <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <polyline points="3 6 5 6 21 6" />
@@ -212,8 +215,8 @@ export default function FitBreakdownBuilder({ pieces, onChange, outfitImageUrl }
     <>
       <div>
         <div className="mb-3">
-          <h2 className="text-sm font-bold text-neutral-900">Fit Breakdown</h2>
-          <p className="text-xs text-neutral-400 mt-0.5">
+          <h2 className="text-sm font-bold" style={{ color: "var(--page-text-primary)" }}>Fit Breakdown</h2>
+          <p className="text-xs mt-0.5" style={{ color: "var(--page-text-muted)" }}>
             Add the pieces so people can shop the fit. Keep it simple — links are optional.
           </p>
         </div>
@@ -225,14 +228,16 @@ export default function FitBreakdownBuilder({ pieces, onChange, outfitImageUrl }
               key={label}
               type="button"
               onClick={() => openAdd(label === "Shoes" ? "Footwear" : label)}
-              className="flex items-center gap-1.5 bg-white text-neutral-700 hover:bg-neutral-900 hover:text-white hover:border-neutral-900 transition-colors"
+              className="flex items-center gap-1.5 transition-colors"
               style={{
                 padding: "8px 16px",
                 borderRadius: 999,
-                border: "1px solid rgba(0,0,0,0.15)",
+                border: "0.5px solid var(--page-border)",
                 fontSize: 13,
                 fontWeight: 500,
                 lineHeight: 1,
+                background: "var(--page-surface)",
+                color: "var(--page-text-secondary)",
               }}
             >
               <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
@@ -246,9 +251,9 @@ export default function FitBreakdownBuilder({ pieces, onChange, outfitImageUrl }
 
         {/* Added pieces — drag to reorder */}
         {pieces.length === 0 ? (
-          <div className="bg-neutral-50 rounded-2xl px-4 py-8 text-center border-2 border-dashed border-neutral-150">
-            <p className="text-sm text-neutral-400 font-medium">No pieces added yet</p>
-            <p className="text-xs text-neutral-300 mt-1">
+          <div className="rounded-2xl px-4 py-8 text-center" style={{ background: "var(--page-surface)", border: "1.5px dashed var(--page-border)" }}>
+            <p className="text-sm font-medium" style={{ color: "var(--page-text-muted)" }}>No pieces added yet</p>
+            <p className="text-xs mt-1" style={{ color: "var(--page-text-muted)", opacity: 0.6 }}>
               Start with the basics: top, bottoms, shoes.
             </p>
           </div>

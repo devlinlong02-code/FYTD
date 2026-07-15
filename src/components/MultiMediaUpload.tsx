@@ -264,27 +264,28 @@ export default function MultiMediaUpload({ onChange, onUploadingChange }: Props)
           onClick={() => inputRef.current?.click()}
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
-          className="w-full aspect-[3/4] rounded-2xl border-2 border-dashed border-neutral-200 bg-neutral-50 flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-neutral-400 hover:bg-neutral-100 transition-colors"
+          className="w-full aspect-[3/4] rounded-2xl flex flex-col items-center justify-center gap-4 cursor-pointer transition-colors"
+          style={{ border: "1.5px dashed var(--page-border)", background: "var(--page-surface)" }}
         >
           <div className="flex gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-white border border-neutral-200 flex items-center justify-center shadow-sm">
-              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24" className="text-neutral-400">
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: "var(--page-bg-secondary)", border: "0.5px solid var(--page-border)" }}>
+              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24" style={{ color: "var(--page-text-muted)" }}>
                 <rect x="3" y="3" width="18" height="18" rx="2" />
                 <circle cx="8.5" cy="8.5" r="1.5" />
                 <polyline points="21 15 16 10 5 21" />
               </svg>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-white border border-neutral-200 flex items-center justify-center shadow-sm">
-              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24" className="text-neutral-400">
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: "var(--page-bg-secondary)", border: "0.5px solid var(--page-border)" }}>
+              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24" style={{ color: "var(--page-text-muted)" }}>
                 <polygon points="23 7 16 12 23 17 23 7" />
                 <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
               </svg>
             </div>
           </div>
           <div className="text-center px-6">
-            <p className="text-sm font-semibold text-neutral-700">Upload photos or videos</p>
-            <p className="text-xs text-neutral-400 mt-1">Show different angles, details, and pieces</p>
-            <p className="text-[10px] text-neutral-300 mt-1.5">
+            <p className="text-sm font-semibold" style={{ color: "var(--page-text-primary)" }}>Upload photos or videos</p>
+            <p className="text-xs mt-1" style={{ color: "var(--page-text-muted)" }}>Show different angles, details, and pieces</p>
+            <p className="text-[10px] mt-1.5" style={{ color: "var(--page-text-muted)", opacity: 0.5 }}>
               Up to {MAX_ITEMS} files · JPG, PNG, WEBP · MP4, MOV · Max {IMAGE_MAX_MB}MB / {VIDEO_MAX_MB}MB
             </p>
           </div>
@@ -297,7 +298,8 @@ export default function MultiMediaUpload({ onChange, onUploadingChange }: Props)
             {items.map((item, idx) => (
               <div
                 key={item.localId}
-                className="relative shrink-0 w-24 h-32 rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200"
+                className="relative shrink-0 w-24 h-32 rounded-xl overflow-hidden"
+                style={{ background: "var(--page-surface)", border: "0.5px solid var(--page-border)" }}
               >
                 {item.media_type === "video" ? (
                   item.thumbnail_url ? (
@@ -379,18 +381,19 @@ export default function MultiMediaUpload({ onChange, onUploadingChange }: Props)
               <button
                 type="button"
                 onClick={() => inputRef.current?.click()}
-                className="shrink-0 w-24 h-32 rounded-xl border-2 border-dashed border-neutral-200 bg-neutral-50 flex flex-col items-center justify-center gap-1 hover:border-neutral-400 hover:bg-neutral-100 transition-colors"
+                className="shrink-0 w-24 h-32 rounded-xl flex flex-col items-center justify-center gap-1 transition-colors"
+                style={{ border: "1.5px dashed var(--page-border)", background: "var(--page-surface)" }}
               >
-                <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" className="text-neutral-400">
+                <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" style={{ color: "var(--page-text-muted)" }}>
                   <line x1="12" y1="5" x2="12" y2="19" />
                   <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
-                <span className="text-[10px] font-medium text-neutral-400">Add more</span>
+                <span className="text-[10px] font-medium" style={{ color: "var(--page-text-muted)" }}>Add more</span>
               </button>
             )}
           </div>
 
-          <p className="text-xs text-neutral-400">
+          <p className="text-xs" style={{ color: "var(--page-text-muted)" }}>
             {uploadingCount > 0
               ? `Uploading ${uploadingCount} file${uploadingCount !== 1 ? "s" : ""}…`
               : `${uploadedCount} of ${items.filter((m) => !m.error).length} uploaded · First photo is the cover`}
