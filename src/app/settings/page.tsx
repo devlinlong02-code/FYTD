@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Layout from "@/components/Layout";
 import SignOutButton from "@/components/SignOutButton";
+import AppearanceRow from "@/components/AppearanceRow";
 import { getProfile, getSession } from "@/lib/dal";
 import { redirect } from "next/navigation";
 
@@ -98,8 +99,8 @@ const SETTINGS_SECTIONS = [
   },
 ];
 
-const ChevronRight = () => (
-  <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-neutral-300 shrink-0">
+const chevron = (
+  <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="settings-row-chevron">
     <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
   </svg>
 );
@@ -115,70 +116,78 @@ export default async function SettingsPage() {
   return (
     <Layout>
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-neutral-100 px-4 py-3 flex items-center gap-3">
+      <div className="settings-header sticky top-0 z-30 px-4 py-3 flex items-center gap-3">
         <Link
           href="/profile"
-          className="flex items-center justify-center w-8 h-8 -ml-1 rounded-full hover:bg-black/5 transition-colors"
           aria-label="Back to profile"
+          className="flex items-center justify-center w-8 h-8 -ml-1 rounded-full transition-colors"
+          style={{ color: "var(--settings-header-text)" }}
         >
           <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
             <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
           </svg>
         </Link>
-        <span className="font-bold text-xl tracking-tight text-neutral-900">Settings</span>
+        <span className="settings-header-title">Settings</span>
       </div>
 
-      <div className="px-4 py-5 flex flex-col gap-4 pb-32">
+      <div className="settings-page px-4 py-5 flex flex-col gap-4 pb-32">
+
         {/* Account identity */}
-        <div className="bg-white rounded-2xl border border-neutral-100 overflow-hidden">
+        <div className="settings-card">
           <div className="flex items-center gap-3.5 px-4 py-4">
-            <div className="w-12 h-12 rounded-full bg-neutral-900 flex items-center justify-center shrink-0">
-              <span className="text-white text-base font-bold">{(displayName[0] ?? "?").toUpperCase()}</span>
+            <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0"
+                 style={{ background: "var(--btn-primary-bg)" }}>
+              <span className="text-base font-bold" style={{ color: "var(--btn-primary-text)" }}>
+                {(displayName[0] ?? "?").toUpperCase()}
+              </span>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-neutral-900 truncate">{displayName}</p>
-              <p className="text-xs text-neutral-400">@{username}</p>
+              <p className="settings-identity-name truncate">{displayName}</p>
+              <p className="settings-identity-handle mt-0.5">@{username}</p>
             </div>
           </div>
         </div>
 
+        {/* Appearance */}
+        <div className="settings-card">
+          <AppearanceRow />
+        </div>
+
         {/* Settings sections */}
         {SETTINGS_SECTIONS.map((section, si) => (
-          <div key={si} className="bg-white rounded-2xl border border-neutral-100 divide-y divide-neutral-50">
+          <div key={si} className="settings-card">
             {section.items.map(({ label, href, icon }) => (
-              <Link
-                key={label}
-                href={href}
-                className="flex items-center gap-3 px-4 py-3.5 hover:bg-neutral-50 transition-colors"
-              >
-                <span className="text-neutral-400 shrink-0">{icon}</span>
-                <span className="text-sm font-medium text-neutral-700 flex-1">{label}</span>
-                <ChevronRight />
+              <Link key={label} href={href} className="settings-row">
+                <span className="settings-row-icon">{icon}</span>
+                <span className="settings-row-text flex-1">{label}</span>
+                {chevron}
               </Link>
             ))}
           </div>
         ))}
 
         {/* Danger zone */}
-        <div className="bg-white rounded-2xl border border-neutral-100 divide-y divide-neutral-50">
+        <div className="settings-card">
           <a
             href="mailto:support@fytd.org?subject=Account Deletion Request"
-            className="flex items-center gap-3 px-4 py-3.5 hover:bg-neutral-50 transition-colors"
+            className="settings-row"
           >
-            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" className="text-red-400 shrink-0">
+            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" className="shrink-0" style={{ color: "var(--page-text-danger)" }}>
               <polyline points="3 6 5 6 21 6" />
               <path d="M19 6l-1 14H6L5 6" />
               <path d="M10 11v6M14 11v6" />
               <path d="M9 6V4h6v2" />
             </svg>
-            <span className="text-sm font-medium text-red-500 flex-1">Delete Account</span>
-            <ChevronRight />
+            <span className="flex-1" style={{ fontFamily: "var(--font-body)", fontSize: 14, fontWeight: 500, color: "var(--page-text-danger)" }}>
+              Delete Account
+            </span>
+            {chevron}
           </a>
         </div>
 
         <SignOutButton />
 
-        <p className="text-center text-[10px] text-neutral-300 pb-2">
+        <p className="text-center text-[10px] pb-2 settings-version-text">
           FYTD v0.4 · Find Your &apos;Fit Daily · Private Beta
         </p>
       </div>
