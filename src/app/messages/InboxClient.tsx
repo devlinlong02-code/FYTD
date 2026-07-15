@@ -96,17 +96,17 @@ export default function InboxClient({ active: initialActive, requests, currentUs
   return (
     <div>
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-neutral-100 px-4 py-3">
-        <span className="font-bold text-xl tracking-tight text-neutral-900">Messages</span>
+      <div className="sticky top-0 z-30 backdrop-blur-md px-4 py-3" style={{ background: "var(--page-bg)", borderBottom: "0.5px solid var(--page-border)" }}>
+        <span className="font-bold text-xl tracking-tight" style={{ color: "var(--page-text-primary)" }}>Messages</span>
       </div>
 
       {/* Search bar */}
-      <div className="px-4 py-3 border-b border-neutral-100">
+      <div className="px-4 py-3" style={{ borderBottom: "0.5px solid var(--page-border)" }}>
         <div
           className="flex items-center gap-2 rounded-full px-3.5 py-2.5"
-          style={{ background: "rgba(0,0,0,0.05)" }}
+          style={{ background: "var(--page-surface)" }}
         >
-          <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ color: "rgba(0,0,0,0.35)", flexShrink: 0 }}>
+          <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ color: "var(--page-text-muted)", flexShrink: 0 }}>
             <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
           <input
@@ -114,10 +114,11 @@ export default function InboxClient({ active: initialActive, requests, currentUs
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Search people…"
-            className="flex-1 bg-transparent border-none outline-none text-sm text-neutral-900 placeholder:text-neutral-400"
+            className="flex-1 bg-transparent border-none outline-none text-sm"
+            style={{ color: "var(--page-text-primary)" }}
           />
           {searchQuery && (
-            <button onClick={clearSearch} className="shrink-0 text-neutral-400 hover:text-neutral-600">
+            <button onClick={clearSearch} className="shrink-0" style={{ color: "var(--page-text-muted)" }}>
               <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
               </svg>
@@ -131,14 +132,14 @@ export default function InboxClient({ active: initialActive, requests, currentUs
         <div>
           {searchLoading ? (
             <div className="flex justify-center py-10">
-              <div className="w-5 h-5 rounded-full border-2 border-neutral-200 border-t-neutral-900 animate-spin" />
+              <div className="w-5 h-5 rounded-full border-2 animate-spin" style={{ borderColor: "var(--page-border)", borderTopColor: "var(--page-text-primary)" }} />
             </div>
           ) : searchResults.length === 0 ? (
-            <div className="py-10 text-center text-sm text-neutral-400">
+            <div className="py-10 text-center text-sm" style={{ color: "var(--page-text-muted)" }}>
               No people found for &ldquo;{searchQuery}&rdquo;
             </div>
           ) : (
-            <div className="divide-y divide-neutral-50">
+            <div>
               {searchResults.map((user) => {
                 const name = user.display_name || user.username || "User";
                 const loading = startingConvFor === user.id;
@@ -147,9 +148,10 @@ export default function InboxClient({ active: initialActive, requests, currentUs
                     key={user.id}
                     onClick={() => handleStartConversation(user.id)}
                     disabled={!!startingConvFor}
-                    className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-neutral-50 transition-colors text-left disabled:opacity-60"
+                    className="w-full flex items-center gap-3 px-4 py-3.5 transition-colors text-left disabled:opacity-60"
+                    style={{ borderBottom: "0.5px solid var(--page-border)" }}
                   >
-                    <div className="w-11 h-11 rounded-full overflow-hidden bg-neutral-100 shrink-0 flex items-center justify-center">
+                    <div className="w-11 h-11 rounded-full overflow-hidden shrink-0 flex items-center justify-center" style={{ background: "var(--page-surface)" }}>
                       {user.avatar_url ? (
                         <Image
                           src={user.avatar_url}
@@ -159,15 +161,15 @@ export default function InboxClient({ active: initialActive, requests, currentUs
                           className="object-cover w-full h-full"
                         />
                       ) : (
-                        <span className="text-base font-semibold text-neutral-400">
+                        <span className="text-base font-semibold" style={{ color: "var(--page-text-muted)" }}>
                           {name[0]?.toUpperCase()}
                         </span>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-neutral-900 truncate">{name}</p>
+                      <p className="text-sm font-semibold truncate" style={{ color: "var(--page-text-primary)" }}>{name}</p>
                       {user.username && (
-                        <p className="text-xs text-neutral-400 truncate">@{user.username}</p>
+                        <p className="text-xs truncate" style={{ color: "var(--page-text-muted)" }}>@{user.username}</p>
                       )}
                     </div>
                     <div className="shrink-0">
@@ -191,20 +193,21 @@ export default function InboxClient({ active: initialActive, requests, currentUs
           {requests.length > 0 && (
             <button
               onClick={() => router.push("/messages/requests")}
-              className="w-full flex items-center justify-between px-4 py-4 border-b border-neutral-100 hover:bg-neutral-50 transition-colors"
+              className="w-full flex items-center justify-between px-4 py-4 transition-colors"
+              style={{ borderBottom: "0.5px solid var(--page-border)" }}
             >
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-neutral-100 flex items-center justify-center shrink-0">
-                  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" className="text-neutral-400">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0" style={{ background: "var(--page-surface)" }}>
+                  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" style={{ color: "var(--page-text-muted)" }}>
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                   </svg>
                 </div>
                 <div className="text-left">
-                  <p className="text-sm font-semibold text-neutral-900">Message requests</p>
-                  <p className="text-xs text-neutral-400">{requests.length} pending</p>
+                  <p className="text-sm font-semibold" style={{ color: "var(--page-text-primary)" }}>Message requests</p>
+                  <p className="text-xs" style={{ color: "var(--page-text-muted)" }}>{requests.length} pending</p>
                 </div>
               </div>
-              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-neutral-300 shrink-0">
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="shrink-0" style={{ color: "var(--page-text-muted)" }}>
                 <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
               </svg>
             </button>
@@ -213,23 +216,24 @@ export default function InboxClient({ active: initialActive, requests, currentUs
           {/* Active conversations or empty state */}
           {active.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24 px-8 text-center">
-              <div className="w-16 h-16 rounded-full bg-neutral-100 flex items-center justify-center mb-5">
-                <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24" className="text-neutral-400">
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mb-5" style={{ background: "var(--page-surface)" }}>
+                <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24" style={{ color: "var(--page-text-muted)" }}>
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                 </svg>
               </div>
-              <h2 className="text-base font-bold text-neutral-900 mb-2">No messages yet</h2>
-              <p className="text-sm text-neutral-400">Search for someone above to start a conversation.</p>
+              <h2 className="text-base font-bold mb-2" style={{ color: "var(--page-text-primary)" }}>No messages yet</h2>
+              <p className="text-sm" style={{ color: "var(--page-text-muted)" }}>Search for someone above to start a conversation.</p>
             </div>
           ) : (
-            <div className="divide-y divide-neutral-100">
+            <div>
               {active.map((conv) => {
                 const other = conv.otherUser;
                 const displayName = other.display_name ?? other.username ?? "User";
                 return (
                   <div
                     key={conv.id}
-                    className="flex items-center gap-3 px-4 py-4 hover:bg-neutral-50 transition-colors group"
+                    className="flex items-center gap-3 px-4 py-4 transition-colors group"
+                    style={{ borderBottom: "0.5px solid var(--page-border)" }}
                   >
                     <button
                       className="flex items-center gap-3 flex-1 min-w-0 text-left"
@@ -238,10 +242,10 @@ export default function InboxClient({ active: initialActive, requests, currentUs
                       <Avatar avatarUrl={other.avatar_url} displayName={displayName} size={48} className="shrink-0" />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-0.5">
-                          <span className="text-sm font-semibold text-neutral-900 truncate">{displayName}</span>
-                          <span className="text-xs text-neutral-400 shrink-0 ml-2">{formatTime(conv.last_message_at)}</span>
+                          <span className="text-sm font-semibold truncate" style={{ color: "var(--page-text-primary)" }}>{displayName}</span>
+                          <span className="text-xs shrink-0 ml-2" style={{ color: "var(--page-text-muted)" }}>{formatTime(conv.last_message_at)}</span>
                         </div>
-                        <p className="text-sm text-neutral-400 truncate">
+                        <p className="text-sm truncate" style={{ color: "var(--page-text-muted)" }}>
                           {conv.last_message_preview ?? "No messages yet"}
                         </p>
                       </div>
@@ -249,7 +253,8 @@ export default function InboxClient({ active: initialActive, requests, currentUs
 
                     <button
                       onClick={() => handleDelete(conv.id)}
-                      className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full text-neutral-300 hover:text-red-400 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
+                      className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full hover:text-red-400 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
+                      style={{ color: "var(--page-text-muted)" }}
                       aria-label="Remove conversation"
                     >
                       <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">

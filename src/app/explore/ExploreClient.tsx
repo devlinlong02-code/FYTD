@@ -133,14 +133,14 @@ function getFitValue(items: Outfit["items"]): string | null {
 function SectionRule({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-3 px-4 pt-5 pb-3">
-      <div className="flex-1 h-px" style={{ background: "rgba(0,0,0,0.09)" }} />
+      <div className="flex-1 h-px" style={{ background: "var(--page-border)" }} />
       <span
         className="font-data text-[9px] font-semibold tracking-[0.16em] uppercase whitespace-nowrap"
-        style={{ color: "rgba(0,0,0,0.38)" }}
+        style={{ color: "var(--page-text-muted)" }}
       >
         {label}
       </span>
-      <div className="flex-1 h-px" style={{ background: "rgba(0,0,0,0.09)" }} />
+      <div className="flex-1 h-px" style={{ background: "var(--page-border)" }} />
     </div>
   );
 }
@@ -408,7 +408,7 @@ function FitsGrid({
               className="bg-transparent border-none p-0 text-left cursor-pointer flex flex-col"
             >
               {/* Image */}
-              <div className="relative w-full overflow-hidden bg-neutral-100" style={{ aspectRatio: "3/4" }}>
+              <div className="relative w-full overflow-hidden" style={{ aspectRatio: "3/4", background: "var(--page-surface)" }}>
                 {fit.image && (
                   <Image src={fit.image} alt={fit.title} fill className="object-cover" sizes="50vw" />
                 )}
@@ -438,14 +438,14 @@ function FitsGrid({
                 )}
               </div>
               {/* Info */}
-              <div className="px-2 pt-2 pb-3">
-                <p className="font-editorial m-0 mb-1 truncate" style={{ fontSize: 13, color: "#0a0a0a", fontWeight: 500, letterSpacing: "-0.01em" }}>
+              <div className="px-2 pt-2 pb-3" style={{ background: "var(--page-bg)" }}>
+                <p className="font-editorial m-0 mb-1 truncate" style={{ fontSize: 13, color: "var(--page-text-primary)", fontWeight: 500, letterSpacing: "-0.01em" }}>
                   {fit.title}
                 </p>
                 <div className="flex items-center gap-1">
                   <div
                     className="flex-shrink-0 rounded-full overflow-hidden flex items-center justify-center"
-                    style={{ width: 16, height: 16, background: "rgba(0,0,0,0.07)", fontSize: 7, fontWeight: 600, color: "rgba(0,0,0,0.35)" }}
+                    style={{ width: 16, height: 16, background: "var(--page-surface)", fontSize: 7, fontWeight: 600, color: "var(--page-text-muted)" }}
                   >
                     {fit.creatorAvatar ? (
                       <Image src={fit.creatorAvatar} alt="" width={16} height={16} className="object-cover w-full h-full" />
@@ -453,7 +453,7 @@ function FitsGrid({
                       (handle ?? "?")[0]?.toUpperCase()
                     )}
                   </div>
-                  <span className="truncate" style={{ fontSize: 11, color: "rgba(0,0,0,0.38)", fontFamily: "inherit" }}>
+                  <span className="truncate" style={{ fontSize: 11, color: "var(--page-text-muted)", fontFamily: "inherit" }}>
                     @{handle}
                   </span>
                 </div>
@@ -488,7 +488,7 @@ function SearchResults({
   return (
     <div className="pb-20">
       {/* Tabs */}
-      <div className="flex border-b" style={{ borderColor: "rgba(0,0,0,0.06)" }}>
+      <div className="flex border-b" style={{ borderColor: "var(--page-border)" }}>
         {(["people", "fits"] as const).map((tab) => {
           const count = tab === "people" ? profiles.length : fits.length;
           return (
@@ -499,14 +499,14 @@ function SearchResults({
               style={{
                 fontSize: 13,
                 fontWeight: 500,
-                color: activeTab === tab ? "#0a0a0a" : "rgba(0,0,0,0.38)",
-                borderBottomColor: activeTab === tab ? "#0a0a0a" : "transparent",
+                color: activeTab === tab ? "var(--page-text-primary)" : "var(--page-text-muted)",
+                borderBottomColor: activeTab === tab ? "var(--page-text-primary)" : "transparent",
                 borderBottomWidth: 1.5,
               }}
             >
               {tab === "people" ? "People" : "Fits"}
               {count > 0 && (
-                <span className="font-data" style={{ fontSize: 10, color: "rgba(0,0,0,0.3)" }}>{count}</span>
+                <span className="font-data" style={{ fontSize: 10, color: "var(--page-text-muted)" }}>{count}</span>
               )}
             </button>
           );
@@ -515,18 +515,18 @@ function SearchResults({
 
       {isLoading ? (
         <div className="flex justify-center py-10">
-          <div className="w-5 h-5 rounded-full border-2 border-neutral-200 border-t-neutral-900 animate-spin" />
+          <div className="w-5 h-5 rounded-full border-2 animate-spin" style={{ borderColor: "var(--page-border)", borderTopColor: "var(--page-text-primary)" }} />
         </div>
       ) : activeTab === "people" ? (
         profiles.length === 0 ? (
-          <p className="text-center py-10 text-sm text-neutral-400">No people found for &ldquo;{query}&rdquo;</p>
+          <p className="text-center py-10 text-sm" style={{ color: "var(--page-text-muted)" }}>No people found for &ldquo;{query}&rdquo;</p>
         ) : (
           <div>
             {profiles.map((p) => (
               <div
                 key={p.id}
-                className="flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 transition-colors"
-                style={{ borderBottom: "0.5px solid rgba(0,0,0,0.04)" }}
+                className="flex items-center gap-3 px-4 py-3 transition-colors"
+                style={{ borderBottom: "0.5px solid var(--page-border)" }}
               >
                 <button
                   onClick={() => p.username && router.push(`/profile/${p.username}`)}
@@ -534,7 +534,7 @@ function SearchResults({
                 >
                   <div
                     className="flex-shrink-0 rounded-full overflow-hidden flex items-center justify-center"
-                    style={{ width: 44, height: 44, background: "rgba(0,0,0,0.06)", fontSize: 16, fontWeight: 500, color: "rgba(0,0,0,0.28)" }}
+                    style={{ width: 44, height: 44, background: "var(--page-surface)", fontSize: 16, fontWeight: 500, color: "var(--page-text-muted)" }}
                   >
                     {p.avatar_url ? (
                       <Image src={p.avatar_url} alt="" width={44} height={44} className="object-cover w-full h-full" />
@@ -543,13 +543,13 @@ function SearchResults({
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-editorial m-0 mb-0.5 truncate" style={{ fontSize: 14, color: "#0a0a0a", fontWeight: 500, letterSpacing: "-0.01em" }}>
+                    <p className="font-editorial m-0 mb-0.5 truncate" style={{ fontSize: 14, color: "var(--page-text-primary)", fontWeight: 500, letterSpacing: "-0.01em" }}>
                       {p.display_name || p.username}
                     </p>
-                    <p className="m-0" style={{ fontSize: 12, color: "rgba(0,0,0,0.38)" }}>
+                    <p className="m-0" style={{ fontSize: 12, color: "var(--page-text-muted)" }}>
                       @{p.username}
                       {(p.followers_count ?? 0) > 0 && (
-                        <span style={{ color: "rgba(0,0,0,0.28)" }}> · {(p.followers_count ?? 0).toLocaleString()} followers</span>
+                        <span style={{ color: "var(--page-text-muted)" }}> · {(p.followers_count ?? 0).toLocaleString()} followers</span>
                       )}
                     </p>
                   </div>
@@ -561,7 +561,7 @@ function SearchResults({
         )
       ) : (
         fits.length === 0 ? (
-          <p className="text-center py-10 text-sm text-neutral-400">No fits found for &ldquo;{query}&rdquo;</p>
+          <p className="text-center py-10 text-sm" style={{ color: "var(--page-text-muted)" }}>No fits found for &ldquo;{query}&rdquo;</p>
         ) : (
           <div className="grid grid-cols-2 gap-px">
             {fits.map((fit) => (
@@ -570,13 +570,13 @@ function SearchResults({
                 onClick={() => router.push(`/outfit/${fit.id}`)}
                 className="bg-transparent border-none p-0 cursor-pointer text-left flex flex-col"
               >
-                <div className="relative w-full bg-neutral-100 overflow-hidden" style={{ aspectRatio: "3/4" }}>
+                <div className="relative w-full overflow-hidden" style={{ aspectRatio: "3/4", background: "var(--page-surface)" }}>
                   {fit.image_url && (
                     <Image src={fit.image_url} alt={fit.title} fill className="object-cover" sizes="50vw" />
                   )}
                 </div>
-                <div className="px-2 pt-2 pb-3">
-                  <p className="font-editorial m-0 truncate" style={{ fontSize: 12, color: "#0a0a0a", fontWeight: 500 }}>{fit.title}</p>
+                <div className="px-2 pt-2 pb-3" style={{ background: "var(--page-bg)" }}>
+                  <p className="font-editorial m-0 truncate" style={{ fontSize: 12, color: "var(--page-text-primary)", fontWeight: 500 }}>{fit.title}</p>
                 </div>
               </button>
             ))}
@@ -668,9 +668,11 @@ export default function ExploreClient({
   const [searchTab, setSearchTab] = useState<"people" | "fits">("people");
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const KNOWN_STYLE_TAGS = ["streetwear", "minimal", "old money", "casual", "gym fit", "formal", "summer", "clean", "vintage", "gorpcore", "athleisure", "luxury", "going out"];
+
   const runSearch = useCallback(async (term: string) => {
     const supabase = createClient();
-    const [{ data: profiles }, { data: fits }] = await Promise.all([
+    const [{ data: profiles }, { data: titleFits }, { data: tagFits }] = await Promise.all([
       supabase
         .from("profiles")
         .select("id, username, display_name, avatar_url, followers_count")
@@ -684,10 +686,25 @@ export default function ExploreClient({
         .eq("published", true)
         .order("likes_count", { ascending: false })
         .limit(20),
+      supabase
+        .from("outfits")
+        .select("id, title, image_url")
+        .contains("tags", [term.toLowerCase()])
+        .eq("published", true)
+        .order("likes_count", { ascending: false })
+        .limit(20),
     ]);
     setProfileResults((profiles ?? []) as ProfileResult[]);
+    // Merge title + tag results, deduplicate by id
+    const allFits = [...(titleFits ?? []), ...(tagFits ?? [])];
+    const seen = new Set<string>();
+    const dedupedFits = allFits.filter((f) => {
+      if (seen.has(f.id as string)) return false;
+      seen.add(f.id as string);
+      return true;
+    });
     setFitResults(
-      (fits ?? []).map((f) => ({
+      dedupedFits.map((f) => ({
         id: f.id as string,
         title: f.title as string,
         image_url: f.image_url as string | null,
@@ -707,6 +724,8 @@ export default function ExploreClient({
     }
     setIsSearchActive(true);
     setIsSearchLoading(true);
+    const trimmed = value.trim().toLowerCase();
+    setSearchTab(KNOWN_STYLE_TAGS.some((t) => t === trimmed || trimmed.includes(t)) ? "fits" : "people");
     if (searchTimer.current) clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(() => runSearch(value.trim()), 300);
   }
@@ -726,17 +745,17 @@ export default function ExploreClient({
       <div
         className="sticky top-0 z-30 px-3 py-2.5"
         style={{
-          background: "rgba(250,250,250,0.96)",
+          background: "var(--page-bg)",
           backdropFilter: "blur(12px)",
           WebkitBackdropFilter: "blur(12px)",
-          borderBottom: "0.5px solid rgba(0,0,0,0.06)",
+          borderBottom: "0.5px solid var(--page-border)",
         }}
       >
         <div
           className="flex items-center gap-2 rounded-full px-3.5 py-2.5"
-          style={{ background: "rgba(0,0,0,0.05)" }}
+          style={{ background: "var(--page-surface)" }}
         >
-          <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ color: "rgba(0,0,0,0.33)", flexShrink: 0 }}>
+          <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ color: "var(--page-text-muted)", flexShrink: 0 }}>
             <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
           <input
@@ -744,10 +763,11 @@ export default function ExploreClient({
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Search people, styles, brands…"
-            className="flex-1 bg-transparent border-none outline-none text-sm text-neutral-900 placeholder:text-neutral-400"
+            className="flex-1 bg-transparent border-none outline-none text-sm"
+            style={{ color: "var(--page-text-primary)" }}
           />
           {searchQuery && (
-            <button onClick={clearSearch} className="bg-transparent border-none cursor-pointer p-0 flex items-center" style={{ color: "rgba(0,0,0,0.33)" }}>
+            <button onClick={clearSearch} className="bg-transparent border-none cursor-pointer p-0 flex items-center" style={{ color: "var(--page-text-muted)" }}>
               <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
               </svg>

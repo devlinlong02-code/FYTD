@@ -105,8 +105,8 @@ function TypeIcon({ type }: { type: NotifType }) {
   };
   return (
     <span
-      className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full flex items-center justify-center border-2 border-white"
-      style={{ background: bg[type] ?? "#0A0A0A" }}
+      className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full flex items-center justify-center border-2"
+      style={{ borderColor: "var(--page-bg)", background: bg[type] ?? "#0A0A0A" }}
     >
       {type === "like" && (
         <svg width="9" height="9" viewBox="0 0 24 24" fill="white" stroke="none">
@@ -137,13 +137,13 @@ function TypeIcon({ type }: { type: NotifType }) {
 
 function SkeletonRow() {
   return (
-    <div className="flex items-center gap-3 px-4 py-4 border-b border-neutral-100">
-      <div className="w-11 h-11 rounded-full bg-neutral-100 shrink-0 animate-pulse" />
+    <div className="flex items-center gap-3 px-4 py-4" style={{ borderBottom: "0.5px solid var(--page-border)" }}>
+      <div className="w-11 h-11 rounded-full shrink-0 animate-pulse" style={{ background: "var(--page-surface)" }} />
       <div className="flex-1 space-y-2">
-        <div className="h-3 bg-neutral-100 rounded animate-pulse w-3/4" />
-        <div className="h-2 bg-neutral-100 rounded animate-pulse w-1/3" />
+        <div className="h-3 rounded animate-pulse w-3/4" style={{ background: "var(--page-surface)" }} />
+        <div className="h-2 rounded animate-pulse w-1/3" style={{ background: "var(--page-surface)" }} />
       </div>
-      <div className="w-11 h-11 rounded-lg bg-neutral-100 animate-pulse shrink-0" />
+      <div className="w-11 h-11 rounded-lg animate-pulse shrink-0" style={{ background: "var(--page-surface)" }} />
     </div>
   );
 }
@@ -226,10 +226,10 @@ export default function NotificationsPage() {
   return (
     <Layout>
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-neutral-100 px-4 pt-4 pb-3">
+      <div className="sticky top-0 z-30 backdrop-blur-md px-4 pt-4 pb-3" style={{ background: "var(--page-bg)", borderBottom: "0.5px solid var(--page-border)" }}>
         <h1
-          className="text-2xl font-bold tracking-tight text-neutral-900 mb-3"
-          style={{ fontFamily: "var(--font-display, 'Playfair Display', serif)" }}
+          className="text-2xl font-bold tracking-tight mb-3"
+          style={{ color: "var(--page-text-primary)", fontFamily: "var(--font-display, 'Playfair Display', serif)" }}
         >
           Activity
         </h1>
@@ -243,8 +243,8 @@ export default function NotificationsPage() {
               className="shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors"
               style={
                 tab === key
-                  ? { background: "#0A0A0A", color: "#fff" }
-                  : { background: "rgba(10,10,10,0.06)", color: "rgba(10,10,10,0.55)" }
+                  ? { background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)" }
+                  : { background: "var(--page-surface)", color: "var(--page-text-muted)" }
               }
             >
               {label}
@@ -261,13 +261,13 @@ export default function NotificationsPage() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-32 text-center px-8">
-          <div className="w-16 h-16 rounded-2xl bg-neutral-50 border border-neutral-100 flex items-center justify-center mb-5">
-            <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" className="text-neutral-400">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5" style={{ background: "var(--page-surface)", border: "0.5px solid var(--page-border)" }}>
+            <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" style={{ color: "var(--page-text-muted)" }}>
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
             </svg>
           </div>
-          <p className="text-neutral-900 text-sm font-bold mb-1.5 tracking-tight">No notifications yet</p>
-          <p className="text-neutral-400 text-xs leading-relaxed max-w-[200px]">
+          <p className="text-sm font-bold mb-1.5 tracking-tight" style={{ color: "var(--page-text-primary)" }}>No notifications yet</p>
+          <p className="text-xs leading-relaxed max-w-[200px]" style={{ color: "var(--page-text-muted)" }}>
             When someone likes, comments, or follows you, it will show up here.
           </p>
         </div>
@@ -279,7 +279,7 @@ export default function NotificationsPage() {
               <div className="px-4 pt-5 pb-2">
                 <span
                   className="text-[10px] font-semibold tracking-widest uppercase"
-                  style={{ color: "rgba(10,10,10,0.35)" }}
+                  style={{ color: "var(--page-text-muted)" }}
                 >
                   {label}
                 </span>
@@ -293,8 +293,8 @@ export default function NotificationsPage() {
                 return (
                   <div
                     key={n.id}
-                    className="relative flex items-center gap-3 px-4 py-3.5 border-b border-neutral-50 transition-colors"
-                    style={!n.read ? { background: "rgba(0,0,0,0.015)" } : undefined}
+                    className="relative flex items-center gap-3 px-4 py-3.5 transition-colors"
+                    style={{ borderBottom: "0.5px solid var(--page-border)", ...(!n.read ? { background: "var(--page-surface)" } : {}) }}
                     onMouseEnter={() => setHoveredId(n.id)}
                     onMouseLeave={() => setHoveredId(null)}
                   >
@@ -305,7 +305,7 @@ export default function NotificationsPage() {
                     >
                       {/* Avatar + type icon */}
                       <div className="relative shrink-0">
-                        <div className="w-11 h-11 rounded-full overflow-hidden bg-neutral-100">
+                        <div className="w-11 h-11 rounded-full overflow-hidden" style={{ background: "var(--page-surface)" }}>
                           {n.actor?.avatar_url ? (
                             <Image
                               src={n.actor.avatar_url}
@@ -315,7 +315,7 @@ export default function NotificationsPage() {
                               className="object-cover w-full h-full"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-neutral-900 text-white text-base font-bold">
+                            <div className="w-full h-full flex items-center justify-center text-base font-bold" style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)" }}>
                               {(n.actor?.display_name || n.actor?.username || "?")[0].toUpperCase()}
                             </div>
                           )}
@@ -325,12 +325,12 @@ export default function NotificationsPage() {
 
                       {/* Text */}
                       <div className="flex-1 min-w-0">
-                        <p className="text-[13px] text-neutral-900 leading-snug line-clamp-2">
+                        <p className="text-[13px] leading-snug line-clamp-2" style={{ color: "var(--page-text-primary)" }}>
                           {buildText(n)}
                         </p>
                         <p
                           className="text-[10px] mt-0.5"
-                          style={{ fontFamily: "'IBM Plex Mono', monospace", color: "rgba(10,10,10,0.35)" }}
+                          style={{ fontFamily: "'IBM Plex Mono', monospace", color: "var(--page-text-muted)" }}
                         >
                           {formatRelative(n.created_at)}
                         </p>
@@ -344,10 +344,11 @@ export default function NotificationsPage() {
                         <button
                           onClick={() => handleDelete(n.id)}
                           disabled={deletingId === n.id}
-                          className="w-7 h-7 flex items-center justify-center rounded-full bg-neutral-100 hover:bg-red-50 transition-colors"
+                          className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-50 transition-colors"
+                          style={{ background: "var(--page-surface)" }}
                           aria-label="Delete notification"
                         >
-                          <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-neutral-400">
+                          <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ color: "var(--page-text-muted)" }}>
                             <polyline points="3 6 5 6 21 6" />
                             <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
                             <path d="M10 11v6M14 11v6" />
@@ -359,7 +360,7 @@ export default function NotificationsPage() {
                       {/* Post thumbnail */}
                       {showThumb && (
                         <button onClick={() => router.push(href)} className="shrink-0">
-                          <div className="w-11 h-11 rounded-lg overflow-hidden bg-neutral-100">
+                          <div className="w-11 h-11 rounded-lg overflow-hidden" style={{ background: "var(--page-surface)" }}>
                             <Image
                               src={thumb}
                               alt={n.outfit?.title ?? ""}
@@ -373,7 +374,7 @@ export default function NotificationsPage() {
 
                       {/* Unread dot */}
                       {!n.read && (
-                        <div className="w-1.5 h-1.5 rounded-full bg-neutral-900 shrink-0" />
+                        <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "var(--page-text-primary)" }} />
                       )}
                     </div>
                   </div>
