@@ -8,6 +8,181 @@ import MultiMediaUpload from "@/components/MultiMediaUpload";
 import FitBreakdownBuilder, { type Piece } from "@/components/FitBreakdownBuilder";
 import { createOutfit } from "@/app/actions/upload";
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Card Style Picker
+// ─────────────────────────────────────────────────────────────────────────────
+
+type CardStyleKey = "editorial" | "statement" | "streetwear";
+
+const CARD_STYLES: { key: CardStyleKey; name: string; tagline: string; description: string }[] = [
+  {
+    key: "editorial",
+    name: "Editorial",
+    tagline: "Clean title on the photo",
+    description: "Your outfit title sits over the image. Piece count shows quietly below.",
+  },
+  {
+    key: "statement",
+    name: "Statement",
+    tagline: "Price badge front and center",
+    description: "Fit value shows as a bold white badge. Best for flexing the total.",
+  },
+  {
+    key: "streetwear",
+    name: "Streetwear",
+    tagline: "Data above, photo below",
+    description: "Piece count and value sit above the image like a data card.",
+  },
+];
+
+function StylePreview({ styleKey, previewImage }: { styleKey: CardStyleKey; previewImage: string | null }) {
+  const img = previewImage ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={previewImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+  ) : null;
+
+  const gradient = previewImage ? null : (
+    <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg,#1a1a2a,#0a0a1a)" }} />
+  );
+
+  if (styleKey === "editorial") {
+    return (
+      <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden" }}>
+        {img ?? gradient}
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top,rgba(0,0,0,0.85) 0%,transparent 55%)" }} />
+        <div style={{ position: "absolute", top: 6, left: 6, background: "rgba(255,255,255,0.12)", borderRadius: 999, padding: "2px 6px", fontSize: 7, fontWeight: 600, color: "white", letterSpacing: "0.06em", fontFamily: "var(--font-body)" }}>
+          TITLE HERO
+        </div>
+        <div style={{ position: "absolute", bottom: 8, left: 8, right: 8 }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 11, fontWeight: 500, color: "white", letterSpacing: "-0.01em", marginBottom: 3, lineHeight: 1.1 }}>Outfit Title</div>
+          <div style={{ fontFamily: "monospace", fontSize: 8, color: "rgba(255,255,255,0.45)", letterSpacing: "0.06em" }}>5 PIECES · $2,590</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (styleKey === "statement") {
+    return (
+      <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden" }}>
+        {img ?? <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg,#2a1a1a,#1a0a0a)" }} />}
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top,rgba(0,0,0,0.85) 0%,transparent 55%)" }} />
+        <div style={{ position: "absolute", top: 8, left: 8, display: "flex", gap: 4, alignItems: "center" }}>
+          <div style={{ background: "rgba(0,0,0,0.65)", borderRadius: 999, padding: "3px 7px", fontSize: 7, fontFamily: "monospace", color: "rgba(255,255,255,0.8)", letterSpacing: "0.04em" }}>5pc</div>
+          <div style={{ background: "white", borderRadius: 999, padding: "3px 7px", fontSize: 8, fontFamily: "monospace", fontWeight: 700, color: "#0a0a0a", letterSpacing: "0.04em" }}>$2,590</div>
+        </div>
+        <div style={{ position: "absolute", top: 30, left: 8, fontSize: 7, fontWeight: 600, color: "rgba(255,255,255,0.4)", letterSpacing: "0.06em", fontFamily: "var(--font-body)" }}>↑ VALUE HERO</div>
+        <div style={{ position: "absolute", bottom: 8, left: 8, right: 8 }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 11, fontWeight: 600, color: "white", letterSpacing: "-0.01em" }}>Outfit Title</div>
+        </div>
+      </div>
+    );
+  }
+
+  // streetwear
+  return (
+    <div style={{ width: "100%", height: "100%", background: "#111", display: "flex", flexDirection: "column" }}>
+      <div style={{ padding: "7px 8px 6px", borderBottom: "0.5px solid rgba(255,255,255,0.08)", flexShrink: 0 }}>
+        <div style={{ fontSize: 8, fontWeight: 600, color: "rgba(255,255,255,0.8)", fontFamily: "var(--font-body)", marginBottom: 2 }}>@username</div>
+        <div style={{ fontFamily: "monospace", fontSize: 7, color: "rgba(255,255,255,0.4)", letterSpacing: "0.04em" }}>5 PCS · $2,590 FIT</div>
+      </div>
+      <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+        {img ?? <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg,#1a1a2a,#0a0a1a)" }} />}
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top,rgba(0,0,0,0.7) 0%,transparent 55%)" }} />
+        <div style={{ position: "absolute", top: 4, right: 6, fontSize: 7, fontWeight: 600, color: "rgba(255,255,255,0.35)", letterSpacing: "0.04em", fontFamily: "var(--font-body)" }}>DATA FIRST</div>
+        <div style={{ position: "absolute", bottom: 6, left: 7 }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 10, color: "white", letterSpacing: "-0.01em" }}>Outfit Title</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StyleOption({
+  style, isSelected, onSelect, previewImage,
+}: {
+  style: typeof CARD_STYLES[0];
+  isSelected: boolean;
+  onSelect: () => void;
+  previewImage: string | null;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      style={{
+        width: "100%",
+        background: isSelected ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.03)",
+        border: isSelected ? "1.5px solid rgba(255,255,255,0.5)" : "1px solid rgba(255,255,255,0.1)",
+        borderRadius: 14,
+        padding: 0,
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "stretch",
+        overflow: "hidden",
+        transition: "all 200ms ease",
+        textAlign: "left",
+      }}
+    >
+      {/* Preview */}
+      <div style={{ width: 100, height: 120, flexShrink: 0, position: "relative", overflow: "hidden", background: "#1a1a1a" }}>
+        <StylePreview styleKey={style.key} previewImage={previewImage} />
+      </div>
+
+      {/* Info */}
+      <div style={{ flex: 1, padding: "14px 14px 14px 16px", borderLeft: "0.5px solid rgba(255,255,255,0.08)", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+          <p style={{ fontFamily: "var(--font-body)", fontSize: 15, fontWeight: 600, color: "var(--page-text-primary)", margin: 0 }}>
+            {style.name}
+          </p>
+          {isSelected && (
+            <div style={{ width: 20, height: 20, borderRadius: "50%", background: "white", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                <path d="M1 4L3.5 6.5L9 1" stroke="#0a0a0a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+          )}
+        </div>
+        <p style={{ fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 500, color: isSelected ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.45)", margin: "0 0 6px", letterSpacing: "0.01em" }}>
+          {style.tagline}
+        </p>
+        <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "rgba(255,255,255,0.35)", margin: 0, lineHeight: 1.5 }}>
+          {style.description}
+        </p>
+      </div>
+    </button>
+  );
+}
+
+function CardStylePicker({
+  selectedStyle,
+  onSelect,
+  previewImage,
+}: {
+  selectedStyle: CardStyleKey;
+  onSelect: (s: CardStyleKey) => void;
+  previewImage: string | null;
+}) {
+  return (
+    <div style={{ padding: "0 16px 8px" }}>
+      <div style={{ marginBottom: 16 }}>
+        <p style={{ fontFamily: "var(--font-body)", fontSize: 16, fontWeight: 600, color: "var(--page-text-primary)", margin: "0 0 3px" }}>Card style</p>
+        <p style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "var(--page-text-muted)", margin: 0 }}>How your post appears in the feed</p>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {CARD_STYLES.map((style) => (
+          <StyleOption
+            key={style.key}
+            style={style}
+            isSelected={selectedStyle === style.key}
+            onSelect={() => onSelect(style.key)}
+            previewImage={previewImage}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 interface UploadedMedia {
   media_url: string;
   media_type: "image" | "video";
@@ -197,48 +372,15 @@ export default function PostOutfitPage() {
 
           {/* 4. Card Style */}
           <section>
-            <label className="block text-[10px] font-semibold uppercase tracking-widest text-neutral-400 mb-3">
-              Card Style
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {(["editorial", "statement", "streetwear"] as const).map((style) => {
-                const labels: Record<string, { title: string; desc: string }> = {
-                  editorial: { title: "Editorial", desc: "Clean & minimal" },
-                  statement: { title: "Statement", desc: "Value as hero" },
-                  streetwear: { title: "Streetwear", desc: "Data header" },
-                };
-                const active = cardStyle === style;
-                return (
-                  <button
-                    key={style}
-                    type="button"
-                    onClick={() => setCardStyle(style)}
-                    className="flex flex-col items-center gap-1.5 rounded-xl py-3 px-2 transition-all"
-                    style={{
-                      border: active ? "2px solid #0a0a0a" : "1.5px solid rgba(0,0,0,0.12)",
-                      background: active ? "#0a0a0a" : "transparent",
-                    }}
-                  >
-                    {/* Mini preview */}
-                    <div className="w-full rounded overflow-hidden" style={{ aspectRatio: "3/4", background: "#111", position: "relative" }}>
-                      {style === "statement" && (
-                        <div style={{ position: "absolute", top: 4, left: 4, background: "white", borderRadius: 999, padding: "2px 5px", fontSize: 6, fontWeight: 700, color: "#0a0a0a", fontFamily: "monospace", zIndex: 1 }}>$$$</div>
-                      )}
-                      {style === "streetwear" && (
-                        <div style={{ position: "absolute", top: 0, left: 0, right: 0, background: "rgba(0,0,0,0.7)", padding: "3px 5px", fontSize: 5, color: "rgba(255,255,255,0.6)", fontFamily: "monospace", zIndex: 1 }}>5pc · $2k</div>
-                      )}
-                      {style === "editorial" && (
-                        <div style={{ position: "absolute", bottom: 4, left: 4, right: 4, zIndex: 1 }}>
-                          <div style={{ height: 4, background: "rgba(255,255,255,0.5)", borderRadius: 2, marginBottom: 2, width: "80%" }} />
-                          <div style={{ height: 3, background: "rgba(255,255,255,0.25)", borderRadius: 2, width: "50%" }} />
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-[11px] font-semibold m-0" style={{ color: active ? "white" : "#0a0a0a" }}>{labels[style].title}</p>
-                    <p className="text-[9px] m-0" style={{ color: active ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.4)" }}>{labels[style].desc}</p>
-                  </button>
-                );
-              })}
+            <CardStylePicker
+              selectedStyle={cardStyle}
+              onSelect={setCardStyle}
+              previewImage={mediaItems.find((m) => m.media_type === "image")?.media_url ?? null}
+            />
+            <div style={{ margin: "0 16px 16px", padding: "10px 14px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "0.5px solid rgba(255,255,255,0.06)" }}>
+              <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "rgba(255,255,255,0.4)", margin: 0, lineHeight: 1.5 }}>
+                💡 This controls how your post looks in the feed. You can only set this when posting — it cannot be changed after.
+              </p>
             </div>
           </section>
 
