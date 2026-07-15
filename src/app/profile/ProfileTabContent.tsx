@@ -47,33 +47,18 @@ export default function ProfileTabContent({
   return (
     <div>
       {/* Tab bar */}
-      <div
-        className="flex border-b border-neutral-100 mt-4"
-        style={{ borderBottom: "0.5px solid rgba(0,0,0,0.08)" }}
-      >
+      <div className="profile-tab-bar flex mt-4">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 py-3 text-sm font-semibold transition-colors relative ${
-              activeTab === tab.id
-                ? "text-neutral-900"
-                : "text-neutral-400 hover:text-neutral-600"
-            }`}
+            className={`profile-tab-btn${activeTab === tab.id ? " active" : ""}`}
           >
             {tab.label}
             {tab.count > 0 && (
-              <span
-                className={`ml-1.5 text-xs ${
-                  activeTab === tab.id ? "text-neutral-500" : "text-neutral-300"
-                }`}
-              >
-                {tab.count}
-              </span>
+              <span className="profile-tab-count">{tab.count}</span>
             )}
-            {activeTab === tab.id && (
-              <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-neutral-900 rounded-full" />
-            )}
+            {activeTab === tab.id && <span className="tab-underline" />}
           </button>
         ))}
       </div>
@@ -83,21 +68,16 @@ export default function ProfileTabContent({
         <div className="px-4 pt-5 pb-8">
           {postedOutfits.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="w-14 h-14 rounded-full bg-neutral-100 flex items-center justify-center mb-4">
-                <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" className="text-neutral-400">
+              <div className="profile-empty-icon">
+                <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" style={{ color: "var(--profile-empty-text)" }}>
                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
                   <circle cx="8.5" cy="8.5" r="1.5" />
                   <polyline points="21 15 16 10 5 21" />
                 </svg>
               </div>
-              <p className="text-neutral-500 text-sm font-medium mb-1">No outfits yet</p>
-              <p className="text-neutral-400 text-sm mb-4">Start posting fits to build your profile.</p>
-              <Link
-                href="/admin/upload"
-                className="text-sm font-semibold bg-neutral-900 text-white px-5 py-2.5 rounded-xl hover:bg-neutral-700 transition-colors"
-              >
-                Post an outfit
-              </Link>
+              <p className="profile-empty-title">No outfits yet</p>
+              <p className="profile-empty-sub">Start posting fits to build your profile.</p>
+              <Link href="/admin/upload" className="profile-cta-btn">Post an outfit</Link>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">
@@ -122,13 +102,13 @@ export default function ProfileTabContent({
         <div className="px-4 pt-5 pb-8">
           {savedOutfits.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="w-14 h-14 rounded-full bg-neutral-100 flex items-center justify-center mb-4">
-                <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" className="text-neutral-400">
+              <div className="profile-empty-icon">
+                <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" style={{ color: "var(--profile-empty-text)" }}>
                   <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
                 </svg>
               </div>
-              <p className="text-neutral-500 text-sm font-medium mb-1">Nothing saved yet</p>
-              <p className="text-neutral-400 text-sm">Tap the bookmark on any outfit to save it.</p>
+              <p className="profile-empty-title">Nothing saved yet</p>
+              <p className="profile-empty-sub">Tap the bookmark on any outfit to save it.</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">
@@ -152,22 +132,18 @@ export default function ProfileTabContent({
         <div className="px-4 pt-5 pb-8">
           {savedItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="w-14 h-14 rounded-full bg-neutral-100 flex items-center justify-center mb-4">
-                <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" className="text-neutral-400">
+              <div className="profile-empty-icon">
+                <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" style={{ color: "var(--profile-empty-text)" }}>
                   <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                 </svg>
               </div>
-              <p className="text-neutral-500 text-sm font-medium mb-1">No pieces saved yet</p>
-              <p className="text-neutral-400 text-sm">Bookmark individual items from any outfit breakdown.</p>
+              <p className="profile-empty-title">No pieces saved yet</p>
+              <p className="profile-empty-sub">Bookmark individual items from any outfit breakdown.</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">
               {savedItems.map((saved) => (
-                <PieceCard
-                  key={saved.savedId}
-                  saved={saved}
-                  onUnsave={handleUnsaveItem}
-                />
+                <PieceCard key={saved.savedId} saved={saved} onUnsave={handleUnsaveItem} />
               ))}
             </div>
           )}
@@ -190,22 +166,16 @@ function PieceCard({
 
   return (
     <div
-      className="relative flex flex-col rounded-2xl overflow-hidden bg-white"
-      style={{ border: "0.5px solid rgba(0,0,0,0.08)" }}
+      className="relative flex flex-col rounded-2xl overflow-hidden"
+      style={{ background: "var(--page-bg-secondary)", border: "0.5px solid var(--page-border)" }}
     >
       {/* Image */}
-      <Link href={`/outfit/${outfitId}`} className="block relative aspect-square bg-neutral-100 shrink-0">
+      <Link href={`/outfit/${outfitId}`} className="block relative aspect-square shrink-0" style={{ background: "var(--page-surface)" }}>
         {item.imageUrl ? (
-          <Image
-            src={item.imageUrl}
-            alt={item.name}
-            fill
-            className="object-cover"
-            sizes="(max-width: 448px) 50vw, 224px"
-          />
+          <Image src={item.imageUrl} alt={item.name} fill className="object-cover" sizes="(max-width: 448px) 50vw, 224px" />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="text-neutral-300">
+            <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" style={{ color: "var(--page-icon)" }}>
               <rect x="3" y="3" width="18" height="18" rx="2" />
               <circle cx="8.5" cy="8.5" r="1.5" />
               <polyline points="21 15 16 10 5 21" />
@@ -217,7 +187,8 @@ function PieceCard({
       {/* Unsave button */}
       <button
         onClick={() => onUnsave(saved.savedId, item.id, outfitId)}
-        className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded-full bg-white/90 text-neutral-900 shadow-sm hover:bg-white transition-all active:scale-95"
+        className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded-full transition-all active:scale-95"
+        style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)" }}
         aria-label="Unsave piece"
       >
         <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2">
@@ -227,41 +198,40 @@ function PieceCard({
 
       {/* Info */}
       <div className="flex flex-col flex-1 p-2.5 gap-1">
-        <p className="text-[10px] uppercase tracking-[0.08em] text-neutral-400 leading-none">
+        <p className="text-[10px] uppercase tracking-[0.08em] leading-none" style={{ color: "var(--page-text-muted)" }}>
           {item.category}
         </p>
         {item.brand && (
-          <p className="text-[10px] uppercase tracking-[0.06em] text-neutral-500 font-medium leading-none">
+          <p className="text-[10px] uppercase tracking-[0.06em] font-medium leading-none" style={{ color: "var(--page-text-secondary)" }}>
             {item.brand}
           </p>
         )}
-        <p className="text-[12px] font-semibold text-neutral-900 leading-snug line-clamp-2">
+        <p className="text-[12px] font-semibold leading-snug line-clamp-2" style={{ color: "var(--page-text-primary)" }}>
           {item.name}
         </p>
         {item.price > 0 && (
-          <p className="text-[12px] text-neutral-700 font-medium">${item.price.toLocaleString()}</p>
+          <p className="text-[12px] font-medium" style={{ color: "var(--page-text-secondary)" }}>${item.price.toLocaleString()}</p>
         )}
 
-        {/* Shop button */}
         {shopUrl && (
           <a
             href={shopUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className={`mt-1 text-[11px] font-semibold px-3 py-1.5 rounded-full text-center transition-all ${
-              isExact
-                ? "bg-neutral-900 text-white hover:bg-neutral-700"
-                : "border border-neutral-900 text-neutral-900 hover:bg-neutral-50"
-            }`}
+            className="mt-1 text-[11px] font-semibold px-3 py-1.5 rounded-full text-center transition-all"
+            style={isExact
+              ? { background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)" }
+              : { border: "0.5px solid var(--page-border-strong)", color: "var(--page-text-primary)", background: "transparent" }
+            }
           >
             {isExact ? "Shop Exact" : "Shop Similar"}
           </a>
         )}
 
-        {/* Outfit source */}
         <Link
           href={`/outfit/${outfitId}`}
-          className="mt-1.5 text-[10px] text-neutral-400 hover:text-neutral-600 transition-colors leading-none truncate"
+          className="mt-1.5 text-[10px] leading-none truncate"
+          style={{ color: "var(--page-text-muted)" }}
         >
           from {outfitTitle}
         </Link>

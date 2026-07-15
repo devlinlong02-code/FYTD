@@ -71,24 +71,24 @@ export default function FollowStatsRow({
     <>
       <div className="flex gap-5">
         <div className="flex items-baseline gap-1.5">
-          <span className="text-base font-black text-neutral-900">{outfits}</span>
-          <span className="text-xs font-medium text-neutral-400">Outfits</span>
+          <span className="profile-stat-number">{outfits}</span>
+          <span className="profile-stat-label">Outfits</span>
         </div>
         <button
           type="button"
           onClick={() => setSheet("followers")}
           className="flex items-baseline gap-1.5 hover:opacity-70 transition-opacity"
         >
-          <span className="text-base font-black text-neutral-900">{followers}</span>
-          <span className="text-xs font-medium text-neutral-400">Followers</span>
+          <span className="profile-stat-number">{followers}</span>
+          <span className="profile-stat-label">Followers</span>
         </button>
         <button
           type="button"
           onClick={() => setSheet("following")}
           className="flex items-baseline gap-1.5 hover:opacity-70 transition-opacity"
         >
-          <span className="text-base font-black text-neutral-900">{following}</span>
-          <span className="text-xs font-medium text-neutral-400">Following</span>
+          <span className="profile-stat-number">{following}</span>
+          <span className="profile-stat-label">Following</span>
         </button>
       </div>
 

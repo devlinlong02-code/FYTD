@@ -63,6 +63,12 @@ const QUICK_LINKS = [
   },
 ];
 
+const chevron = (
+  <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="settings-row-chevron">
+    <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+  </svg>
+);
+
 export default async function AccountPage() {
   const [profile, user] = await Promise.all([
     getProfile(),
@@ -72,25 +78,26 @@ export default async function AccountPage() {
   if (!user) {
     return (
       <Layout>
-        <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-neutral-100 px-4 py-3">
-          <span className="font-bold text-xl tracking-tight text-neutral-900">Account</span>
+        <div className="settings-header sticky top-0 z-30 px-4 py-3">
+          <span className="settings-header-title">Account</span>
         </div>
-        <div className="flex flex-col items-center justify-center py-32 px-8 text-center">
-          <div className="w-16 h-16 rounded-full bg-neutral-100 flex items-center justify-center mb-5">
-            <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24" className="text-neutral-400">
+        <div className="settings-page flex flex-col items-center justify-center py-32 px-8 text-center">
+          <div className="w-16 h-16 rounded-full flex items-center justify-center mb-5" style={{ background: "var(--page-surface)" }}>
+            <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24" style={{ color: "var(--page-icon)" }}>
               <circle cx="12" cy="12" r="3" />
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
             </svg>
           </div>
-          <h2 className="text-lg font-bold text-neutral-900 mb-2">Sign in to your account</h2>
-          <p className="text-sm text-neutral-400 mb-8">Manage your profile, outfits, and settings.</p>
+          <h2 className="text-lg font-bold mb-2" style={{ color: "var(--page-text-primary)" }}>Sign in to your account</h2>
+          <p className="text-sm mb-8" style={{ color: "var(--page-text-muted)" }}>Manage your profile, outfits, and settings.</p>
           <Link
             href="/auth/login?next=/account"
-            className="w-full max-w-xs py-3 rounded-2xl bg-neutral-900 text-white text-sm font-semibold text-center hover:bg-neutral-700 transition-colors"
+            className="w-full max-w-xs py-3 rounded-2xl text-sm font-semibold text-center"
+            style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)" }}
           >
             Sign In
           </Link>
-          <Link href="/auth/signup" className="mt-3 text-sm font-medium text-neutral-500 hover:text-neutral-900 transition-colors">
+          <Link href="/auth/signup" className="mt-3 text-sm font-medium" style={{ color: "var(--page-text-muted)" }}>
             Create an account
           </Link>
         </div>
@@ -104,28 +111,29 @@ export default async function AccountPage() {
   return (
     <Layout>
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-neutral-100 px-4 py-3">
-        <span className="font-bold text-xl tracking-tight text-neutral-900">Account</span>
+      <div className="settings-header sticky top-0 z-30 px-4 py-3">
+        <span className="settings-header-title">Account</span>
       </div>
 
-      <div className="px-4 py-5 flex flex-col gap-4">
+      <div className="settings-page px-4 py-5 flex flex-col gap-4">
 
         {/* Identity row */}
-        <div className="bg-white rounded-2xl border border-neutral-100 overflow-hidden">
+        <div className="settings-card">
           <div className="flex items-center gap-3.5 px-4 py-4">
             <Avatar
               avatarUrl={profile?.avatar_url}
               displayName={displayName}
               size={52}
-              className="ring-2 ring-neutral-100 shrink-0"
+              className="shrink-0"
             />
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-neutral-900 truncate">{displayName}</p>
-              <p className="text-xs text-neutral-400">@{username}</p>
+              <p className="settings-identity-name truncate">{displayName}</p>
+              <p className="settings-identity-handle mt-0.5">@{username}</p>
             </div>
             <Link
               href="/account/edit"
-              className="shrink-0 text-xs font-semibold text-neutral-500 hover:text-neutral-900 transition-colors"
+              className="shrink-0 text-xs font-semibold"
+              style={{ color: "var(--settings-row-subtext)" }}
             >
               Edit
             </Link>
@@ -133,58 +141,46 @@ export default async function AccountPage() {
         </div>
 
         {/* Quick links */}
-        <div className="bg-white rounded-2xl border border-neutral-100 divide-y divide-neutral-50">
+        <div className="settings-card">
           {QUICK_LINKS.map(({ label, href, icon }) => (
-            <Link key={label} href={href} className="flex items-center gap-3 px-4 py-3.5 hover:bg-neutral-50 transition-colors">
-              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" className="text-neutral-400 shrink-0">{icon}</svg>
-              <span className="text-sm font-medium text-neutral-700 flex-1">{label}</span>
-              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-neutral-300 shrink-0">
-                <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
-              </svg>
+            <Link key={label} href={href} className="settings-row">
+              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" className="settings-row-icon">{icon}</svg>
+              <span className="settings-row-text flex-1">{label}</span>
+              {chevron}
             </Link>
           ))}
         </div>
 
         {/* Appearance */}
-        <div className="bg-white rounded-2xl border border-neutral-100">
+        <div className="settings-card">
           <ThemeToggleRow />
         </div>
 
         {/* Settings */}
-        <div className="bg-white rounded-2xl border border-neutral-100 divide-y divide-neutral-50">
+        <div className="settings-card">
           {SETTINGS_ITEMS.map(({ label, href, icon }) => (
-            <Link
-              key={label}
-              href={href}
-              className="flex items-center gap-3 px-4 py-3.5 hover:bg-neutral-50 transition-colors"
-            >
-              <span className="text-neutral-400 shrink-0">{icon}</span>
-              <span className="text-sm font-medium text-neutral-700 flex-1">{label}</span>
-              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-neutral-300 shrink-0">
-                <line x1="5" y1="12" x2="19" y2="12" />
-                <polyline points="12 5 19 12 12 19" />
-              </svg>
+            <Link key={label} href={href} className="settings-row">
+              <span className="settings-row-icon">{icon}</span>
+              <span className="settings-row-text flex-1">{label}</span>
+              {chevron}
             </Link>
           ))}
         </div>
 
         {/* Beta feedback */}
-        <a
-          href="mailto:feedback@fytd.org?subject=FYTD Beta Feedback"
-          className="w-full flex items-center gap-3 px-4 py-3.5 bg-white rounded-2xl border border-neutral-100 hover:bg-neutral-50 transition-colors"
-        >
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" className="text-neutral-400 shrink-0">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-          </svg>
-          <span className="text-sm font-medium text-neutral-700 flex-1">Give Feedback</span>
-          <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-neutral-300 shrink-0">
-            <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
-          </svg>
-        </a>
+        <div className="settings-card">
+          <a href="mailto:feedback@fytd.org?subject=FYTD Beta Feedback" className="settings-row">
+            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" className="settings-row-icon">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+            <span className="settings-row-text flex-1">Give Feedback</span>
+            {chevron}
+          </a>
+        </div>
 
         <SignOutButton />
 
-        <p className="text-center text-[10px] text-neutral-300 pb-2">
+        <p className="text-center text-[10px] pb-2 settings-version-text">
           FYTD v0.4 · Find Your &apos;Fit Daily · Private Beta
         </p>
       </div>

@@ -41,7 +41,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('fytd-theme')||'dark';document.documentElement.setAttribute('data-theme',t)}catch(e){}` }} />
+        <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('fytd-theme')||'dark';document.documentElement.setAttribute('data-theme',t);document.documentElement.style.background=t==='dark'?'#0a0a0a':'#fafafa'}catch(e){document.documentElement.setAttribute('data-theme','dark')}` }} />
       </head>
       <body className={`${inter.variable} ${playfair.variable} ${ibmPlexMono.variable} ${inter.className} antialiased selection:bg-neutral-900 selection:text-white`} suppressHydrationWarning={true}>
         <ThemeProvider>

@@ -33,7 +33,7 @@ export default async function HomePage({ searchParams }: HomeProps) {
   const isAuthenticated = !!user;
 
   return (
-    <Layout background="bg-[#0a0a0a]">
+    <Layout>
       {/* ── Sticky header ──────────────────────────────────────────────────── */}
       <header className="home-header">
         <span className="home-wordmark">FYTD</span>

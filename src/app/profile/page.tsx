@@ -20,25 +20,26 @@ export default async function ProfilePage() {
   if (!user) {
     return (
       <Layout>
-        <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-neutral-100 px-4 py-3">
-          <span className="font-bold text-xl tracking-tight text-neutral-900">Profile</span>
+        <div className="profile-page-header sticky top-0 z-30 px-4 py-3">
+          <span className="profile-page-header-title">Profile</span>
         </div>
-        <div className="flex flex-col items-center justify-center py-32 px-8 text-center">
-          <div className="w-16 h-16 rounded-full bg-neutral-100 flex items-center justify-center mb-5">
-            <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24" className="text-neutral-400">
+        <div className="profile-page flex flex-col items-center justify-center py-32 px-8 text-center">
+          <div className="w-16 h-16 rounded-full profile-empty-icon flex items-center justify-center mb-5">
+            <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24" style={{ color: "var(--page-icon)" }}>
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
               <circle cx="12" cy="7" r="4" />
             </svg>
           </div>
-          <h2 className="text-lg font-bold text-neutral-900 mb-2">Sign in to see your profile</h2>
-          <p className="text-sm text-neutral-400 mb-8">Your outfits, saves, and stats live here.</p>
+          <h2 className="text-lg font-bold mb-2" style={{ color: "var(--page-text-primary)" }}>Sign in to see your profile</h2>
+          <p className="text-sm mb-8" style={{ color: "var(--page-text-muted)" }}>Your outfits, saves, and stats live here.</p>
           <Link
             href="/auth/login?next=/profile"
-            className="w-full max-w-xs py-3 rounded-2xl bg-neutral-900 text-white text-sm font-semibold text-center hover:bg-neutral-700 transition-colors"
+            className="w-full max-w-xs py-3 rounded-2xl text-sm font-semibold text-center"
+            style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)" }}
           >
             Sign In
           </Link>
-          <Link href="/auth/signup" className="mt-3 text-sm font-medium text-neutral-500 hover:text-neutral-900 transition-colors">
+          <Link href="/auth/signup" className="mt-3 text-sm font-medium" style={{ color: "var(--page-text-muted)" }}>
             Create an account
           </Link>
         </div>
@@ -87,12 +88,12 @@ export default async function ProfilePage() {
   return (
     <Layout>
       {/* Page header */}
-      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-neutral-100 px-4 py-3 flex items-center justify-between">
-        <span className="font-bold text-xl tracking-tight text-neutral-900">Profile</span>
+      <div className="profile-page-header sticky top-0 z-30 px-4 py-3 flex items-center justify-between">
+        <span className="profile-page-header-title">Profile</span>
         <Link
           href="/settings"
           aria-label="Settings"
-          className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-black/5 transition-colors"
+          className="profile-page-icon flex items-center justify-center w-9 h-9 rounded-full transition-colors"
         >
           <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="3" />
@@ -118,10 +119,7 @@ export default async function ProfilePage() {
 
       {/* Edit Profile button */}
       <div className="px-4 pt-4">
-        <Link
-          href="/account/edit"
-          className="block w-full text-center py-2.5 rounded-xl border border-neutral-200 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors"
-        >
+        <Link href="/account/edit" className="profile-edit-btn">
           Edit Profile
         </Link>
       </div>

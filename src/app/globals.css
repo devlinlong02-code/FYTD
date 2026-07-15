@@ -100,6 +100,126 @@
   --tab-underline: #0a0a0a;
 }
 
+/* ── PAGE / SETTINGS / PROFILE VARIABLES (dark) ──────────────────────────── */
+:root, [data-theme="dark"] {
+  /* Global page */
+  --page-bg: #0a0a0a;
+  --page-bg-secondary: #111111;
+  --page-bg-tertiary: #1a1a1a;
+  --page-text-primary: #ffffff;
+  --page-text-secondary: rgba(255,255,255,0.6);
+  --page-text-muted: rgba(255,255,255,0.35);
+  --page-text-danger: #ff5555;
+  --page-border: rgba(255,255,255,0.08);
+  --page-border-strong: rgba(255,255,255,0.15);
+  --page-surface: rgba(255,255,255,0.06);
+  --page-surface-hover: rgba(255,255,255,0.1);
+  --page-icon: rgba(255,255,255,0.5);
+  --page-icon-active: rgba(255,255,255,0.9);
+  /* Buttons */
+  --btn-primary-bg: #ffffff;
+  --btn-primary-text: #0a0a0a;
+  --btn-secondary-bg: rgba(255,255,255,0.08);
+  --btn-secondary-text: rgba(255,255,255,0.8);
+  --btn-secondary-border: rgba(255,255,255,0.15);
+  /* Settings */
+  --settings-bg: #0a0a0a;
+  --settings-header-bg: rgba(10,10,10,0.97);
+  --settings-header-text: #ffffff;
+  --settings-header-border: rgba(255,255,255,0.08);
+  --settings-card-bg: #111111;
+  --settings-card-border: rgba(255,255,255,0.08);
+  --settings-row-text: #ffffff;
+  --settings-row-subtext: rgba(255,255,255,0.45);
+  --settings-row-icon: rgba(255,255,255,0.35);
+  --settings-row-divider: rgba(255,255,255,0.06);
+  --settings-signout-text: rgba(255,255,255,0.7);
+  --settings-signout-border: rgba(255,255,255,0.1);
+  /* Profile */
+  --profile-bg: #0a0a0a;
+  --profile-header-border: rgba(255,255,255,0.08);
+  --profile-avatar-bg: #1a1a1a;
+  --profile-avatar-border: rgba(255,255,255,0.1);
+  --profile-name-text: #ffffff;
+  --profile-username-text: rgba(255,255,255,0.5);
+  --profile-bio-text: rgba(255,255,255,0.65);
+  --profile-stat-number: #ffffff;
+  --profile-stat-label: rgba(255,255,255,0.4);
+  --profile-tab-active: #ffffff;
+  --profile-tab-inactive: rgba(255,255,255,0.35);
+  --profile-tab-underline: #ffffff;
+  --profile-tab-border: rgba(255,255,255,0.08);
+  --profile-edit-btn-bg: rgba(255,255,255,0.08);
+  --profile-edit-btn-text: rgba(255,255,255,0.85);
+  --profile-edit-btn-border: rgba(255,255,255,0.15);
+  --profile-tag-bg: rgba(255,255,255,0.08);
+  --profile-tag-text: rgba(255,255,255,0.6);
+  --profile-tag-border: rgba(255,255,255,0.12);
+  --profile-empty-icon-bg: rgba(255,255,255,0.06);
+  --profile-empty-text: rgba(255,255,255,0.5);
+  --profile-empty-sub: rgba(255,255,255,0.35);
+}
+
+/* ── PAGE / SETTINGS / PROFILE VARIABLES (light) ─────────────────────────── */
+[data-theme="light"] {
+  /* Global page */
+  --page-bg: #fafafa;
+  --page-bg-secondary: #ffffff;
+  --page-bg-tertiary: #f2f2f0;
+  --page-text-primary: #0a0a0a;
+  --page-text-secondary: rgba(0,0,0,0.6);
+  --page-text-muted: rgba(0,0,0,0.35);
+  --page-text-danger: #cc0000;
+  --page-border: rgba(0,0,0,0.08);
+  --page-border-strong: rgba(0,0,0,0.15);
+  --page-surface: rgba(0,0,0,0.04);
+  --page-surface-hover: rgba(0,0,0,0.07);
+  --page-icon: rgba(0,0,0,0.4);
+  --page-icon-active: #0a0a0a;
+  /* Buttons */
+  --btn-primary-bg: #0a0a0a;
+  --btn-primary-text: #ffffff;
+  --btn-secondary-bg: rgba(0,0,0,0.04);
+  --btn-secondary-text: rgba(0,0,0,0.7);
+  --btn-secondary-border: rgba(0,0,0,0.12);
+  /* Settings */
+  --settings-bg: #f2f2f0;
+  --settings-header-bg: rgba(242,242,240,0.97);
+  --settings-header-text: #0a0a0a;
+  --settings-header-border: rgba(0,0,0,0.08);
+  --settings-card-bg: #ffffff;
+  --settings-card-border: rgba(0,0,0,0.06);
+  --settings-row-text: #0a0a0a;
+  --settings-row-subtext: rgba(0,0,0,0.45);
+  --settings-row-icon: rgba(0,0,0,0.35);
+  --settings-row-divider: rgba(0,0,0,0.06);
+  --settings-signout-text: rgba(0,0,0,0.6);
+  --settings-signout-border: rgba(0,0,0,0.1);
+  /* Profile */
+  --profile-bg: #fafafa;
+  --profile-header-border: rgba(0,0,0,0.06);
+  --profile-avatar-bg: rgba(0,0,0,0.06);
+  --profile-avatar-border: rgba(0,0,0,0.08);
+  --profile-name-text: #0a0a0a;
+  --profile-username-text: rgba(0,0,0,0.45);
+  --profile-bio-text: rgba(0,0,0,0.65);
+  --profile-stat-number: #0a0a0a;
+  --profile-stat-label: rgba(0,0,0,0.4);
+  --profile-tab-active: #0a0a0a;
+  --profile-tab-inactive: rgba(0,0,0,0.35);
+  --profile-tab-underline: #0a0a0a;
+  --profile-tab-border: rgba(0,0,0,0.06);
+  --profile-edit-btn-bg: rgba(0,0,0,0.04);
+  --profile-edit-btn-text: rgba(0,0,0,0.75);
+  --profile-edit-btn-border: rgba(0,0,0,0.12);
+  --profile-tag-bg: rgba(0,0,0,0.06);
+  --profile-tag-text: rgba(0,0,0,0.55);
+  --profile-tag-border: rgba(0,0,0,0.1);
+  --profile-empty-icon-bg: rgba(0,0,0,0.06);
+  --profile-empty-text: rgba(0,0,0,0.5);
+  --profile-empty-sub: rgba(0,0,0,0.35);
+}
+
 /* ── FEED-SPECIFIC VARIABLES (dark) ──────────────────────────────────────── */
 :root, [data-theme="dark"] {
   --feed-bg: #0a0a0a;
@@ -188,6 +308,12 @@
 /* Monospace data — prices, counts, labels */
 .font-data {
   font-family: var(--font-mono), 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+/* Base theme background — prevents flash of wrong color at edges */
+html, body {
+  background: var(--page-bg, #0a0a0a);
+  transition: background 200ms ease, color 200ms ease;
 }
 
 /* Global cleanup */
@@ -1582,4 +1708,302 @@ html {
   align-items: center;
   justify-content: center;
   z-index: 5;
+}
+
+/* ==========================================
+   SETTINGS / ACCOUNT PAGE
+   ========================================== */
+
+.settings-page {
+  background: var(--settings-bg);
+  min-height: 100vh;
+}
+
+.settings-header {
+  background: var(--settings-header-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 0.5px solid var(--settings-header-border);
+}
+
+.settings-header-title {
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+  color: var(--settings-header-text);
+}
+
+.settings-card {
+  background: var(--settings-card-bg);
+  border-radius: 1rem;
+  border: 0.5px solid var(--settings-card-border);
+  overflow: hidden;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  text-decoration: none;
+  border-bottom: 0.5px solid var(--settings-row-divider);
+  transition: background 150ms ease;
+}
+
+.settings-row:last-child {
+  border-bottom: none;
+}
+
+.settings-row:hover {
+  background: var(--page-surface-hover);
+}
+
+.settings-row-text {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--settings-row-text);
+}
+
+.settings-row-subtext {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--settings-row-subtext);
+}
+
+.settings-row-icon {
+  color: var(--settings-row-icon);
+  flex-shrink: 0;
+}
+
+.settings-row-chevron {
+  color: var(--settings-row-icon);
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.settings-identity-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--settings-row-text);
+}
+
+.settings-identity-handle {
+  font-size: 12px;
+  color: var(--settings-row-subtext);
+}
+
+.settings-sign-out-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 1rem;
+  border: 0.5px solid var(--settings-signout-border);
+  background: var(--settings-card-bg);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--settings-signout-text);
+  cursor: pointer;
+  text-align: center;
+  transition: background 150ms ease;
+}
+
+.settings-sign-out-btn:hover {
+  background: var(--page-surface-hover);
+}
+
+.settings-version-text {
+  color: var(--page-text-muted);
+  opacity: 0.6;
+}
+
+/* ==========================================
+   PROFILE PAGE
+   ========================================== */
+
+.profile-page {
+  background: var(--profile-bg);
+  min-height: 100vh;
+}
+
+.profile-page-header {
+  background: var(--settings-header-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 0.5px solid var(--profile-header-border);
+}
+
+.profile-page-header-title {
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+  color: var(--page-text-primary);
+}
+
+.profile-header-section {
+  border-bottom: 0.5px solid var(--profile-header-border);
+}
+
+.profile-name {
+  color: var(--profile-name-text);
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.profile-handle {
+  color: var(--profile-username-text);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.profile-location-text {
+  color: var(--profile-username-text);
+  font-size: 12px;
+}
+
+.profile-bio {
+  color: var(--profile-bio-text);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.profile-social-link {
+  color: var(--profile-username-text);
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: opacity 150ms ease;
+}
+
+.profile-social-link:hover { opacity: 0.7; }
+
+.profile-style-tag {
+  background: var(--profile-tag-bg);
+  color: var(--profile-tag-text);
+  border: 0.5px solid var(--profile-tag-border);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.profile-stat-number {
+  color: var(--profile-stat-number);
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.profile-stat-label {
+  color: var(--profile-stat-label);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.profile-edit-btn {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 10px;
+  border-radius: 12px;
+  border: 0.5px solid var(--profile-edit-btn-border);
+  background: var(--profile-edit-btn-bg);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--profile-edit-btn-text);
+  text-decoration: none;
+  transition: background 150ms ease;
+}
+
+.profile-edit-btn:hover {
+  background: var(--page-surface-hover);
+}
+
+.profile-tab-bar {
+  border-bottom: 0.5px solid var(--profile-tab-border);
+}
+
+.profile-tab-btn {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 12px 0;
+  color: var(--profile-tab-inactive);
+  transition: color 150ms ease;
+  flex: 1;
+  text-align: center;
+  position: relative;
+}
+
+.profile-tab-btn.active {
+  color: var(--profile-tab-active);
+}
+
+.profile-tab-btn .tab-underline {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--profile-tab-underline);
+}
+
+.profile-tab-count {
+  font-size: 12px;
+  margin-left: 4px;
+  color: var(--profile-stat-label);
+}
+
+.profile-empty-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--profile-empty-icon-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.profile-empty-title {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--profile-empty-text);
+  margin: 0 0 4px;
+}
+
+.profile-empty-sub {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--profile-empty-sub);
+  margin: 0 0 16px;
+  text-align: center;
+}
+
+.profile-cta-btn {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  border: none;
+  border-radius: 12px;
+  padding: 10px 20px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.profile-page-icon {
+  color: var(--page-icon-active);
 }

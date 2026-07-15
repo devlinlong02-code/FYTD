@@ -7,7 +7,7 @@ interface LayoutProps {
 
 export default function Layout({ children, background }: LayoutProps) {
   return (
-    <div className={`min-h-screen ${background ?? ""}`} style={{ background: "var(--feed-bg)" }}>
+    <div className={`min-h-screen ${background ?? ""}`} style={{ background: background ? undefined : "var(--page-bg)" }}>
       <main className="max-w-md mx-auto pb-24">{children}</main>
       <MobileNav />
     </div>
