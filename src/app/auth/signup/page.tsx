@@ -368,6 +368,13 @@ function SignupForm() {
           >
             {pending ? "Creating account…" : "Create Account"}
           </button>
+
+          <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--page-text-muted)", textAlign: "center", margin: "12px 0 0", lineHeight: 1.5 }}>
+            By creating an account you agree to our{" "}
+            <a href="/terms" style={{ color: "var(--page-text-secondary)", textDecoration: "underline", textUnderlineOffset: 2 }}>Terms of Service</a>
+            {" "}and{" "}
+            <a href="/privacy" style={{ color: "var(--page-text-secondary)", textDecoration: "underline", textUnderlineOffset: 2 }}>Privacy Policy</a>
+          </p>
         </form>
 
         <p className="text-center text-sm text-neutral-400 mt-6">
