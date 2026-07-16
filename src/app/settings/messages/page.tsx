@@ -5,6 +5,33 @@ import Link from "next/link";
 import Layout from "@/components/Layout";
 import { getMessageSettings, updateMessageSettings } from "@/app/actions/messages";
 
+function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: () => void; disabled?: boolean }) {
+  return (
+    <button
+      onClick={onChange}
+      disabled={disabled}
+      aria-label="Toggle"
+      style={{
+        position: "relative", width: 44, height: 24, borderRadius: 999,
+        background: checked ? "var(--btn-primary-bg)" : "var(--page-surface)",
+        border: "0.5px solid var(--page-border)",
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.5 : 1,
+        transition: "background 200ms ease",
+        flexShrink: 0,
+      }}
+    >
+      <span style={{
+        position: "absolute", top: 2,
+        left: checked ? "calc(100% - 22px)" : 2,
+        width: 20, height: 20, borderRadius: "50%",
+        background: checked ? "var(--btn-primary-text)" : "white",
+        transition: "left 200ms ease",
+      }} />
+    </button>
+  );
+}
+
 export default function MessageSettingsPage() {
   const [readReceipts, setReadReceipts] = useState(true);
   const [allowRequests, setAllowRequests] = useState(true);
@@ -25,66 +52,37 @@ export default function MessageSettingsPage() {
     setSaving(false);
   }
 
-  const Toggle = ({ checked, onChange }: { checked: boolean; onChange: () => void }) => (
-    <button
-      onClick={onChange}
-      disabled={saving || loading}
-      className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${checked ? "bg-neutral-900" : "bg-neutral-200"}`}
-      aria-label="Toggle"
-    >
-      <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${checked ? "translate-x-5" : "translate-x-0.5"}`} />
-    </button>
-  );
-
   return (
     <Layout>
-      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-neutral-100 px-4 py-3 flex items-center gap-3">
-        <Link
-          href="/settings"
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/5 transition-colors"
-          aria-label="Back"
-        >
+      <div className="settings-header sticky top-0 z-30 px-4 py-3 flex items-center gap-3">
+        <Link href="/settings" className="flex items-center justify-center w-8 h-8 rounded-full" aria-label="Back" style={{ color: "var(--page-text-primary)" }}>
           <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
             <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
           </svg>
         </Link>
-        <span className="font-bold text-xl tracking-tight text-neutral-900">Messages</span>
+        <span className="settings-header-title">Messages</span>
       </div>
 
       {loading ? (
         <div className="flex justify-center py-16">
-          <div className="w-5 h-5 rounded-full border-2 border-neutral-200 border-t-neutral-900 animate-spin" />
+          <div className="w-5 h-5 rounded-full border-2 animate-spin" style={{ borderColor: "var(--page-border)", borderTopColor: "var(--page-text-primary)" }} />
         </div>
       ) : (
-        <div className="px-4 py-5 flex flex-col gap-3 pb-32">
-          <div className="bg-white rounded-2xl border border-neutral-100 divide-y divide-neutral-50">
-            {/* Read receipts */}
-            <div className="flex items-center justify-between px-4 py-4">
-              <div className="flex-1 mr-4">
-                <p className="text-sm font-medium text-neutral-900">Read receipts</p>
-                <p className="text-xs text-neutral-400 mt-0.5">Let others know when you&apos;ve read their messages</p>
+        <div className="settings-page px-4 py-5 pb-32">
+          <div className="settings-card">
+            <div className="settings-toggle-row">
+              <div className="flex-1 min-w-0">
+                <p className="settings-row-label">Read receipts</p>
+                <p className="settings-row-description">Let others know when you&apos;ve read their messages</p>
               </div>
-              <Toggle
-                checked={readReceipts}
-                onChange={() => {
-                  setReadReceipts((v) => !v);
-                  save({ read_receipts_enabled: !readReceipts });
-                }}
-              />
+              <Toggle checked={readReceipts} disabled={saving} onChange={() => { setReadReceipts((v) => !v); save({ read_receipts_enabled: !readReceipts }); }} />
             </div>
-            {/* Message requests */}
-            <div className="flex items-center justify-between px-4 py-4">
-              <div className="flex-1 mr-4">
-                <p className="text-sm font-medium text-neutral-900">Message requests</p>
-                <p className="text-xs text-neutral-400 mt-0.5">Allow people you don&apos;t follow to message you</p>
+            <div className="settings-toggle-row">
+              <div className="flex-1 min-w-0">
+                <p className="settings-row-label">Message requests</p>
+                <p className="settings-row-description">Allow people you don&apos;t follow to message you</p>
               </div>
-              <Toggle
-                checked={allowRequests}
-                onChange={() => {
-                  setAllowRequests((v) => !v);
-                  save({ allow_message_requests: !allowRequests });
-                }}
-              />
+              <Toggle checked={allowRequests} disabled={saving} onChange={() => { setAllowRequests((v) => !v); save({ allow_message_requests: !allowRequests }); }} />
             </div>
           </div>
         </div>
