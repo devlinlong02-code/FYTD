@@ -1788,6 +1788,23 @@ html {
   background: var(--page-surface-hover);
 }
 
+/* Aliases used by toggle-row components */
+.settings-row-label {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--settings-row-text);
+  margin: 0 0 2px;
+}
+
+.settings-row-description {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--settings-row-subtext);
+  margin: 0;
+  line-height: 1.4;
+}
+
 .settings-row-text {
   font-family: var(--font-body);
   font-size: 14px;
