@@ -10,6 +10,8 @@ export interface OutfitItem {
   hotspotX?: number;
   hotspotY?: number;
   note?: string;
+  savesCount?: number;
+  questionsCount?: number;
 }
 
 export interface OutfitMedia {
@@ -41,6 +43,8 @@ export interface Outfit {
   commentsCount?: number;
   savesCount?: number;
   cardStyle?: "editorial" | "statement" | "streetwear";
+  isPerfectBreakdown?: boolean;
+  styleTag?: string;
 }
 
 export type AestheticTag =

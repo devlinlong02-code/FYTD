@@ -4,10 +4,13 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import MediaCarousel from "@/components/MediaCarousel";
+import PerfectBreakdownBadge from "@/components/PerfectBreakdownBadge";
+import { STYLE_TAG_MAP } from "@/components/StyleTagPicker";
 import { createClient } from "@/lib/supabase/client";
 import { toggleSave } from "@/app/actions/saved";
 import { useAuthPrompt } from "@/context/AuthPromptContext";
 import { useLikeContext } from "@/context/LikeContext";
+import { useFeedBreakdown } from "@/context/FeedBreakdownContext";
 import type { Outfit } from "@/types";
 
 interface HomeFeedCardProps {
@@ -22,6 +25,23 @@ interface HomeFeedCardProps {
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared helpers
 // ─────────────────────────────────────────────────────────────────────────────
+
+function StyleTagPill({ styleTag, overlay = true }: { styleTag?: string; overlay?: boolean }) {
+  if (!styleTag) return null;
+  const tag = STYLE_TAG_MAP[styleTag];
+  if (!tag) return null;
+  return (
+    <span style={{
+      fontFamily: "var(--font-body)",
+      fontSize: 10,
+      fontWeight: 500,
+      color: overlay ? "rgba(255,255,255,0.5)" : "var(--feed-text-muted)",
+      letterSpacing: "0.03em",
+    }}>
+      {tag.emoji} {tag.label}
+    </span>
+  );
+}
 
 function getFitValueNum(items: Outfit["items"]): number {
   return items.filter((i) => i.price > 0).reduce((a, i) => a + i.price, 0);
@@ -76,12 +96,11 @@ function HeartBurst({ pos }: { pos: { x: number; y: number } }) {
 
 function DarkSocialBar({
   liked, likeCount, likeAnimating, countAnimating,
-  commentsCount, handleLike, handleComment, handleShare,
-  router, outfitId,
+  commentsCount, handleLike, handleComment, handleShare, onOpenBreakdown,
 }: {
   liked: boolean; likeCount: number; likeAnimating: boolean; countAnimating: boolean;
   commentsCount: number; handleLike: () => void; handleComment: (e: React.MouseEvent) => void;
-  handleShare: (e: React.MouseEvent) => void; router: ReturnType<typeof useRouter>; outfitId: string;
+  handleShare: (e: React.MouseEvent) => void; onOpenBreakdown: () => void;
 }) {
   const [shirtHover, setShirtHover] = useState(false);
 
@@ -118,7 +137,7 @@ function DarkSocialBar({
 
       {/* Shirt icon — navigates to breakdown */}
       <button
-        onClick={(e) => { e.stopPropagation(); router.push(`/outfit/${outfitId}`); }}
+        onClick={(e) => { e.stopPropagation(); onOpenBreakdown(); }}
         onMouseEnter={() => setShirtHover(true)}
         onMouseLeave={() => setShirtHover(false)}
         style={{
@@ -154,6 +173,11 @@ export default function HomeFeedCard({
   const router = useRouter();
   const { openPrompt, authLoaded } = useAuthPrompt();
   const { getLiked, getCount, setLike } = useLikeContext();
+  const { openBreakdown } = useFeedBreakdown();
+
+  const handleOpenBreakdown = useCallback(() => {
+    openBreakdown(outfit.id, outfit.title, outfit.items, new Set<string>());
+  }, [outfit.id, outfit.title, outfit.items, openBreakdown]);
 
   const creatorUsername = outfit.creatorHandle.replace("@", "");
   const fitValueNum = getFitValueNum(outfit.items);
@@ -255,11 +279,9 @@ export default function HomeFeedCard({
       setHeartBurst({ x: e.clientX - rect.left, y: e.clientY - rect.top });
       setTimeout(() => setHeartBurst(null), 700);
       if (!liked) handleLike();
-    } else {
-      singleTapTimer.current = window.setTimeout(() => router.push(`/outfit/${outfit.id}`), 280);
     }
     lastTap.current = now;
-  }, [liked, handleLike, router, outfit.id]);
+  }, [liked, handleLike]);
 
   const handleComment = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -284,7 +306,7 @@ export default function HomeFeedCard({
       <DarkSocialBar
         liked={liked} likeCount={likeCount} likeAnimating={likeAnimating} countAnimating={countAnimating}
         commentsCount={commentsCount} handleLike={handleLike} handleComment={handleComment}
-        handleShare={handleShare} router={router} outfitId={outfit.id}
+        handleShare={handleShare} onOpenBreakdown={handleOpenBreakdown}
       />
       {likeCount > 0 && (
         <div style={{ padding: "2px 14px 3px", background: "var(--feed-social-bar-bg)" }}>
@@ -317,11 +339,18 @@ export default function HomeFeedCard({
           <MediaCarousel media={outfit.media} title={outfit.title} priority={priority} sizes="(max-width: 480px) 100vw, 480px" showCounter={false} />
           <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(to top,rgba(0,0,0,0.85) 0%,rgba(0,0,0,0.3) 40%,transparent 70%)", zIndex: 5 }} />
 
+          {/* Perfect Breakdown badge — editorial top left */}
+          {outfit.isPerfectBreakdown && (
+            <div className="absolute" style={{ top: 10, left: 10, zIndex: 10 }}>
+              <PerfectBreakdownBadge size="sm" />
+            </div>
+          )}
+
           {/* Creator pill — overlaid top left */}
           <button
             onClick={(e) => { e.stopPropagation(); router.push(`/profile/${creatorUsername}`); }}
             className="absolute border-none cursor-pointer flex items-center gap-1.5"
-            style={{ top: 10, left: 10, background: "rgba(0,0,0,0.52)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", borderRadius: 999, padding: "3px 10px 3px 3px", zIndex: 10 }}
+            style={{ top: outfit.isPerfectBreakdown ? 38 : 10, left: 10, background: "rgba(0,0,0,0.52)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", borderRadius: 999, padding: "3px 10px 3px 3px", zIndex: 10 }}
           >
             <div className="rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center" style={{ width: 20, height: 20, background: "rgba(255,255,255,0.2)" }}>
               {outfit.creatorAvatar
@@ -335,11 +364,9 @@ export default function HomeFeedCard({
 
           {/* Title + tags + value at bottom */}
           <div className="absolute bottom-0 left-0 right-0 pointer-events-none" style={{ padding: "16px 14px 14px", zIndex: 10 }}>
-            {outfit.tags.length > 0 && (
-              <div className="flex gap-2 mb-1.5 flex-wrap">
-                {outfit.tags.slice(0, 2).map((tag) => (
-                  <span key={tag} style={{ fontFamily: "var(--font-body)", fontSize: 10, fontWeight: 500, color: "rgba(255,255,255,0.45)", letterSpacing: "0.04em" }}>#{tag}</span>
-                ))}
+            {outfit.styleTag && (
+              <div className="mb-1.5">
+                <StyleTagPill styleTag={outfit.styleTag} />
               </div>
             )}
             <h2 className="font-editorial m-0 leading-[1.1] text-white" style={{ fontSize: 24, fontWeight: 500, letterSpacing: "-0.02em", marginBottom: 6, textShadow: "0 1px 4px rgba(0,0,0,0.4)" }}>{outfit.title}</h2>
@@ -365,8 +392,8 @@ export default function HomeFeedCard({
           <MediaCarousel media={outfit.media} title={outfit.title} priority={priority} sizes="(max-width: 480px) 100vw, 480px" showCounter={false} />
           <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(to top,rgba(0,0,0,0.88) 0%,rgba(0,0,0,0.15) 60%,transparent 100%)", zIndex: 5 }} />
 
-          {/* Value badges — top left: piece count (dark) + value (WHITE pill) */}
-          <div className="absolute flex items-center gap-1.5" style={{ top: 10, left: 10, zIndex: 10 }}>
+          {/* Value badges — top left: piece count (dark) + value (WHITE pill) + perfect badge */}
+          <div className="absolute flex items-center gap-1.5 flex-wrap" style={{ top: 10, left: 10, zIndex: 10 }}>
             {pieceCount > 0 && (
               <div style={{ background: "rgba(0,0,0,0.62)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", borderRadius: 999, padding: "4px 10px" }}>
                 <span className="font-data" style={{ fontSize: 9, fontWeight: 500, color: "rgba(255,255,255,0.8)", letterSpacing: "0.08em", textTransform: "uppercase" }}>{pieceCount} {pieceCount === 1 ? "piece" : "pieces"}</span>
@@ -377,12 +404,14 @@ export default function HomeFeedCard({
                 <span className="font-data" style={{ fontSize: 9, fontWeight: 700, color: "#0a0a0a", letterSpacing: "0.06em" }}>{fitValueStr}</span>
               </div>
             )}
+            {outfit.isPerfectBreakdown && <PerfectBreakdownBadge size="sm" />}
           </div>
 
           <SaveBtn saved={saved} animating={saveAnimating} onClick={handleSave} />
 
           {/* Title + creator row at bottom */}
           <div className="absolute bottom-0 left-0 right-0 pointer-events-none" style={{ padding: "16px 14px 14px", zIndex: 10 }}>
+            {outfit.styleTag && <div className="mb-1.5"><StyleTagPill styleTag={outfit.styleTag} /></div>}
             <h2 className="font-editorial m-0 leading-[1.1] text-white" style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.02em", marginBottom: 8 }}>{outfit.title}</h2>
             <div className="flex items-center gap-1.5">
               <div className="rounded-full overflow-hidden flex-shrink-0" style={{ width: 18, height: 18, background: "rgba(255,255,255,0.2)" }}>
@@ -424,7 +453,8 @@ export default function HomeFeedCard({
           </div>
         </button>
         <div className="flex items-center gap-2">
-          {complete && (
+          {outfit.isPerfectBreakdown && <PerfectBreakdownBadge size="sm" showLabel={false} />}
+          {complete && !outfit.isPerfectBreakdown && (
             <span className="font-data" style={{ background: "var(--feed-surface)", borderRadius: 999, padding: "3px 8px", fontSize: 8, fontWeight: 600, color: "var(--feed-text-secondary)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
               COMPLETE ✦
             </span>
@@ -442,12 +472,10 @@ export default function HomeFeedCard({
         <MediaCarousel media={outfit.media} title={outfit.title} priority={priority} sizes="(max-width: 480px) 100vw, 480px" showCounter={false} />
         <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(to top,rgba(0,0,0,0.75) 0%,transparent 55%)", zIndex: 5 }} />
 
-        {/* Tags top left */}
-        {outfit.tags.length > 0 && (
-          <div className="absolute flex gap-1.5" style={{ top: 10, left: 10, zIndex: 10 }}>
-            {outfit.tags.slice(0, 2).map((tag) => (
-              <span key={tag} style={{ fontFamily: "var(--font-body)", fontSize: 9, fontWeight: 600, color: "rgba(255,255,255,0.5)", letterSpacing: "0.08em", textTransform: "uppercase" }}>#{tag}</span>
-            ))}
+        {/* Style tag — top left of image */}
+        {outfit.styleTag && (
+          <div className="absolute" style={{ top: 10, left: 10, zIndex: 10 }}>
+            <StyleTagPill styleTag={outfit.styleTag} />
           </div>
         )}
 

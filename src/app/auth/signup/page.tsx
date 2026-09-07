@@ -16,9 +16,15 @@ function friendlySignupError(message: string): string {
 }
 
 const INPUT_CLS =
-  "w-full px-4 py-3 bg-neutral-100 rounded-xl text-sm text-neutral-900 placeholder-neutral-400 outline-none focus:ring-2 focus:ring-neutral-900/10 transition";
+  "w-full px-4 py-3 rounded-xl text-sm outline-none focus:ring-2 focus:ring-neutral-900/10 transition";
+const INPUT_STYLE = {
+  background: "var(--page-surface)",
+  color: "var(--page-text-primary)",
+  border: "1px solid var(--page-border)",
+};
 const LABEL_CLS =
-  "block text-xs font-semibold text-neutral-500 uppercase tracking-widest mb-1.5";
+  "block text-xs font-semibold uppercase tracking-widest mb-1.5";
+const LABEL_STYLE = { color: "var(--page-text-muted)" };
 
 // --- Confirm screen (shown right after a fresh signup) ---
 
@@ -52,18 +58,18 @@ function ConfirmScreen({ email }: { email: string }) {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col justify-center px-6 py-12">
+    <div className="min-h-screen flex flex-col justify-center px-6 py-12" style={{ background: "var(--page-bg)" }}>
       <div className="max-w-sm w-full mx-auto text-center">
-        <div className="w-16 h-16 rounded-full bg-neutral-100 flex items-center justify-center mx-auto mb-6">
-          <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24" className="text-neutral-500">
+        <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6" style={{ background: "var(--page-surface)" }}>
+          <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24" style={{ color: "var(--page-icon)" }}>
             <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
             <polyline points="22,6 12,13 2,6" />
           </svg>
         </div>
-        <h1 className="text-2xl font-bold text-neutral-900 mb-3">Check your email</h1>
-        <p className="text-sm text-neutral-500 leading-relaxed mb-2">We sent a confirmation link to</p>
-        <p className="text-sm font-semibold text-neutral-900 mb-4">{email}</p>
-        <p className="text-sm text-neutral-500 leading-relaxed mb-2">
+        <h1 className="text-2xl font-bold mb-3" style={{ color: "var(--page-text-primary)" }}>Check your email</h1>
+        <p className="text-sm leading-relaxed mb-2" style={{ color: "var(--page-text-muted)" }}>We sent a confirmation link to</p>
+        <p className="text-sm font-semibold mb-4" style={{ color: "var(--page-text-primary)" }}>{email}</p>
+        <p className="text-sm leading-relaxed mb-2" style={{ color: "var(--page-text-muted)" }}>
           Tap the link to confirm your account, then sign in.
         </p>
         <p className="text-sm text-amber-600 leading-relaxed mb-8">
@@ -85,19 +91,21 @@ function ConfirmScreen({ email }: { email: string }) {
             <button
               type="button"
               onClick={handleResend}
-              className="text-sm text-neutral-500 underline underline-offset-2 hover:text-neutral-900 transition-colors"
+              className="text-sm underline underline-offset-2 transition-colors"
+              style={{ color: "var(--page-text-muted)" }}
             >
               Resend confirmation email
             </button>
           )}
           {resendStatus === "pending" && (
-            <p className="text-sm text-neutral-400">Sending…</p>
+            <p className="text-sm" style={{ color: "var(--page-text-muted)" }}>Sending…</p>
           )}
         </div>
 
         <Link
           href="/auth/login"
-          className="w-full inline-block py-3.5 rounded-2xl bg-neutral-900 text-white text-sm font-semibold text-center hover:bg-neutral-700 transition-colors"
+          className="w-full inline-block py-3.5 rounded-2xl text-sm font-semibold text-center transition-colors"
+          style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)" }}
         >
           Back to Sign In
         </Link>
@@ -145,16 +153,16 @@ function ResendScreen({ initialEmail = "" }: { initialEmail?: string }) {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col justify-center px-6 py-12">
+    <div className="min-h-screen flex flex-col justify-center px-6 py-12" style={{ background: "var(--page-bg)" }}>
       <div className="max-w-sm w-full mx-auto text-center">
-        <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-6">
+        <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6" style={{ background: "rgba(251,191,36,0.12)" }}>
           <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24" className="text-amber-500">
             <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
             <polyline points="22,6 12,13 2,6" />
           </svg>
         </div>
-        <h1 className="text-2xl font-bold text-neutral-900 mb-3">Confirmation link expired</h1>
-        <p className="text-sm text-neutral-500 leading-relaxed mb-8">
+        <h1 className="text-2xl font-bold mb-3" style={{ color: "var(--page-text-primary)" }}>Confirmation link expired</h1>
+        <p className="text-sm leading-relaxed mb-8" style={{ color: "var(--page-text-muted)" }}>
           Enter the email you signed up with to get a new confirmation link.
         </p>
 
@@ -163,7 +171,7 @@ function ResendScreen({ initialEmail = "" }: { initialEmail?: string }) {
             <p className="text-sm text-green-600 font-medium mb-2">
               New confirmation email sent.
             </p>
-            <p className="text-sm text-neutral-400">
+            <p className="text-sm" style={{ color: "var(--page-text-muted)" }}>
               Check your inbox or junk folder and click the new link.
             </p>
           </div>
@@ -176,6 +184,7 @@ function ResendScreen({ initialEmail = "" }: { initialEmail?: string }) {
               placeholder="you@example.com"
               autoComplete="email"
               className={INPUT_CLS}
+              style={INPUT_STYLE}
             />
             {status === "error" && errorMsg && (
               <p className="text-red-500 text-sm">{errorMsg}</p>
@@ -184,7 +193,8 @@ function ResendScreen({ initialEmail = "" }: { initialEmail?: string }) {
               type="button"
               onClick={handleResend}
               disabled={status === "pending"}
-              className="w-full bg-neutral-900 text-white font-semibold py-3.5 rounded-2xl text-sm hover:bg-neutral-700 transition-colors disabled:opacity-50"
+              className="w-full font-semibold py-3.5 rounded-2xl text-sm transition-colors disabled:opacity-50"
+              style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)" }}
             >
               {status === "pending" ? "Sending…" : "Send new confirmation email"}
             </button>
@@ -197,7 +207,8 @@ function ResendScreen({ initialEmail = "" }: { initialEmail?: string }) {
 
         <Link
           href="/auth/login"
-          className="text-sm font-medium text-neutral-500 hover:text-neutral-900 transition-colors"
+          className="text-sm font-medium transition-colors"
+          style={{ color: "var(--page-text-muted)" }}
         >
           Back to Sign In
         </Link>
@@ -289,17 +300,17 @@ function SignupForm() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col justify-center px-6 py-12">
+    <div className="min-h-screen flex flex-col justify-center px-6 py-12" style={{ background: "var(--page-bg)" }}>
       <div className="max-w-sm w-full mx-auto">
         <div className="mb-10 text-center">
-          <span className="font-bold text-3xl tracking-tight text-neutral-900">FYTD</span>
-          <p className="text-neutral-400 text-sm mt-2">Create your account</p>
+          <span className="font-bold text-3xl tracking-tight" style={{ color: "var(--page-text-primary)" }}>FYTD</span>
+          <p className="text-sm mt-2" style={{ color: "var(--page-text-muted)" }}>Create your account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor="username" className={LABEL_CLS}>Username</label>
+              <label htmlFor="username" className={LABEL_CLS} style={LABEL_STYLE}>Username</label>
               <input
                 id="username"
                 name="username"
@@ -310,10 +321,11 @@ function SignupForm() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className={INPUT_CLS}
+                style={INPUT_STYLE}
               />
             </div>
             <div>
-              <label htmlFor="display_name" className={LABEL_CLS}>Name</label>
+              <label htmlFor="display_name" className={LABEL_CLS} style={LABEL_STYLE}>Name</label>
               <input
                 id="display_name"
                 name="display_name"
@@ -323,12 +335,13 @@ function SignupForm() {
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 className={INPUT_CLS}
+                style={INPUT_STYLE}
               />
             </div>
           </div>
 
           <div>
-            <label htmlFor="email" className={LABEL_CLS}>Email</label>
+            <label htmlFor="email" className={LABEL_CLS} style={LABEL_STYLE}>Email</label>
             <input
               id="email"
               name="email"
@@ -339,11 +352,12 @@ function SignupForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className={INPUT_CLS}
+              style={INPUT_STYLE}
             />
           </div>
 
           <div>
-            <label htmlFor="password" className={LABEL_CLS}>Password</label>
+            <label htmlFor="password" className={LABEL_CLS} style={LABEL_STYLE}>Password</label>
             <input
               id="password"
               name="password"
@@ -354,6 +368,7 @@ function SignupForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className={INPUT_CLS}
+              style={INPUT_STYLE}
             />
           </div>
 
@@ -364,7 +379,8 @@ function SignupForm() {
           <button
             type="submit"
             disabled={pending}
-            className="w-full bg-neutral-900 text-white font-semibold py-3.5 rounded-2xl text-sm hover:bg-neutral-700 transition-colors disabled:opacity-50 mt-2"
+            className="w-full font-semibold py-3.5 rounded-2xl text-sm transition-colors disabled:opacity-50 mt-2"
+            style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)" }}
           >
             {pending ? "Creating account…" : "Create Account"}
           </button>
@@ -377,9 +393,9 @@ function SignupForm() {
           </p>
         </form>
 
-        <p className="text-center text-sm text-neutral-400 mt-6">
+        <p className="text-center text-sm mt-6" style={{ color: "var(--page-text-muted)" }}>
           Already have an account?{" "}
-          <Link href="/auth/login" className="font-semibold text-neutral-900 hover:underline">
+          <Link href="/auth/login" className="font-semibold hover:underline" style={{ color: "var(--page-text-primary)" }}>
             Sign in
           </Link>
         </p>
@@ -402,7 +418,7 @@ function SignupInner() {
 
 export default function SignupPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-white" />}>
+    <Suspense fallback={<div className="min-h-screen" style={{ background: "var(--page-bg)" }} />}>
       <SignupInner />
     </Suspense>
   );

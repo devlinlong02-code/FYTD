@@ -72,6 +72,8 @@ export function dbRowToOutfit(
     commentsCount: typeof row.comments_count === "number" ? row.comments_count : 0,
     savesCount: typeof row.saves_count === "number" ? row.saves_count : 0,
     cardStyle: (row.card_style as "editorial" | "statement" | "streetwear" | undefined) ?? "editorial",
+    isPerfectBreakdown: (row.is_perfect_breakdown as boolean | null) ?? false,
+    styleTag: (row.style_tag as string | null) ?? undefined,
     items: items.map((item) => ({
       id: item.id as string,
       name: item.name as string,
@@ -84,6 +86,8 @@ export function dbRowToOutfit(
       hotspotX: item.hotspot_x != null ? Number(item.hotspot_x) : undefined,
       hotspotY: item.hotspot_y != null ? Number(item.hotspot_y) : undefined,
       note: (item.item_note as string) || undefined,
+      savesCount: typeof item.saves_count === "number" ? item.saves_count : 0,
+      questionsCount: typeof item.questions_count === "number" ? item.questions_count : 0,
     }) satisfies OutfitItem),
   };
 }
@@ -114,10 +118,13 @@ async function fetchMediaForOutfits(
   return (data ?? []) as Record<string, unknown>[];
 }
 
-export async function getOutfits(tag?: string): Promise<Outfit[]> {
+export async function getOutfits(tag?: string, style?: string): Promise<Outfit[]> {
   if (!hasSupabase()) {
-    if (!tag) return mockOutfits;
-    return mockOutfits.filter((o) => o.tags.includes(tag));
+    if (!tag && !style) return mockOutfits;
+    return mockOutfits.filter((o) =>
+      (!tag || o.tags.includes(tag)) &&
+      (!style || o.styleTag === style)
+    );
   }
 
   const supabase = await createClient();
@@ -134,6 +141,7 @@ export async function getOutfits(tag?: string): Promise<Outfit[]> {
       .order("created_at", { ascending: false });
     if (withDeletedFilter) q = q.is("deleted_at", null);
     if (tag) q = q.contains("tags", [tag]);
+    if (style) q = q.eq("style_tag", style);
     if (blockedIds.length > 0) q = q.not("creator_id", "in", `(${blockedIds.join(",")})`);
     return q;
   };

@@ -66,17 +66,23 @@ function LoginForm() {
     window.location.assign(destination);
   };
 
+  const inputStyle = {
+    background: "var(--page-surface)",
+    color: "var(--page-text-primary)",
+    border: "1px solid var(--page-border)",
+  };
+
   return (
-    <div className="min-h-screen bg-white flex flex-col justify-center px-6 py-12">
+    <div className="min-h-screen flex flex-col justify-center px-6 py-12" style={{ background: "var(--page-bg)" }}>
       <div className="max-w-sm w-full mx-auto">
         <div className="mb-10 text-center">
-          <span className="font-bold text-3xl tracking-tight text-neutral-900">FYTD</span>
-          <p className="text-neutral-400 text-sm mt-2">Sign in to your account</p>
+          <span className="font-bold text-3xl tracking-tight" style={{ color: "var(--page-text-primary)" }}>FYTD</span>
+          <p className="text-sm mt-2" style={{ color: "var(--page-text-muted)" }}>Sign in to your account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label htmlFor="email" className="block text-xs font-semibold text-neutral-500 uppercase tracking-widest mb-1.5">
+            <label htmlFor="email" className="block text-xs font-semibold uppercase tracking-widest mb-1.5" style={{ color: "var(--page-text-muted)" }}>
               Email
             </label>
             <input
@@ -87,12 +93,13 @@ function LoginForm() {
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 bg-neutral-100 rounded-xl text-sm text-neutral-900 placeholder-neutral-400 outline-none focus:ring-2 focus:ring-neutral-900/10 transition"
+              className="w-full px-4 py-3 rounded-xl text-sm outline-none focus:ring-2 focus:ring-neutral-900/10 transition"
+              style={inputStyle}
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-xs font-semibold text-neutral-500 uppercase tracking-widest mb-1.5">
+            <label htmlFor="password" className="block text-xs font-semibold uppercase tracking-widest mb-1.5" style={{ color: "var(--page-text-muted)" }}>
               Password
             </label>
             <input
@@ -103,7 +110,8 @@ function LoginForm() {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-neutral-100 rounded-xl text-sm text-neutral-900 placeholder-neutral-400 outline-none focus:ring-2 focus:ring-neutral-900/10 transition"
+              className="w-full px-4 py-3 rounded-xl text-sm outline-none focus:ring-2 focus:ring-neutral-900/10 transition"
+              style={inputStyle}
             />
           </div>
 
@@ -113,7 +121,8 @@ function LoginForm() {
               {emailUnconfirmed && email && (
                 <Link
                   href={`/auth/signup?resend=true&email=${encodeURIComponent(email)}`}
-                  className="inline-block mt-2 text-sm text-neutral-600 underline underline-offset-2 hover:text-neutral-900 transition-colors"
+                  className="inline-block mt-2 text-sm underline underline-offset-2 transition-colors"
+                  style={{ color: "var(--page-text-secondary)" }}
                 >
                   Resend confirmation email
                 </Link>
@@ -124,15 +133,16 @@ function LoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-neutral-900 text-white font-semibold py-3.5 rounded-2xl text-sm hover:bg-neutral-700 transition-colors disabled:opacity-50 mt-2"
+            className="w-full font-semibold py-3.5 rounded-2xl text-sm transition-colors disabled:opacity-50 mt-2"
+            style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)" }}
           >
             {loading ? "Signing in…" : "Sign In"}
           </button>
         </form>
 
-        <p className="text-center text-sm text-neutral-400 mt-6">
+        <p className="text-center text-sm mt-6" style={{ color: "var(--page-text-muted)" }}>
           No account?{" "}
-          <Link href="/auth/signup" className="font-semibold text-neutral-900 hover:underline">
+          <Link href="/auth/signup" className="font-semibold hover:underline" style={{ color: "var(--page-text-primary)" }}>
             Sign up
           </Link>
         </p>

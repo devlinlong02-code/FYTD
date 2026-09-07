@@ -209,6 +209,19 @@ export default function OutfitCard({
             <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/5 to-transparent pointer-events-none" />
           </div>
 
+          {/* Grid-only: perfect breakdown star (bottom-right) */}
+          {!isFeed && outfit.isPerfectBreakdown && (
+            <div
+              className="absolute z-20 flex items-center justify-center"
+              style={{ bottom: 6, right: 6, width: 20, height: 20 }}
+              title="Perfect Breakdown"
+            >
+              <svg width="13" height="13" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <path d="M6 1L7.545 4.09L11 4.635L8.5 7.07L9.09 10.5L6 8.875L2.91 10.5L3.5 7.07L1 4.635L4.455 4.09L6 1Z" fill="#FFD700" stroke="#FFD700" strokeWidth="0.5" strokeLinejoin="round" />
+              </svg>
+            </div>
+          )}
+
           {/* Top-right: save button (grid only) + owner management */}
           <div className={`absolute z-20 flex flex-col items-end gap-1.5 ${isFeed ? "top-3 right-3" : "top-2 right-2"}`}>
             {!showSocialBar && (

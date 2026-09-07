@@ -6,6 +6,7 @@ import Link from "next/link";
 import Layout from "@/components/Layout";
 import MultiMediaUpload from "@/components/MultiMediaUpload";
 import FitBreakdownBuilder, { type Piece } from "@/components/FitBreakdownBuilder";
+import StyleTagPicker from "@/components/StyleTagPicker";
 import { createOutfit } from "@/app/actions/upload";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -183,6 +184,90 @@ function CardStylePicker({
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Perfect Breakdown live progress
+// ─────────────────────────────────────────────────────────────────────────────
+
+const StarPath = "M6 1L7.545 4.09L11 4.635L8.5 7.07L9.09 10.5L6 8.875L2.91 10.5L3.5 7.07L1 4.635L4.455 4.09L6 1Z";
+
+function BreakdownProgress({ items, title }: { items: Piece[]; title: string }) {
+  const criteria = [
+    { key: "title",  label: "Post title",            met: title.trim().length > 0 },
+    { key: "count",  label: "At least 3 pieces",     met: items.length >= 3 },
+    { key: "names",  label: "All pieces named",      met: items.length > 0 && items.every((i) => i.name.trim().length > 0) },
+    { key: "brands", label: "All pieces have a brand", met: items.length > 0 && items.every((i) => i.brand.trim().length > 0) },
+    { key: "prices", label: "All pieces have a price", met: items.length > 0 && items.every((i) => parseFloat(i.price) > 0) },
+    { key: "links",  label: "At least one shop link", met: items.some((i) => i.shopLink.trim().length > 0) },
+  ];
+
+  const metCount = criteria.filter((c) => c.met).length;
+  const isPerfect = metCount === criteria.length;
+  const progress = (metCount / criteria.length) * 100;
+
+  if (items.length === 0) return null;
+
+  return (
+    <div style={{
+      margin: "0 16px 16px",
+      padding: 14,
+      background: isPerfect ? "rgba(255,215,0,0.08)" : "rgba(255,255,255,0.04)",
+      border: isPerfect ? "0.5px solid rgba(255,215,0,0.3)" : "0.5px solid rgba(255,255,255,0.08)",
+      borderRadius: 12,
+      transition: "all 300ms ease",
+    }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d={StarPath} fill={isPerfect ? "#FFD700" : "rgba(255,255,255,0.2)"} stroke={isPerfect ? "#FFD700" : "rgba(255,255,255,0.2)"} strokeWidth="0.5" />
+          </svg>
+          <span style={{ fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 600, color: isPerfect ? "#FFD700" : "var(--page-text-secondary)", letterSpacing: "0.02em" }}>
+            {isPerfect ? "Perfect Breakdown earned!" : "Perfect Breakdown"}
+          </span>
+        </div>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: isPerfect ? "#FFD700" : "var(--page-text-muted)", letterSpacing: "0.04em" }}>
+          {metCount}/{criteria.length}
+        </span>
+      </div>
+
+      {/* Progress bar */}
+      <div style={{ height: 3, background: "rgba(255,255,255,0.08)", borderRadius: 999, marginBottom: 12, overflow: "hidden" }}>
+        <div style={{ height: "100%", width: `${progress}%`, background: isPerfect ? "#FFD700" : "rgba(255,255,255,0.4)", borderRadius: 999, transition: "width 400ms ease, background 400ms ease" }} />
+      </div>
+
+      {/* Criteria */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {criteria.map((c) => (
+          <div key={c.key} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{
+              width: 16, height: 16, borderRadius: "50%", flexShrink: 0,
+              background: c.met ? (isPerfect ? "#FFD700" : "rgba(255,255,255,0.9)") : "rgba(255,255,255,0.08)",
+              border: c.met ? "none" : "0.5px solid rgba(255,255,255,0.2)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "all 250ms ease",
+            }}>
+              {c.met && (
+                <svg width="8" height="6" viewBox="0 0 8 6" fill="none">
+                  <path d="M1 3L3 5L7 1" stroke="#0a0a0a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </div>
+            <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: c.met ? (isPerfect ? "rgba(255,215,0,0.9)" : "var(--page-text-primary)") : "var(--page-text-muted)", transition: "color 250ms ease" }}>
+              {c.label}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {isPerfect && (
+        <div style={{ marginTop: 12, paddingTop: 10, borderTop: "0.5px solid rgba(255,215,0,0.2)", fontFamily: "var(--font-body)", fontSize: 11, color: "rgba(255,215,0,0.7)", lineHeight: 1.4 }}>
+          ✦ Your post will display the Perfect Breakdown badge in the feed and on your profile.
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface UploadedMedia {
   media_url: string;
   media_type: "image" | "video";
@@ -197,7 +282,7 @@ export default function PostOutfitPage() {
   // All form state is controlled so it survives failed submissions
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [tags, setTags] = useState("");
+  const [styleTag, setStyleTag] = useState("");
   const [mediaItems, setMediaItems] = useState<UploadedMedia[]>([]);
   const [pieces, setPieces] = useState<Piece[]>([]);
   const [cardStyle, setCardStyle] = useState<"editorial" | "statement" | "streetwear">("editorial");
@@ -233,7 +318,7 @@ export default function PostOutfitPage() {
     const fd = new FormData();
     fd.set("title", title);
     fd.set("description", description);
-    fd.set("tags", tags);
+    fd.set("style_tag", styleTag);
     fd.set("media_items_json", JSON.stringify(mediaItems));
     fd.set("items_json", JSON.stringify(pieces));
     fd.set("card_style", cardStyle);
@@ -352,16 +437,9 @@ export default function PostOutfitPage() {
 
             <div>
               <label className="block text-[10px] font-semibold uppercase tracking-widest mb-1.5" style={{ color: "var(--page-text-secondary)" }}>
-                Tags <span className="normal-case" style={{ color: "var(--page-text-muted)" }}>(comma-separated)</span>
+                Style
               </label>
-              <input
-                name="tags"
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
-                placeholder="streetwear, minimal, casual"
-                className="w-full rounded-xl px-3.5 py-2.5 text-sm focus:outline-none"
-                style={{ border: "0.5px solid var(--page-border)" }}
-              />
+              <StyleTagPicker value={styleTag} onChange={setStyleTag} />
             </div>
           </section>
 
@@ -386,6 +464,9 @@ export default function PostOutfitPage() {
               </p>
             </div>
           </section>
+
+          {/* Perfect Breakdown progress indicator */}
+          <BreakdownProgress items={pieces} title={title} />
 
           {uploading && (
             <p className="text-xs text-center -mb-4" style={{ color: "var(--page-text-muted)" }}>

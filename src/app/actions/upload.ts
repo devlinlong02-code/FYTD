@@ -48,6 +48,7 @@ export async function createOutfit(
   const cardStyle = ["editorial", "statement", "streetwear"].includes(cardStyleRaw)
     ? (cardStyleRaw as "editorial" | "statement" | "streetwear")
     : "editorial";
+  const styleTag = (formData.get("style_tag") as string)?.trim() || null;
 
   if (!title) return { error: "Title is required." };
   if (description && description.length > 500) return { error: "Caption must be 500 characters or fewer." };
@@ -98,6 +99,7 @@ export async function createOutfit(
       image_url: primaryMedia.media_url,
       media_type: primaryMedia.media_type,
       tags,
+      style_tag: styleTag,
       published: true,
       card_style: cardStyle,
     })
@@ -116,6 +118,7 @@ export async function createOutfit(
         image_url: primaryMedia.media_url,
         media_type: primaryMedia.media_type,
         tags,
+        style_tag: styleTag,
         published: true,
       })
       .select("id")

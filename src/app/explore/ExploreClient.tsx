@@ -63,31 +63,50 @@ const HERO_MOMENTS = [
     subtitle: "What the community is wearing right now",
     gradient: "linear-gradient(160deg, #111827 0%, #0a0a0a 100%)",
     action: "See fits",
-    route: "/?tag=summer",
+    route: "/?style=summer",
   },
   {
     title: "Streetwear Season",
     subtitle: "The best street looks this week",
     gradient: "linear-gradient(160deg, #1a1a1a 0%, #2d2d2d 100%)",
     action: "Browse looks",
-    route: "/?tag=streetwear",
+    route: "/?style=streetwear",
   },
   {
     title: "Clean & Minimal",
     subtitle: "Less is more. The minimalist edits.",
     gradient: "linear-gradient(160deg, #1c1c1c 0%, #0a0a0a 100%)",
     action: "View edits",
-    route: "/?tag=minimal",
+    route: "/?style=minimal",
   },
 ];
 
 const STYLE_TAGS = [
-  { tag: "streetwear", label: "Streetwear" },
-  { tag: "minimal", label: "Minimal" },
-  { tag: "old money", label: "Old Money" },
-  { tag: "casual", label: "Casual" },
-  { tag: "gym fit", label: "Gym Fit" },
-  { tag: "formal", label: "Formal" },
+  { tag: "streetwear",     label: "Streetwear" },
+  { tag: "minimal",        label: "Minimal" },
+  { tag: "old money",      label: "Old Money" },
+  { tag: "casual",         label: "Casual" },
+  { tag: "gym fit",        label: "Gym Fit" },
+  { tag: "formal",         label: "Formal" },
+  { tag: "athleisure",     label: "Athleisure" },
+  { tag: "campus",         label: "Campus" },
+  { tag: "vintage",        label: "Vintage" },
+  { tag: "clean fit",      label: "Clean Fit" },
+  { tag: "business casual",label: "Business Casual" },
+  { tag: "y2k",            label: "Y2K" },
+  { tag: "grunge",         label: "Grunge" },
+  { tag: "preppy",         label: "Preppy" },
+  { tag: "dark academia",  label: "Dark Academia" },
+  { tag: "coastal",        label: "Coastal" },
+  { tag: "night out",      label: "Night Out" },
+  { tag: "going out",      label: "Going Out" },
+  { tag: "festival",       label: "Festival" },
+  { tag: "date night",     label: "Date Night" },
+  { tag: "summer",         label: "Summer" },
+  { tag: "gorpcore",       label: "Gorpcore" },
+  { tag: "workwear",       label: "Workwear" },
+  { tag: "luxury",         label: "Luxury" },
+  { tag: "resort",         label: "Resort" },
 ];
 
 const STYLE_EDITS = [
@@ -233,7 +252,7 @@ function TrendingThisWeek({
         {styles.map((style) => (
           <button
             key={style.tag}
-            onClick={() => router.push(`/?tag=${encodeURIComponent(style.tag)}`)}
+            onClick={() => router.push(`/?style=${encodeURIComponent(style.tag)}`)}
             className="flex-shrink-0 relative border-none bg-transparent p-0 cursor-pointer text-left"
             style={{ width: 120 }}
           >
@@ -358,7 +377,7 @@ function StyleEdits({ router }: { router: ReturnType<typeof useRouter> }) {
         {STYLE_EDITS.map((edit) => (
           <button
             key={edit.tag}
-            onClick={() => router.push(`/?tag=${encodeURIComponent(edit.tag)}`)}
+            onClick={() => router.push(`/?style=${encodeURIComponent(edit.tag)}`)}
             className="relative w-full text-left border-none cursor-pointer flex items-center justify-between overflow-hidden"
             style={{ background: edit.gradient, borderRadius: 12, padding: "18px 18px", minHeight: 88 }}
           >
@@ -617,14 +636,14 @@ export default function ExploreClient({
           supabase
             .from("outfits")
             .select("image_url")
-            .contains("tags", [tag])
+            .eq("style_tag", tag)
             .eq("published", true)
             .order("likes_count", { ascending: false })
             .limit(1),
           supabase
             .from("outfits")
             .select("*", { count: "exact", head: true })
-            .contains("tags", [tag])
+            .eq("style_tag", tag)
             .eq("published", true),
         ]);
         return {
@@ -689,7 +708,7 @@ export default function ExploreClient({
       supabase
         .from("outfits")
         .select("id, title, image_url")
-        .contains("tags", [term.toLowerCase()])
+        .eq("style_tag", term.toLowerCase())
         .eq("published", true)
         .order("likes_count", { ascending: false })
         .limit(20),

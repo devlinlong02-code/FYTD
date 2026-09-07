@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Layout from "@/components/Layout";
-import HomeFeedCard from "@/components/HomeFeedCard";
+import HomeFeedList from "@/components/HomeFeedList";
 import CreatorStoriesRow from "@/components/CreatorStoriesRow";
 import MessagesHeaderButton from "@/components/MessagesHeaderButton";
 import { getOutfits } from "@/app/actions/outfits";
@@ -10,11 +10,11 @@ import { getLikedOutfitIds } from "@/app/actions/likes";
 import { getSession } from "@/lib/dal";
 
 interface HomeProps {
-  searchParams: Promise<{ tag?: string; mode?: string }>;
+  searchParams: Promise<{ tag?: string; mode?: string; style?: string }>;
 }
 
 export default async function HomePage({ searchParams }: HomeProps) {
-  const { mode } = await searchParams;
+  const { mode, style } = await searchParams;
   const isFollowing = mode === "following";
 
   const [user, savedIds] = await Promise.all([
@@ -24,12 +24,10 @@ export default async function HomePage({ searchParams }: HomeProps) {
 
   const allOutfits = isFollowing
     ? user ? await getFollowingFeed(user.id) : []
-    : await getOutfits();
+    : await getOutfits(undefined, style);
 
   const outfitIds = allOutfits.map((o) => o.id);
   const likedIds = outfitIds.length > 0 ? await getLikedOutfitIds(outfitIds) : [];
-  const likedSet = new Set(likedIds);
-  const savedSet = new Set(savedIds);
   const isAuthenticated = !!user;
 
   return (
@@ -98,19 +96,13 @@ export default async function HomePage({ searchParams }: HomeProps) {
             </div>
           )
         ) : (
-          <div>
-            {allOutfits.map((outfit, i) => (
-              <HomeFeedCard
-                key={outfit.id}
-                outfit={outfit}
-                initialLiked={likedSet.has(outfit.id)}
-                initialSaved={savedSet.has(outfit.id)}
-                isAuthenticated={isAuthenticated}
-                currentUserId={user?.id ?? null}
-                priority={i === 0}
-              />
-            ))}
-          </div>
+          <HomeFeedList
+            outfits={allOutfits}
+            likedIds={likedIds}
+            savedIds={savedIds}
+            isAuthenticated={isAuthenticated}
+            currentUserId={user?.id ?? null}
+          />
         )}
       </div>
     </Layout>

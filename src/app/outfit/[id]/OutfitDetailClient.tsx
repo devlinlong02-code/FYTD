@@ -2,15 +2,13 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import MediaCarousel from "@/components/MediaCarousel";
 import TakeDownButton from "@/components/TakeDownButton";
 import FollowButton from "@/components/FollowButton";
 import CommentsSection from "@/components/CommentsSection";
 import { toggleSave } from "@/app/actions/saved";
+import BreakdownSheet, { type SheetState } from "@/components/BreakdownSheet";
 import { toggleSavedItem } from "@/app/actions/saved-items";
-import { trackClick } from "@/app/actions/clicks";
-import { normalizeExternalUrl } from "@/lib/links";
 import { useAuthPrompt } from "@/context/AuthPromptContext";
 import { useToast } from "@/context/ToastContext";
 import { useLikeContext } from "@/context/LikeContext";
@@ -31,20 +29,6 @@ interface Props {
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
-
-function calcCompleteness(items: OutfitItem[]): number {
-  if (!items.length) return 0;
-  const totalPossible = items.length * 5;
-  const earned = items.reduce((acc, item) => {
-    let pts = 1;
-    if (item.brand) pts++;
-    if (item.price > 0) pts++;
-    if (item.shopLink && item.shopLink !== "#") pts++;
-    if (item.image) pts++;
-    return acc + pts;
-  }, 0);
-  return Math.round((earned / totalPossible) * 100);
-}
 
 function getFitValue(items: OutfitItem[]): string | null {
   const priced = items.filter((i) => i.price > 0);
@@ -182,10 +166,11 @@ export default function OutfitDetailClient({
   const { openPrompt, authLoaded } = useAuthPrompt();
   const { showToast } = useToast();
 
-  const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const [stickyVisible, setStickyVisible] = useState(false);
   const [saved, setSaved] = useState(initialSaved);
-  const [savedItemIds, setSavedItemIds] = useState<Set<string>>(new Set(initialSavedItemIds));
+  const [sheetState, setSheetState] = useState<SheetState>("closed");
+  const [activeItemIndex, setActiveItemIndex] = useState(0);
+  const [savedItemIds, setSavedItemIds] = useState<string[]>(initialSavedItemIds);
 
   const { getLiked, getCount, setLike } = useLikeContext();
 
@@ -222,9 +207,6 @@ export default function OutfitDetailClient({
 
   const heroRef = useRef<HTMLDivElement>(null);
   const commentsRef = useRef<HTMLDivElement>(null);
-  const activeResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const score = calcCompleteness(outfit.items);
   const fitValue = getFitValue(outfit.items);
   const commentCount = outfit.commentsCount ?? 0;
   const saveCount = outfit.savesCount ?? 0;
@@ -362,6 +344,30 @@ export default function OutfitDetailClient({
     }
   }
 
+  // ── Breakdown sheet ─────────────────────────────────────────────────────────
+  const handleToggleSavedItem = useCallback(
+    async (itemId: string) => {
+      if (!isAuthenticated) { openPrompt("save"); return; }
+      setSavedItemIds((prev) =>
+        prev.includes(itemId) ? prev.filter((id) => id !== itemId) : [...prev, itemId]
+      );
+      toggleSavedItem(itemId, outfit.id).catch(() => {
+        setSavedItemIds((prev) =>
+          prev.includes(itemId) ? prev.filter((id) => id !== itemId) : [...prev, itemId]
+        );
+      });
+    },
+    [isAuthenticated, openPrompt, outfit.id]
+  );
+
+  const activateItem = useCallback(
+    (index: number) => {
+      setActiveItemIndex(index);
+      setSheetState("half");
+    },
+    []
+  );
+
   // ── Scroll to comments ──────────────────────────────────────────────────────
   function scrollToComments() {
     setCommentAnimating(true);
@@ -382,48 +388,29 @@ export default function OutfitDetailClient({
     return () => observer.disconnect();
   }, []);
 
-  useEffect(() => {
-    if (!activeItemId) return;
-    document.getElementById(`item-card-${activeItemId}`)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }, [activeItemId]);
 
-  function activateItem(id: string) {
-    setActiveItemId((prev) => (prev === id ? null : id));
-    if (activeResetTimer.current) clearTimeout(activeResetTimer.current);
-    activeResetTimer.current = setTimeout(() => setActiveItemId(null), 2000);
-  }
-
-  async function handleToggleSavedItem(itemId: string) {
-    if (!isAuthenticated) return;
-    setSavedItemIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(itemId)) next.delete(itemId);
-      else next.add(itemId);
-      return next;
-    });
-    await toggleSavedItem(itemId, outfit.id).catch(() => {});
-  }
 
   return (
     <>
       {/* Sticky header */}
       <div
-        className={`sticky top-0 z-30 bg-white transition-all duration-200 ${
+        className={`sticky top-0 z-30 backdrop-blur-md transition-all duration-200 ${
           stickyVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2 pointer-events-none"
         }`}
-        style={{ borderBottom: "0.5px solid rgba(0,0,0,0.08)" }}
+        style={{ background: "var(--settings-header-bg)", borderBottom: "0.5px solid var(--page-border)" }}
       >
         <div className="flex items-center gap-3 px-4 py-3 max-w-md mx-auto">
           <button
             onClick={() => router.back()}
-            className="w-8 h-8 shrink-0 flex items-center justify-center rounded-full bg-neutral-100 text-neutral-600"
+            className="w-8 h-8 shrink-0 flex items-center justify-center rounded-full"
+            style={{ background: "var(--page-surface)", color: "var(--page-icon)" }}
           >
             <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
             </svg>
           </button>
-          <p className="flex-1 text-sm font-medium text-neutral-900 truncate">{outfit.title}</p>
-          <span className="text-xs text-neutral-400 shrink-0">{outfit.items.length} {outfit.items.length === 1 ? "pc" : "pcs"}</span>
+          <p className="flex-1 text-sm font-medium truncate" style={{ color: "var(--page-text-primary)" }}>{outfit.title}</p>
+          <span className="text-xs shrink-0" style={{ color: "var(--page-text-muted)" }}>{outfit.items.length} {outfit.items.length === 1 ? "pc" : "pcs"}</span>
         </div>
       </div>
 
@@ -455,20 +442,17 @@ export default function OutfitDetailClient({
         )}
 
         {/* Hotspot dots */}
-        {outfit.items.filter((i) => i.hotspotX != null && i.hotspotY != null).map((item) => {
-          const isActive = item.id === activeItemId;
-          return (
-            <button
-              key={item.id}
-              onClick={() => activateItem(item.id)}
-              style={{ position: "absolute", left: `${item.hotspotX}%`, top: `${item.hotspotY}%`, width: 28, height: 28, transform: "translate(-50%, -50%)", zIndex: 20, background: "none", border: "none", padding: 0, cursor: "pointer" }}
-              aria-label={item.name}
-            >
-              <span className={`hotspot-ring ${isActive ? "hotspot-ring-active" : ""}`} />
-              <span style={{ position: "absolute", top: "50%", left: "50%", transform: `translate(-50%, -50%)${isActive ? " scale(1.25)" : ""}`, width: 10, height: 10, background: isActive ? "#000" : "#fff", borderRadius: "50%", boxShadow: "0 2px 8px rgba(0,0,0,0.35)", zIndex: 2, transition: "background 150ms, transform 150ms" }} />
-            </button>
-          );
-        })}
+        {outfit.items.filter((i) => i.hotspotX != null && i.hotspotY != null).map((item) => (
+          <div
+            key={item.id}
+            style={{ position: "absolute", left: `${item.hotspotX}%`, top: `${item.hotspotY}%`, width: 28, height: 28, transform: "translate(-50%, -50%)", zIndex: 20, cursor: "pointer" }}
+            aria-label={item.name}
+            onClick={(e) => { e.stopPropagation(); activateItem(outfit.items.indexOf(item)); }}
+          >
+            <span className="hotspot-ring" />
+            <span style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: 10, height: 10, background: "#fff", borderRadius: "50%", boxShadow: "0 2px 8px rgba(0,0,0,0.35)", zIndex: 2 }} />
+          </div>
+        ))}
 
         {/* Back button */}
         <button onClick={() => router.back()} aria-label="Back" className="absolute top-14 left-4 z-20 flex items-center justify-center w-9 h-9 rounded-full bg-white/90 text-neutral-900 shadow-sm">
@@ -492,6 +476,36 @@ export default function OutfitDetailClient({
             {outfit.media.length > 1 && ` · ${outfit.media.length} ${outfit.media.length === 1 ? "photo" : "photos"}`}
             {fitValue && ` · ${fitValue} fit value`}
           </p>
+          {/* View breakdown CTA */}
+          {outfit.items.length > 0 && (
+            <button
+              className="pointer-events-auto mb-3"
+              onClick={(e) => { e.stopPropagation(); setSheetState("half"); }}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "7px 14px",
+                borderRadius: 20,
+                background: "rgba(255,255,255,0.18)",
+                backdropFilter: "blur(8px)",
+                WebkitBackdropFilter: "blur(8px)",
+                border: "1px solid rgba(255,255,255,0.28)",
+                color: "white",
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+              View Breakdown
+            </button>
+          )}
+
           {/* Creator row */}
           <div className="flex items-center gap-2.5">
             {/* Avatar */}
@@ -629,138 +643,19 @@ export default function OutfitDetailClient({
           )}
         </div>
 
-        {/* Breakdown section divider */}
-        <div className="flex items-center gap-3 px-4 pt-5 pb-1">
-          <div className="flex-1 h-px" style={{ background: "rgba(10,10,10,0.1)" }} />
-          <span
-            className="font-data text-[9px] font-semibold tracking-[0.16em] uppercase whitespace-nowrap"
-            style={{ color: "rgba(0,0,0,0.4)" }}
-          >
-            The Breakdown
-          </span>
-          <div className="flex-1 h-px" style={{ background: "rgba(10,10,10,0.1)" }} />
-        </div>
-        {/* Item count + tools */}
-        <div className="flex items-center justify-between px-4 pb-2">
-          <span className="font-data text-[10px] tracking-[0.06em]" style={{ color: "#888" }}>
-            {outfit.items.length} {outfit.items.length === 1 ? "item" : "items"}{fitValue ? " ✦" : ""}
-          </span>
-          <div className="flex items-center gap-2">
-            <CompletenessBadge score={score} />
-            <ShareBreakdownButton outfit={outfit} />
-          </div>
-        </div>
-
-        {/* Item cards — editorial style */}
-        <div>
-          {outfit.items.map((item) => {
-            const isActive = item.id === activeItemId;
-            const isExact = item.shopType !== "similar";
-            const isSaved = savedItemIds.has(item.id);
-
-            return (
-              <div
-                key={item.id}
-                id={`item-card-${item.id}`}
-                onClick={() => activateItem(item.id)}
-                className="flex gap-4 cursor-pointer px-4 py-4 transition-colors"
-                style={{
-                  borderBottom: "0.5px solid rgba(10,10,10,0.08)",
-                  background: isActive ? "#F2F2F0" : "transparent",
-                }}
-              >
-                {/* Item image */}
-                <div
-                  className="relative shrink-0"
-                  style={{ width: 80, height: 80, borderRadius: 4, overflow: "hidden", background: "#F2F2F0" }}
-                >
-                  {item.image ? (
-                    <Image src={item.image} alt={item.name} fill className="object-cover" sizes="80px" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <span className="font-data" style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: "0.08em", color: "#ccc" }}>{item.category}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Item info */}
-                <div className="flex-1 min-w-0 flex flex-col justify-between">
-                  <div>
-                    <p className="font-data text-[9px] font-semibold uppercase tracking-[0.12em] mb-0.5" style={{ color: "#888" }}>
-                      {item.category}
-                      {!isExact && <span style={{ color: "#b45309", marginLeft: 6 }}>· Similar</span>}
-                    </p>
-                    {item.brand && (
-                      <p className="font-data text-[10px] font-semibold uppercase tracking-[0.1em]" style={{ color: "#888" }}>{item.brand}</p>
-                    )}
-                    <p className="font-editorial text-[15px] font-medium leading-tight mt-0.5 tracking-[-0.01em] truncate" style={{ color: "#0A0A0A" }}>
-                      {item.name}
-                    </p>
-                    {item.note && (
-                      <p className="text-[10px] italic truncate mt-0.5" style={{ color: "#aaa" }}>{item.note}</p>
-                    )}
-                    {item.price > 0 && (
-                      <p className="font-data text-[13px] mt-1" style={{ color: "#0A0A0A" }}>${item.price.toLocaleString()}</p>
-                    )}
-                  </div>
-
-                  {/* Shop link — underline arrow style */}
-                  {item.shopLink && item.shopLink !== "#" && (
-                    <a
-                      href={normalizeExternalUrl(item.shopLink) ?? "#"}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => { e.stopPropagation(); trackClick(item.id, outfit.id).catch(() => {}); }}
-                      className="inline-flex items-center gap-1 mt-2 self-start"
-                      style={{
-                        fontFamily: "var(--font-body, inherit)",
-                        fontSize: 11,
-                        fontWeight: 500,
-                        color: "#0A0A0A",
-                        letterSpacing: "0.04em",
-                        borderBottom: "1px solid #0A0A0A",
-                        paddingBottom: 1,
-                        textDecoration: "none",
-                      }}
-                    >
-                      {isExact ? "Shop Exact" : "Shop Similar"} →
-                    </a>
-                  )}
-                </div>
-
-                {/* Save item */}
-                {isAuthenticated && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleToggleSavedItem(item.id); }}
-                    className="shrink-0 self-start mt-0.5"
-                    style={{ color: isSaved ? "#0A0A0A" : "#d1d1d1", padding: "4px" }}
-                    aria-label={isSaved ? "Unsave item" : "Save item"}
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
-                      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-                    </svg>
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Total fit value */}
-        {fitValue && (
-          <div
-            className="flex items-baseline justify-between px-4 py-4"
-            style={{ borderTop: "0.5px solid rgba(10,10,10,0.08)" }}
-          >
-            <span className="font-data text-[10px] font-semibold uppercase tracking-[0.1em]" style={{ color: "#888" }}>
-              Total Fit Value
-            </span>
-            <span className="font-data text-[20px] tracking-[-0.02em]" style={{ color: "#0A0A0A" }}>
-              {fitValue}
-            </span>
-          </div>
-        )}
       </div>
+
+      <BreakdownSheet
+        outfit={outfit}
+        sheetState={sheetState}
+        onSheetStateChange={setSheetState}
+        activeItemIndex={activeItemIndex}
+        onItemChange={setActiveItemIndex}
+        isAuthenticated={isAuthenticated}
+        currentUserId={currentUserId}
+        savedItemIds={savedItemIds}
+        onToggleSavedItem={handleToggleSavedItem}
+      />
 
       {/* Comments section divider */}
       <div ref={commentsRef}>
