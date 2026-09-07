@@ -26,14 +26,16 @@ interface Props {
   onAsk?: () => void;
 }
 
+// Sheet sits at bottom:0, height = 100vh - 60px (clears MobileNav).
+// translateY % is of the element's own height, so:
+//   "half" = 30% of (100vh-60px) ≈ top of sheet at ~28vh from top of screen
+//   "full" = 5%  of (100vh-60px) ≈ nearly full screen
 const SNAP: Record<SheetState, string> = {
   closed: "translateY(100%)",
-  half: "translateY(25%)",
-  full: "translateY(5%)",
+  half:   "translateY(30%)",
+  full:   "translateY(5%)",
 };
 const TRANSITION = "transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)";
-
-// ─── Item slide ────────────────────────────────────────────────────────────────
 
 const ACTION_LABEL_STYLE: React.CSSProperties = {
   fontFamily: "var(--font-data)",
@@ -56,7 +58,6 @@ function ItemSlide({ item }: { item: OutfitItem }) {
         overflow: "hidden",
       }}
     >
-      {/* Scrollable content */}
       <div
         style={{
           flex: "1 1 0",
@@ -69,7 +70,7 @@ function ItemSlide({ item }: { item: OutfitItem }) {
         {/* Image */}
         <div
           style={{
-            height: 220,
+            height: 200,
             position: "relative",
             background: "var(--page-surface)",
             margin: "0 16px 10px",
@@ -86,15 +87,7 @@ function ItemSlide({ item }: { item: OutfitItem }) {
               style={{ objectFit: "contain" }}
             />
           ) : (
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
+            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="1.4" viewBox="0 0 24 24" style={{ color: "var(--page-icon)" }}>
                 <rect x="3" y="3" width="18" height="18" rx="2" />
                 <circle cx="8.5" cy="8.5" r="1.5" />
@@ -106,44 +99,17 @@ function ItemSlide({ item }: { item: OutfitItem }) {
 
         {/* Details */}
         <div style={{ padding: "0 16px 12px" }}>
-          {/* Category + similar pill */}
           <div style={{ marginBottom: 4 }}>
-            <span
-              style={{
-                fontSize: 10,
-                fontWeight: 600,
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
-                color: "var(--page-text-muted)",
-                background: "var(--page-surface)",
-                padding: "3px 8px",
-                borderRadius: 6,
-              }}
-            >
+            <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--page-text-muted)", background: "var(--page-surface)", padding: "3px 8px", borderRadius: 6 }}>
               {item.category}
             </span>
             {item.shopType === "similar" && (
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  letterSpacing: "0.1em",
-                  textTransform: "uppercase",
-                  color: "#b45309",
-                  background: "rgba(251,191,36,0.12)",
-                  padding: "3px 8px",
-                  borderRadius: 6,
-                  marginLeft: 6,
-                }}
-              >
+              <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "#b45309", background: "rgba(251,191,36,0.12)", padding: "3px 8px", borderRadius: 6, marginLeft: 6 }}>
                 Similar
               </span>
             )}
           </div>
-
-          {item.brand && (
-            <p style={{ fontSize: 11, color: "var(--page-text-muted)", marginBottom: 2, fontWeight: 500 }}>{item.brand}</p>
-          )}
+          {item.brand && <p style={{ fontSize: 11, color: "var(--page-text-muted)", marginBottom: 2, fontWeight: 500 }}>{item.brand}</p>}
           <p style={{ fontSize: 15, fontWeight: 600, color: "var(--page-text-primary)", lineHeight: 1.3, marginBottom: 2, overflow: "hidden" }} className="line-clamp-2">
             {item.name}
           </p>
@@ -162,8 +128,6 @@ function ItemSlide({ item }: { item: OutfitItem }) {
     </div>
   );
 }
-
-// ─── Main ──────────────────────────────────────────────────────────────────────
 
 export default function BreakdownSheet({
   outfit,
@@ -186,82 +150,56 @@ export default function BreakdownSheet({
   const scrollTimer = useRef<number>(0);
   const sheetStateRef = useRef(sheetState);
 
-  useEffect(() => {
-    sheetStateRef.current = sheetState;
-  });
+  useEffect(() => { sheetStateRef.current = sheetState; });
 
-  // Sync carousel scroll when activeItemIndex changes from outside
   useEffect(() => {
     const el = carouselRef.current;
     if (!el || sheetState === "closed") return;
     const targetX = activeItemIndex * el.offsetWidth;
-    if (Math.abs(el.scrollLeft - targetX) > 4) {
-      el.scrollTo({ left: targetX, behavior: "smooth" });
-    }
+    if (Math.abs(el.scrollLeft - targetX) > 4) el.scrollTo({ left: targetX, behavior: "smooth" });
   }, [activeItemIndex, sheetState]);
 
-  // ── Drag ──────────────────────────────────────────────────────────────────
   const getTranslateYPx = useCallback((s: SheetState): number => {
-    const vh = window.innerHeight;
-    if (s === "closed") return vh;
-    if (s === "half") return vh * 0.25;
-    return vh * 0.05;
+    const h = sheetRef.current ? sheetRef.current.offsetHeight : window.innerHeight - 60;
+    if (s === "closed") return h;
+    if (s === "half")   return h * 0.30;
+    return h * 0.05;
   }, []);
 
-  const handlePointerDown = useCallback(
-    (e: React.PointerEvent) => {
-      const sheet = sheetRef.current;
-      if (!sheet) return;
-      isDragging.current = true;
-      dragStartY.current = e.clientY;
-      dragStartTranslateY.current = getTranslateYPx(sheetStateRef.current);
-      sheet.style.transition = "none";
-      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    },
-    [getTranslateYPx]
-  );
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    const sheet = sheetRef.current;
+    if (!sheet) return;
+    isDragging.current = true;
+    dragStartY.current = e.clientY;
+    dragStartTranslateY.current = getTranslateYPx(sheetStateRef.current);
+    sheet.style.transition = "none";
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  }, [getTranslateYPx]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!isDragging.current) return;
     const sheet = sheetRef.current;
     if (!sheet) return;
-    const delta = e.clientY - dragStartY.current;
-    const vh = window.innerHeight;
-    const min = vh * 0.92 * 0.08;
-    const raw = dragStartTranslateY.current + delta;
-    // Allow slight overscroll past closed (for bounce feel)
-    const clamped = Math.max(min, raw);
-    sheet.style.transform = `translateY(${clamped}px)`;
+    const raw = dragStartTranslateY.current + (e.clientY - dragStartY.current);
+    sheet.style.transform = `translateY(${Math.max(sheet.offsetHeight * 0.05, raw)}px)`;
   }, []);
 
-  const handlePointerUp = useCallback(
-    (e: React.PointerEvent) => {
-      if (!isDragging.current) return;
-      isDragging.current = false;
-      const sheet = sheetRef.current;
-      if (!sheet) return;
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    if (!isDragging.current) return;
+    isDragging.current = false;
+    const sheet = sheetRef.current;
+    if (!sheet) return;
+    const delta = e.clientY - dragStartY.current;
+    const current = sheetStateRef.current;
+    let next: SheetState;
+    if (delta < -60)     next = current === "half" ? "full" : "full";
+    else if (delta > 60) next = current === "full" ? "half" : "closed";
+    else                 next = current;
+    sheet.style.transition = TRANSITION;
+    sheet.style.transform = SNAP[next];
+    onSheetStateChange(next);
+  }, [onSheetStateChange]);
 
-      const delta = e.clientY - dragStartY.current;
-      const current = sheetStateRef.current;
-
-      let next: SheetState;
-      if (delta < -60) {
-        next = current === "closed" ? "half" : current === "half" ? "full" : "full";
-      } else if (delta > 60) {
-        next = current === "full" ? "half" : "closed";
-      } else {
-        next = current;
-      }
-
-      // Animate to snap position imperatively (React re-render may lag)
-      sheet.style.transition = TRANSITION;
-      sheet.style.transform = SNAP[next];
-      onSheetStateChange(next);
-    },
-    [onSheetStateChange]
-  );
-
-  // ── Carousel scroll tracking ───────────────────────────────────────────────
   const handleCarouselScroll = useCallback(() => {
     clearTimeout(scrollTimer.current);
     scrollTimer.current = window.setTimeout(() => {
@@ -272,37 +210,28 @@ export default function BreakdownSheet({
     }, 60);
   }, [activeItemIndex, onItemChange]);
 
-  // ── Dot navigation ─────────────────────────────────────────────────────────
   const scrollToItem = useCallback((i: number) => {
     onItemChange(i);
     const el = carouselRef.current;
-    if (!el) return;
-    el.scrollTo({ left: i * el.offsetWidth, behavior: "smooth" });
+    if (el) el.scrollTo({ left: i * el.offsetWidth, behavior: "smooth" });
   }, [onItemChange]);
 
   const items = outfit.items;
   if (items.length === 0 || typeof document === "undefined") return null;
 
   const isOpen = sheetState !== "closed";
+  const currentItem = items[activeItemIndex] ?? items[0];
+  const shopUrl = normalizeExternalUrl(currentItem.shopLink ?? "");
+  const hasShopLink = !!shopUrl;
+  const isSaved = savedItemIds.includes(currentItem.id);
 
   return createPortal(
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 40,
-        pointerEvents: "none",
-        display: "flex",
-        alignItems: "flex-end",
-        justifyContent: "center",
-      }}
-    >
+    <div style={{ position: "fixed", inset: 0, zIndex: 40, pointerEvents: "none" }}>
       {/* Backdrop */}
       <div
         onClick={() => onSheetStateChange("closed")}
         style={{
-          position: "absolute",
-          inset: 0,
+          position: "absolute", inset: 0,
           background: "rgba(0,0,0,0.35)",
           opacity: isOpen ? 1 : 0,
           transition: "opacity 0.3s ease",
@@ -310,18 +239,17 @@ export default function BreakdownSheet({
         }}
       />
 
-      {/* Sheet */}
+      {/* Sheet — bottom:0 height:calc(100vh-60px) so it never overflows the viewport */}
       <div
         ref={sheetRef}
         style={{
           position: "fixed",
-          bottom: 60,
+          bottom: 0,
           left: 0,
           right: 0,
           maxWidth: 448,
           margin: "0 auto",
-          height: "100vh",
-          maxHeight: "100vh",
+          height: "calc(100vh - 60px)",
           background: "var(--page-bg)",
           borderRadius: "20px 20px 0 0",
           transform: SNAP[sheetState],
@@ -340,77 +268,28 @@ export default function BreakdownSheet({
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
-          style={{
-            padding: "14px 0 8px",
-            cursor: "grab",
-            touchAction: "none",
-            flexShrink: 0,
-          }}
+          style={{ padding: "14px 0 8px", cursor: "grab", touchAction: "none", flexShrink: 0 }}
         >
-          <div
-            style={{
-              width: 36,
-              height: 4,
-              background: "var(--page-border)",
-              borderRadius: 2,
-              margin: "0 auto",
-            }}
-          />
+          <div style={{ width: 36, height: 4, background: "var(--page-border)", borderRadius: 2, margin: "0 auto" }} />
         </div>
 
         {/* Header */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "4px 16px 12px",
-            flexShrink: 0,
-          }}
-        >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 16px 12px", flexShrink: 0 }}>
           <span style={{ fontSize: 13, fontWeight: 600, color: "var(--page-text-primary)" }}>
             {items.length} {items.length === 1 ? "piece" : "pieces"}
           </span>
-          {/* Pill dots */}
           <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
             {items.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => scrollToItem(i)}
-                aria-label={`Go to item ${i + 1}`}
-                style={{
-                  width: i === activeItemIndex ? 18 : 6,
-                  height: 6,
-                  borderRadius: 3,
-                  background: i === activeItemIndex ? "var(--page-text-primary)" : "var(--page-border)",
-                  transition: "width 0.2s ease, background 0.2s ease",
-                  border: "none",
-                  padding: 0,
-                  cursor: "pointer",
-                }}
+              <button key={i} onClick={() => scrollToItem(i)} aria-label={`Item ${i + 1}`}
+                style={{ width: i === activeItemIndex ? 18 : 6, height: 6, borderRadius: 3, background: i === activeItemIndex ? "var(--page-text-primary)" : "var(--page-border)", transition: "width 0.2s ease, background 0.2s ease", border: "none", padding: 0, cursor: "pointer" }}
               />
             ))}
           </div>
-          {/* Close */}
-          <button
-            onClick={() => onSheetStateChange("closed")}
-            aria-label="Close breakdown"
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: "50%",
-              background: "var(--page-surface)",
-              border: "none",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "var(--page-icon)",
-            }}
+          <button onClick={() => onSheetStateChange("closed")} aria-label="Close"
+            style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--page-surface)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--page-icon)" }}
           >
             <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
         </div>
@@ -419,129 +298,70 @@ export default function BreakdownSheet({
         <div
           ref={carouselRef}
           onScroll={handleCarouselScroll}
-          style={{
-            flex: "1 1 0",
-            minHeight: 0,
-            display: "flex",
-            overflowX: "auto",
-            overflowY: "hidden",
-            scrollSnapType: "x mandatory",
-            WebkitOverflowScrolling: "touch",
-            scrollbarWidth: "none",
-            msOverflowStyle: "none",
-          }}
+          style={{ flex: "1 1 0", minHeight: 0, display: "flex", overflowX: "auto", overflowY: "hidden", scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch", scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
-          {items.map((item) => (
-            <ItemSlide key={item.id} item={item} />
-          ))}
+          {items.map((item) => <ItemSlide key={item.id} item={item} />)}
         </div>
 
-        {/* Actions bar — outside carousel, never clipped */}
-        {(() => {
-          const item = items[activeItemIndex];
-          if (!item) return null;
-          const shopUrl = normalizeExternalUrl(item.shopLink ?? "");
-          const hasShopLink = !!shopUrl;
-          const isSaved = savedItemIds.includes(item.id);
-          return (
-            <div
-              style={{
-                flexShrink: 0,
-                display: "flex",
-                justifyContent: "space-around",
-                alignItems: "center",
-                borderTop: "0.5px solid var(--page-border)",
-                background: "var(--page-bg)",
-                paddingTop: 12,
-                paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)",
-              }}
+        {/* ── Actions bar — direct flex child of sheet, NEVER inside carousel ── */}
+        <div
+          style={{
+            flexShrink: 0,
+            display: "flex",
+            justifyContent: "space-around",
+            alignItems: "center",
+            borderTop: "0.5px solid var(--page-border)",
+            background: "var(--page-bg)",
+            paddingTop: 14,
+            paddingBottom: 18,
+          }}
+        >
+          {/* Save */}
+          <button
+            onClick={() => { if (!isAuthenticated) { openPrompt("save"); return; } onToggleSavedItem(currentItem.id); }}
+            aria-label={isSaved ? "Saved" : "Save item"}
+            style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", padding: "0 20px", color: isSaved ? "var(--page-text-primary)" : "var(--page-text-muted)" }}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+            </svg>
+            <span style={ACTION_LABEL_STYLE}>{isSaved ? "Saved" : "Save"}</span>
+          </button>
+
+          {/* Ask */}
+          <button
+            onClick={() => { if (onAsk) { onAsk(); } else { onSheetStateChange("closed"); commentsRef?.current?.scrollIntoView({ behavior: "smooth", block: "start" }); } }}
+            aria-label="Ask"
+            style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", padding: "0 20px", color: "var(--page-text-muted)" }}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+            <span style={ACTION_LABEL_STYLE}>Ask</span>
+          </button>
+
+          {/* Shop */}
+          {hasShopLink ? (
+            <a href={shopUrl!} target="_blank" rel="noopener noreferrer"
+              onClick={() => trackClick(currentItem.id, outfit.id).catch(() => {})}
+              style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, padding: "0 20px", textDecoration: "none", color: "var(--page-text-primary)" }}
             >
-              {/* Save */}
-              <button
-                onClick={() => {
-                  if (!isAuthenticated) { openPrompt("save"); return; }
-                  onToggleSavedItem(item.id);
-                }}
-                aria-label={isSaved ? "Saved" : "Save item"}
-                style={{
-                  display: "flex", flexDirection: "column", alignItems: "center",
-                  gap: 4, background: "none", border: "none", cursor: "pointer",
-                  padding: "8px 16px",
-                  color: isSaved ? "var(--page-text-primary)" : "var(--page-text-muted)",
-                }}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24"
-                  fill={isSaved ? "currentColor" : "none"}
-                  stroke="currentColor" strokeWidth="1.8">
-                  <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-                </svg>
-                <span style={ACTION_LABEL_STYLE}>{isSaved ? "Saved" : "Save"}</span>
-              </button>
-
-              {/* Ask */}
-              <button
-                onClick={() => {
-                  if (onAsk) {
-                    onAsk();
-                  } else {
-                    onSheetStateChange("closed");
-                    commentsRef?.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }
-                }}
-                aria-label="Ask a question"
-                style={{
-                  display: "flex", flexDirection: "column", alignItems: "center",
-                  gap: 4, background: "none", border: "none", cursor: "pointer",
-                  padding: "8px 16px", color: "var(--page-text-muted)",
-                }}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" strokeWidth="1.8">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
-                <span style={ACTION_LABEL_STYLE}>Ask</span>
-              </button>
-
-              {/* Shop */}
-              {hasShopLink ? (
-                <a
-                  href={shopUrl!}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => trackClick(item.id, outfit.id).catch(() => {})}
-                  style={{
-                    display: "flex", flexDirection: "column", alignItems: "center",
-                    gap: 4, background: "none", border: "none", cursor: "pointer",
-                    padding: "8px 16px", textDecoration: "none",
-                    color: "var(--page-text-primary)",
-                  }}
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" strokeWidth="1.8">
-                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                    <polyline points="15 3 21 3 21 9" />
-                    <line x1="10" y1="14" x2="21" y2="3" />
-                  </svg>
-                  <span style={ACTION_LABEL_STYLE}>Shop</span>
-                </a>
-              ) : (
-                <div style={{
-                  display: "flex", flexDirection: "column", alignItems: "center",
-                  gap: 4, padding: "8px 16px", opacity: 0.3,
-                  pointerEvents: "none", color: "var(--page-text-muted)",
-                }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" strokeWidth="1.8">
-                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                    <polyline points="15 3 21 3 21 9" />
-                    <line x1="10" y1="14" x2="21" y2="3" />
-                  </svg>
-                  <span style={ACTION_LABEL_STYLE}>Shop</span>
-                </div>
-              )}
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+              <span style={ACTION_LABEL_STYLE}>Shop</span>
+            </a>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, padding: "0 20px", opacity: 0.3, pointerEvents: "none", color: "var(--page-text-muted)" }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+              <span style={ACTION_LABEL_STYLE}>Shop</span>
             </div>
-          );
-        })()}
+          )}
+        </div>
       </div>
     </div>,
     document.body
