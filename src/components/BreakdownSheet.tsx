@@ -28,8 +28,8 @@ interface Props {
 
 const SNAP: Record<SheetState, string> = {
   closed: "translateY(100%)",
-  half: "translateY(20%)",
-  full: "translateY(4%)",
+  half: "translateY(25%)",
+  full: "translateY(5%)",
 };
 const TRANSITION = "transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)";
 
@@ -203,10 +203,9 @@ export default function BreakdownSheet({
   // ── Drag ──────────────────────────────────────────────────────────────────
   const getTranslateYPx = useCallback((s: SheetState): number => {
     const vh = window.innerHeight;
-    const sheetH = vh * 0.92;
-    if (s === "closed") return sheetH;
-    if (s === "half") return sheetH * 0.20;
-    return sheetH * 0.04;
+    if (s === "closed") return vh;
+    if (s === "half") return vh * 0.25;
+    return vh * 0.05;
   }, []);
 
   const handlePointerDown = useCallback(
@@ -316,13 +315,13 @@ export default function BreakdownSheet({
         ref={sheetRef}
         style={{
           position: "fixed",
-          bottom: 0,
+          bottom: 60,
           left: 0,
           right: 0,
           maxWidth: 448,
           margin: "0 auto",
-          height: "92vh",
-          maxHeight: "92vh",
+          height: "100vh",
+          maxHeight: "100vh",
           background: "var(--page-bg)",
           borderRadius: "20px 20px 0 0",
           transform: SNAP[sheetState],
@@ -454,7 +453,7 @@ export default function BreakdownSheet({
                 borderTop: "0.5px solid var(--page-border)",
                 background: "var(--page-bg)",
                 paddingTop: 12,
-                paddingBottom: "env(safe-area-inset-bottom, 16px)",
+                paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)",
               }}
             >
               {/* Save */}
