@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useFeedBreakdown } from "@/context/FeedBreakdownContext";
 import { useAuthPrompt } from "@/context/AuthPromptContext";
 import { toggleSavedItem } from "@/app/actions/saved-items";
@@ -16,6 +17,7 @@ export default function FeedBreakdownSheetPortal({
 }) {
   const { state, closeBreakdown } = useFeedBreakdown();
   const { openPrompt } = useAuthPrompt();
+  const router = useRouter();
   const [sheetState, setSheetState] = useState<SheetState>("closed");
   const [activeItemIndex, setActiveItemIndex] = useState(0);
   const [savedItemIds, setSavedItemIds] = useState<string[]>([]);
@@ -76,6 +78,10 @@ export default function FeedBreakdownSheetPortal({
       savedItemIds={savedItemIds}
       onToggleSavedItem={handleToggleSavedItem}
       openPrompt={openPrompt}
+      onAsk={() => {
+        handleSheetStateChange("closed");
+        router.push(`/outfit/${state.outfitId}#comments`);
+      }}
     />
   );
 }

@@ -23,12 +23,13 @@ interface Props {
   onToggleSavedItem: (itemId: string) => void;
   openPrompt?: (action: ActionType) => void;
   commentsRef?: RefObject<HTMLDivElement>;
+  onAsk?: () => void;
 }
 
 const SNAP: Record<SheetState, string> = {
   closed: "translateY(100%)",
-  half: "translateY(38%)",
-  full: "translateY(8%)",
+  half: "translateY(20%)",
+  full: "translateY(4%)",
 };
 const TRANSITION = "transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)";
 
@@ -52,6 +53,7 @@ function ItemSlide({
   openPrompt,
   onClose,
   commentsRef,
+  onAsk,
 }: {
   item: OutfitItem;
   outfitId: string;
@@ -61,6 +63,7 @@ function ItemSlide({
   openPrompt: (action: ActionType) => void;
   onClose: () => void;
   commentsRef?: RefObject<HTMLDivElement>;
+  onAsk?: () => void;
 }) {
   const shopUrl = normalizeExternalUrl(item.shopLink ?? "");
   const hasShopLink = !!shopUrl;
@@ -71,113 +74,132 @@ function ItemSlide({
         flex: "0 0 100%",
         height: "100%",
         scrollSnapAlign: "start",
-        display: "flex",
-        flexDirection: "column",
+        position: "relative",
         overflow: "hidden",
       }}
     >
-      {/* Image */}
+      {/* Scrollable content — image + details, with room for pinned actions */}
       <div
         style={{
-          flex: "0 0 42%",
-          position: "relative",
-          background: "var(--page-surface)",
-          margin: "0 16px 12px",
-          borderRadius: 14,
-          overflow: "hidden",
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 80,
+          overflowY: "auto",
+          overflowX: "hidden",
+          WebkitOverflowScrolling: "touch",
         }}
       >
-        {item.image ? (
-          <Image
-            src={item.image}
-            alt={item.name}
-            fill
-            sizes="(max-width: 448px) 100vw, 416px"
-            style={{ objectFit: "contain" }}
-          />
-        ) : (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="1.4" viewBox="0 0 24 24" style={{ color: "var(--page-icon)" }}>
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <circle cx="8.5" cy="8.5" r="1.5" />
-              <polyline points="21 15 16 10 5 21" />
-            </svg>
-          </div>
-        )}
-      </div>
+        {/* Image */}
+        <div
+          style={{
+            height: 220,
+            position: "relative",
+            background: "var(--page-surface)",
+            margin: "0 16px 10px",
+            borderRadius: 14,
+            overflow: "hidden",
+          }}
+        >
+          {item.image ? (
+            <Image
+              src={item.image}
+              alt={item.name}
+              fill
+              sizes="(max-width: 448px) 100vw, 416px"
+              style={{ objectFit: "contain" }}
+            />
+          ) : (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="1.4" viewBox="0 0 24 24" style={{ color: "var(--page-icon)" }}>
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <polyline points="21 15 16 10 5 21" />
+              </svg>
+            </div>
+          )}
+        </div>
 
-      {/* Details */}
-      <div style={{ flex: "1 1 0", minHeight: 0, padding: "0 16px", display: "flex", flexDirection: "column" }}>
-        {/* Category + similar pill */}
-        <div style={{ marginBottom: 6 }}>
-          <span
-            style={{
-              fontSize: 10,
-              fontWeight: 600,
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              color: "var(--page-text-muted)",
-              background: "var(--page-surface)",
-              padding: "3px 8px",
-              borderRadius: 6,
-            }}
-          >
-            {item.category}
-          </span>
-          {item.shopType === "similar" && (
+        {/* Details */}
+        <div style={{ padding: "0 16px 12px" }}>
+          {/* Category + similar pill */}
+          <div style={{ marginBottom: 4 }}>
             <span
               style={{
                 fontSize: 10,
                 fontWeight: 600,
                 letterSpacing: "0.1em",
                 textTransform: "uppercase",
-                color: "#b45309",
-                background: "rgba(251,191,36,0.12)",
+                color: "var(--page-text-muted)",
+                background: "var(--page-surface)",
                 padding: "3px 8px",
                 borderRadius: 6,
-                marginLeft: 6,
               }}
             >
-              Similar
+              {item.category}
             </span>
+            {item.shopType === "similar" && (
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 600,
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  color: "#b45309",
+                  background: "rgba(251,191,36,0.12)",
+                  padding: "3px 8px",
+                  borderRadius: 6,
+                  marginLeft: 6,
+                }}
+              >
+                Similar
+              </span>
+            )}
+          </div>
+
+          {item.brand && (
+            <p style={{ fontSize: 11, color: "var(--page-text-muted)", marginBottom: 2, fontWeight: 500 }}>{item.brand}</p>
+          )}
+          <p style={{ fontSize: 15, fontWeight: 600, color: "var(--page-text-primary)", lineHeight: 1.3, marginBottom: 2, overflow: "hidden" }} className="line-clamp-2">
+            {item.name}
+          </p>
+          {item.price > 0 && (
+            <p style={{ fontSize: 17, fontWeight: 700, color: "var(--page-text-primary)", marginBottom: 2 }}>
+              ${item.price.toLocaleString()}
+            </p>
+          )}
+          {item.note && (
+            <p style={{ fontSize: 12, color: "var(--page-text-muted)", fontStyle: "italic", overflow: "hidden" }} className="line-clamp-2">
+              {item.note}
+            </p>
           )}
         </div>
-
-        {item.brand && (
-          <p style={{ fontSize: 11, color: "var(--page-text-muted)", marginBottom: 2, fontWeight: 500 }}>{item.brand}</p>
-        )}
-        <p style={{ fontSize: 15, fontWeight: 600, color: "var(--page-text-primary)", lineHeight: 1.3, marginBottom: 4 }} className="line-clamp-2">
-          {item.name}
-        </p>
-        {item.price > 0 && (
-          <p style={{ fontSize: 17, fontWeight: 700, color: "var(--page-text-primary)", marginBottom: 4 }}>
-            ${item.price.toLocaleString()}
-          </p>
-        )}
-        {item.note && (
-          <p style={{ fontSize: 12, color: "var(--page-text-muted)", fontStyle: "italic", marginBottom: 6 }} className="line-clamp-2">
-            {item.note}
-          </p>
-        )}
       </div>
 
-      {/* Actions — 3 icon+label buttons */}
+      {/* Actions — absolutely pinned to bottom */}
       <div
         style={{
-          flexShrink: 0,
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
           display: "flex",
           justifyContent: "space-around",
           alignItems: "center",
           borderTop: "0.5px solid var(--page-border)",
-          paddingBottom: "env(safe-area-inset-bottom, 12px)",
+          background: "var(--page-bg)",
+          paddingTop: 12,
+          paddingBottom: "env(safe-area-inset-bottom, 16px)",
+          zIndex: 2,
         }}
       >
         {/* Save */}
@@ -208,8 +230,12 @@ function ItemSlide({
         {/* Ask */}
         <button
           onClick={() => {
-            onClose();
-            commentsRef?.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+            if (onAsk) {
+              onAsk();
+            } else {
+              onClose();
+              commentsRef?.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
           }}
           aria-label="Ask a question"
           style={{
@@ -296,6 +322,7 @@ export default function BreakdownSheet({
   onToggleSavedItem,
   openPrompt = (() => {}) as (action: ActionType) => void,
   commentsRef,
+  onAsk,
 }: Props) {
   const sheetRef = useRef<HTMLDivElement>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -324,8 +351,8 @@ export default function BreakdownSheet({
     const vh = window.innerHeight;
     const sheetH = vh * 0.92;
     if (s === "closed") return sheetH;
-    if (s === "half") return sheetH * 0.38;
-    return sheetH * 0.08;
+    if (s === "half") return sheetH * 0.20;
+    return sheetH * 0.04;
   }, []);
 
   const handlePointerDown = useCallback(
@@ -562,6 +589,7 @@ export default function BreakdownSheet({
               openPrompt={openPrompt}
               onClose={() => onSheetStateChange("closed")}
               commentsRef={commentsRef}
+              onAsk={onAsk}
             />
           ))}
         </div>
