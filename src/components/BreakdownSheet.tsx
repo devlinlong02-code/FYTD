@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Image from "next/image";
 import { normalizeExternalUrl } from "@/lib/links";
 import { trackClick } from "@/app/actions/clicks";
+import { createClient } from "@/lib/supabase/client";
 import type { Outfit, OutfitItem } from "@/types";
 import type { RefObject } from "react";
 import type { ActionType } from "@/context/AuthPromptContext";
@@ -50,9 +51,15 @@ interface ItemSlideProps {
   shopUrl: string | null;
   outfitId: string;
   isAskOpen: boolean;
+  askText: string;
+  onAskTextChange: (text: string) => void;
+  onAskSubmit: () => void;
+  askPosting: boolean;
+  askPosted: boolean;
+  onCancelAsk: () => void;
 }
 
-function ItemSlide({ item, isSaved, onSave, onAsk, shopUrl, outfitId, isAskOpen }: ItemSlideProps) {
+function ItemSlide({ item, isSaved, onSave, onAsk, shopUrl, outfitId, isAskOpen, askText, onAskTextChange, onAskSubmit, askPosting, askPosted, onCancelAsk }: ItemSlideProps) {
   return (
     <div style={{ flex: "0 0 100%", height: "100%", scrollSnapAlign: "start", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <div style={{ flex: "1 1 0", minHeight: 0, overflowY: "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch" }}>
@@ -172,38 +179,63 @@ function ItemSlide({ item, isSaved, onSave, onAsk, shopUrl, outfitId, isAskOpen 
         {/* Ask panel */}
         {isAskOpen && (
           <div style={{ padding: "0 16px 16px" }}>
-            <textarea
-              autoFocus
-              placeholder="Ask something about this item..."
-              rows={2}
-              style={{
-                width: "100%",
-                background: "var(--page-surface)",
-                border: "1px solid var(--page-border)",
-                borderRadius: 10,
-                padding: "10px 12px",
+            {askPosted ? (
+              <div style={{
+                textAlign: "center",
+                padding: "14px",
                 fontSize: 13,
-                color: "var(--page-text-primary)",
+                color: "var(--page-text-muted)",
                 fontFamily: "var(--font-body)",
-                resize: "none",
-                outline: "none",
-                boxSizing: "border-box",
-              }}
-            />
-            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6, gap: 8 }}>
-              <button
-                onClick={onAsk}
-                style={{ fontSize: 12, background: "none", border: "none", cursor: "pointer", color: "var(--page-text-muted)", padding: "4px 8px" }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={onAsk}
-                style={{ fontSize: 12, background: "var(--page-text-primary)", color: "var(--page-bg)", border: "none", borderRadius: 6, cursor: "pointer", padding: "4px 12px", fontWeight: 600 }}
-              >
-                Post
-              </button>
-            </div>
+              }}>
+                ✓ Question posted
+              </div>
+            ) : (
+              <>
+                <textarea
+                  autoFocus
+                  value={askText}
+                  onChange={(e) => onAskTextChange(e.target.value)}
+                  placeholder="Ask something about this item..."
+                  rows={2}
+                  style={{
+                    width: "100%",
+                    background: "var(--page-surface)",
+                    border: "1px solid var(--page-border)",
+                    borderRadius: 10,
+                    padding: "10px 12px",
+                    fontSize: 13,
+                    color: "var(--page-text-primary)",
+                    fontFamily: "var(--font-body)",
+                    resize: "none",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6, gap: 8 }}>
+                  <button
+                    onClick={onCancelAsk}
+                    style={{ fontSize: 12, background: "none", border: "none", cursor: "pointer", color: "var(--page-text-muted)", padding: "4px 8px" }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={onAskSubmit}
+                    disabled={askPosting || !askText.trim()}
+                    style={{
+                      fontSize: 12,
+                      background: askText.trim() ? "var(--page-text-primary)" : "var(--page-surface)",
+                      color: askText.trim() ? "var(--page-bg)" : "var(--page-text-muted)",
+                      border: "none", borderRadius: 6,
+                      cursor: askText.trim() ? "pointer" : "default",
+                      padding: "4px 12px", fontWeight: 600,
+                      opacity: askPosting ? 0.6 : 1,
+                    }}
+                  >
+                    {askPosting ? "Posting..." : "Post"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -218,6 +250,7 @@ export default function BreakdownSheet({
   activeItemIndex,
   onItemChange,
   isAuthenticated,
+  currentUserId,
   savedItemIds,
   onToggleSavedItem,
   openPrompt = (() => {}) as (action: ActionType) => void,
@@ -226,7 +259,67 @@ export default function BreakdownSheet({
 }: Props) {
   const [mounted, setMounted] = useState(false);
   const [askingItemId, setAskingItemId] = useState<string | null>(null);
+  const [askText, setAskText] = useState<Record<string, string>>({});
+  const [askPosting, setAskPosting] = useState(false);
+  const [askPosted, setAskPosted] = useState<string | null>(null);
   useEffect(() => { setMounted(true); }, []);
+
+  const supabase = createClient();
+
+  const handleAskSubmit = useCallback(async (item: OutfitItem) => {
+    if (!isAuthenticated) { openPrompt("comment"); return; }
+    if (!currentUserId) { openPrompt("comment"); return; }
+    const text = (askText[item.id] ?? "").trim();
+    if (!text) return;
+
+    setAskPosting(true);
+    try {
+      const { data: inserted, error } = await supabase
+        .from("comments")
+        .insert({
+          user_id: currentUserId,
+          outfit_id: outfit.id,
+          content: text,
+          parent_id: null,
+          gif_url: null,
+          gif_preview_url: null,
+          gif_width: null,
+          gif_height: null,
+        })
+        .select("id")
+        .single();
+
+      if (error) throw error;
+
+      const { data: outfitRow } = await supabase
+        .from("outfits")
+        .select("creator_id")
+        .eq("id", outfit.id)
+        .maybeSingle();
+      const ownerId = outfitRow?.creator_id as string | undefined;
+      if (ownerId && ownerId !== currentUserId) {
+        await supabase.from("notifications").insert({
+          recipient_id: ownerId,
+          actor_id: currentUserId,
+          type: "comment",
+          outfit_id: outfit.id,
+          comment_id: inserted.id,
+        });
+      }
+
+      setAskText((prev) => ({ ...prev, [item.id]: "" }));
+      setAskPosted(item.id);
+      setTimeout(() => {
+        setAskPosted(null);
+        setAskingItemId(null);
+      }, 1500);
+    } catch (err) {
+      console.error("[BreakdownSheet] ask submit failed:", err);
+    } finally {
+      setAskPosting(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, currentUserId, askText, outfit.id, openPrompt]);
   const sheetRef = useRef<HTMLDivElement>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
   const dragStartY = useRef(0);
@@ -382,6 +475,12 @@ export default function BreakdownSheet({
                 shopUrl={url || null}
                 isSaved={savedItemIds.includes(item.id)}
                 isAskOpen={askingItemId === item.id}
+                askText={askText[item.id] ?? ""}
+                onAskTextChange={(text) => setAskText((prev) => ({ ...prev, [item.id]: text }))}
+                onAskSubmit={() => handleAskSubmit(item)}
+                askPosting={askPosting}
+                askPosted={askPosted === item.id}
+                onCancelAsk={() => setAskingItemId(null)}
                 onSave={() => {
                   if (!isAuthenticated) { openPrompt("save"); return; }
                   onToggleSavedItem(item.id);
