@@ -42,7 +42,17 @@ const ACTION_LABEL_STYLE: React.CSSProperties = {
   color: "var(--page-text-muted)",
 };
 
-function ItemSlide({ item }: { item: OutfitItem }) {
+interface ItemSlideProps {
+  item: OutfitItem;
+  isSaved: boolean;
+  onSave: () => void;
+  onAsk: () => void;
+  shopUrl: string | null;
+  outfitId: string;
+  isAskOpen: boolean;
+}
+
+function ItemSlide({ item, isSaved, onSave, onAsk, shopUrl, outfitId, isAskOpen }: ItemSlideProps) {
   return (
     <div style={{ flex: "0 0 100%", height: "100%", scrollSnapAlign: "start", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <div style={{ flex: "1 1 0", minHeight: 0, overflowY: "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch" }}>
@@ -75,6 +85,127 @@ function ItemSlide({ item }: { item: OutfitItem }) {
           {item.price > 0 && <p style={{ fontSize: 17, fontWeight: 700, color: "var(--page-text-primary)", marginBottom: 2 }}>${item.price.toLocaleString()}</p>}
           {item.note && <p style={{ fontSize: 12, color: "var(--page-text-muted)", fontStyle: "italic", overflow: "hidden" }} className="line-clamp-2">{item.note}</p>}
         </div>
+
+        {/* Inline actions */}
+        <div style={{
+          display: "flex",
+          justifyContent: "space-around",
+          alignItems: "center",
+          padding: "12px 16px 20px",
+          borderTop: "0.5px solid var(--page-border)",
+          marginTop: 8,
+        }}>
+          {/* Save */}
+          <button
+            onClick={onSave}
+            aria-label={isSaved ? "Saved" : "Save item"}
+            style={{
+              display: "flex", flexDirection: "column", alignItems: "center",
+              gap: 4, background: "none", border: "none", cursor: "pointer",
+              padding: "4px 16px",
+              color: isSaved ? "var(--page-text-primary)" : "var(--page-text-muted)",
+            }}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24"
+              fill={isSaved ? "currentColor" : "none"}
+              stroke="currentColor" strokeWidth="1.8">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+            </svg>
+            <span style={ACTION_LABEL_STYLE}>{isSaved ? "Saved" : "Save"}</span>
+          </button>
+
+          {/* Ask */}
+          <button
+            onClick={onAsk}
+            aria-label="Ask about this item"
+            style={{
+              display: "flex", flexDirection: "column", alignItems: "center",
+              gap: 4, background: "none", border: "none", cursor: "pointer",
+              padding: "4px 16px", color: "var(--page-text-muted)",
+            }}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="1.8">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+            <span style={ACTION_LABEL_STYLE}>Ask</span>
+          </button>
+
+          {/* Shop */}
+          {shopUrl ? (
+            <a
+              href={shopUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackClick(item.id, outfitId).catch(() => {})}
+              style={{
+                display: "flex", flexDirection: "column", alignItems: "center",
+                gap: 4, padding: "4px 16px", textDecoration: "none",
+                color: "var(--page-text-primary)",
+              }}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="1.8">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+              <span style={ACTION_LABEL_STYLE}>Shop</span>
+            </a>
+          ) : (
+            <div style={{
+              display: "flex", flexDirection: "column", alignItems: "center",
+              gap: 4, padding: "4px 16px", opacity: 0.3,
+              pointerEvents: "none", color: "var(--page-text-muted)",
+            }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="1.8">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+              <span style={ACTION_LABEL_STYLE}>Shop</span>
+            </div>
+          )}
+        </div>
+
+        {/* Ask panel */}
+        {isAskOpen && (
+          <div style={{ padding: "0 16px 16px" }}>
+            <textarea
+              autoFocus
+              placeholder="Ask something about this item..."
+              rows={2}
+              style={{
+                width: "100%",
+                background: "var(--page-surface)",
+                border: "1px solid var(--page-border)",
+                borderRadius: 10,
+                padding: "10px 12px",
+                fontSize: 13,
+                color: "var(--page-text-primary)",
+                fontFamily: "var(--font-body)",
+                resize: "none",
+                outline: "none",
+                boxSizing: "border-box",
+              }}
+            />
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6, gap: 8 }}>
+              <button
+                onClick={onAsk}
+                style={{ fontSize: 12, background: "none", border: "none", cursor: "pointer", color: "var(--page-text-muted)", padding: "4px 8px" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={onAsk}
+                style={{ fontSize: 12, background: "var(--page-text-primary)", color: "var(--page-bg)", border: "none", borderRadius: 6, cursor: "pointer", padding: "4px 12px", fontWeight: 600 }}
+              >
+                Post
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -93,10 +224,9 @@ export default function BreakdownSheet({
   commentsRef,
   onAsk,
 }: Props) {
-  // Gate the portal to client-only to avoid SSR mismatch
   const [mounted, setMounted] = useState(false);
+  const [askingItemId, setAskingItemId] = useState<string | null>(null);
   useEffect(() => { setMounted(true); }, []);
-
   const sheetRef = useRef<HTMLDivElement>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
   const dragStartY = useRef(0);
@@ -242,56 +372,24 @@ export default function BreakdownSheet({
         {/* Carousel */}
         <div ref={carouselRef} onScroll={handleCarouselScroll}
           style={{ flex: "1 1 0", minHeight: 0, display: "flex", overflowX: "auto", overflowY: "hidden", scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch", scrollbarWidth: "none", msOverflowStyle: "none" }}>
-          {items.map((item) => <ItemSlide key={item.id} item={item} />)}
-        </div>
-
-        {/* ── ACTIONS BAR — direct flex child, always rendered, never clipped ── */}
-        <div style={{ flexShrink: 0, display: "flex", justifyContent: "space-around", alignItems: "center", borderTop: "0.5px solid var(--page-border)", background: "var(--page-bg)", paddingTop: 14, paddingBottom: 18 }}>
-          
-          {/* SAVE */}
-          <button
-            onClick={() => { if (!isAuthenticated) { openPrompt("save"); return; } onToggleSavedItem(currentItem.id); }}
-            aria-label={isSaved ? "Saved" : "Save item"}
-            style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", padding: "0 20px", color: isSaved ? "var(--page-text-primary)" : "var(--page-text-muted)" }}
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8">
-              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-            </svg>
-            <span style={ACTION_LABEL_STYLE}>{isSaved ? "Saved" : "Save"}</span>
-          </button>
-
-          {/* ASK */}
-          <button
-            onClick={() => { if (onAsk) { onAsk(); } else { onSheetStateChange("closed"); commentsRef?.current?.scrollIntoView({ behavior: "smooth", block: "start" }); } }}
-            aria-label="Ask"
-            style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", padding: "0 20px", color: "var(--page-text-muted)" }}
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
-            <span style={ACTION_LABEL_STYLE}>Ask</span>
-          </button>
-
-          {/* SHOP */}
-          {hasShopLink ? (
-            <a href={shopUrl!} target="_blank" rel="noopener noreferrer"
-              onClick={() => trackClick(currentItem.id, outfit.id).catch(() => {})}
-              style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, padding: "0 20px", textDecoration: "none", color: "var(--page-text-primary)" }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                <polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
-              </svg>
-              <span style={ACTION_LABEL_STYLE}>Shop</span>
-            </a>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, padding: "0 20px", opacity: 0.3, pointerEvents: "none", color: "var(--page-text-muted)" }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                <polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
-              </svg>
-              <span style={ACTION_LABEL_STYLE}>Shop</span>
-            </div>
-          )}
+          {items.map((item) => {
+            const url = normalizeExternalUrl(item.shopLink ?? "");
+            return (
+              <ItemSlide
+                key={item.id}
+                item={item}
+                outfitId={outfit.id}
+                shopUrl={url || null}
+                isSaved={savedItemIds.includes(item.id)}
+                isAskOpen={askingItemId === item.id}
+                onSave={() => {
+                  if (!isAuthenticated) { openPrompt("save"); return; }
+                  onToggleSavedItem(item.id);
+                }}
+                onAsk={() => setAskingItemId(askingItemId === item.id ? null : item.id)}
+              />
+            );
+          })}
         </div>
       </div>
     </div>,
