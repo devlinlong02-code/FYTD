@@ -43,6 +43,14 @@ const ACTION_LABEL_STYLE: React.CSSProperties = {
   color: "var(--page-text-muted)",
 };
 
+interface ItemQuestion {
+  id: string;
+  question: string;
+  created_at: string;
+  user_id: string;
+  profiles: { username: string | null; avatar_url: string | null } | null;
+}
+
 interface ItemSlideProps {
   item: OutfitItem;
   isSaved: boolean;
@@ -57,9 +65,10 @@ interface ItemSlideProps {
   askPosting: boolean;
   askPosted: boolean;
   onCancelAsk: () => void;
+  questions: ItemQuestion[];
 }
 
-function ItemSlide({ item, isSaved, onSave, onAsk, shopUrl, outfitId, isAskOpen, askText, onAskTextChange, onAskSubmit, askPosting, askPosted, onCancelAsk }: ItemSlideProps) {
+function ItemSlide({ item, isSaved, onSave, onAsk, shopUrl, outfitId, isAskOpen, askText, onAskTextChange, onAskSubmit, askPosting, askPosted, onCancelAsk, questions }: ItemSlideProps) {
   return (
     <div style={{ flex: "0 0 100%", height: "100%", scrollSnapAlign: "start", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <div style={{ flex: "1 1 0", minHeight: 0, overflowY: "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch" }}>
@@ -176,6 +185,37 @@ function ItemSlide({ item, isSaved, onSave, onAsk, shopUrl, outfitId, isAskOpen,
           )}
         </div>
 
+        {/* Questions list */}
+        {questions.length > 0 && (
+          <div style={{ borderTop: "0.5px solid var(--page-border)", margin: "0 0 16px" }}>
+            <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--page-text-muted)", padding: "10px 16px 6px" }}>
+              Questions · {questions.length}
+            </p>
+            {questions.map((q) => (
+              <div key={q.id} style={{ padding: "6px 16px 8px", borderBottom: "0.5px solid var(--page-border)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+                  <div style={{ width: 18, height: 18, borderRadius: "50%", background: "var(--page-surface)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, overflow: "hidden" }}>
+                    {q.profiles?.avatar_url ? (
+                      <img src={q.profiles.avatar_url} alt={q.profiles.username ?? "user"} style={{ width: 18, height: 18, objectFit: "cover" }} />
+                    ) : (
+                      <span style={{ fontSize: 8, fontWeight: 600, color: "var(--page-text-muted)" }}>
+                        {(q.profiles?.username ?? "?")[0].toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: "var(--page-text-primary)", fontFamily: "var(--font-body)" }}>
+                    {q.profiles?.username ?? "user"}
+                  </span>
+                  <span style={{ fontSize: 10, color: "var(--page-text-muted)", fontFamily: "var(--font-body)" }}>asked</span>
+                </div>
+                <p style={{ fontSize: 13, color: "var(--page-text-primary)", fontFamily: "var(--font-body)", lineHeight: 1.4, margin: 0, paddingLeft: 24 }}>
+                  {q.question}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Ask panel */}
         {isAskOpen && (
           <div style={{ padding: "0 16px 16px" }}>
@@ -262,9 +302,27 @@ export default function BreakdownSheet({
   const [askText, setAskText] = useState<Record<string, string>>({});
   const [askPosting, setAskPosting] = useState(false);
   const [askPosted, setAskPosted] = useState<string | null>(null);
+  const [itemQuestions, setItemQuestions] = useState<Record<string, ItemQuestion[]>>({});
   useEffect(() => { setMounted(true); }, []);
 
   const supabase = createClient();
+
+  const fetchItemQuestions = useCallback(async (itemId: string) => {
+    const { data } = await supabase
+      .from("item_questions")
+      .select("id, question, created_at, user_id, profiles(username, avatar_url)")
+      .eq("item_id", itemId)
+      .order("created_at", { ascending: true })
+      .limit(20);
+    if (data) {
+      const mapped = data.map((row) => ({
+        ...row,
+        profiles: Array.isArray(row.profiles) ? (row.profiles[0] ?? null) : row.profiles,
+      })) as ItemQuestion[];
+      setItemQuestions((prev) => ({ ...prev, [itemId]: mapped }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleAskSubmit = useCallback(async (item: OutfitItem) => {
     if (!isAuthenticated) { openPrompt("comment"); return; }
@@ -274,41 +332,15 @@ export default function BreakdownSheet({
 
     setAskPosting(true);
     try {
-      const { data: inserted, error } = await supabase
-        .from("comments")
-        .insert({
-          user_id: currentUserId,
-          outfit_id: outfit.id,
-          content: text,
-          parent_id: null,
-          gif_url: null,
-          gif_preview_url: null,
-          gif_width: null,
-          gif_height: null,
-        })
-        .select("id")
-        .single();
+      const { error } = await supabase
+        .from("item_questions")
+        .insert({ item_id: item.id, user_id: currentUserId, question: text });
 
       if (error) throw error;
 
-      const { data: outfitRow } = await supabase
-        .from("outfits")
-        .select("creator_id")
-        .eq("id", outfit.id)
-        .maybeSingle();
-      const ownerId = outfitRow?.creator_id as string | undefined;
-      if (ownerId && ownerId !== currentUserId) {
-        await supabase.from("notifications").insert({
-          recipient_id: ownerId,
-          actor_id: currentUserId,
-          type: "comment",
-          outfit_id: outfit.id,
-          comment_id: inserted.id,
-        });
-      }
-
       setAskText((prev) => ({ ...prev, [item.id]: "" }));
       setAskPosted(item.id);
+      fetchItemQuestions(item.id);
       setTimeout(() => {
         setAskPosted(null);
         setAskingItemId(null);
@@ -319,7 +351,7 @@ export default function BreakdownSheet({
       setAskPosting(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, currentUserId, askText, outfit.id, openPrompt]);
+  }, [isAuthenticated, currentUserId, askText, openPrompt, fetchItemQuestions]);
   const sheetRef = useRef<HTMLDivElement>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
   const dragStartY = useRef(0);
@@ -336,6 +368,14 @@ export default function BreakdownSheet({
     const targetX = activeItemIndex * el.offsetWidth;
     if (Math.abs(el.scrollLeft - targetX) > 4) el.scrollTo({ left: targetX, behavior: "smooth" });
   }, [activeItemIndex, sheetState]);
+
+  useEffect(() => {
+    if (sheetState === "closed") return;
+    const item = outfit.items[activeItemIndex];
+    if (item && !itemQuestions[item.id]) {
+      fetchItemQuestions(item.id);
+    }
+  }, [sheetState, activeItemIndex, outfit.items, itemQuestions, fetchItemQuestions]);
 
   const getTranslateYPx = useCallback((s: SheetState): number => {
     const h = sheetRef.current ? sheetRef.current.offsetHeight : window.innerHeight - 60;
@@ -480,6 +520,7 @@ export default function BreakdownSheet({
                 onAskSubmit={() => handleAskSubmit(item)}
                 askPosting={askPosting}
                 askPosted={askPosted === item.id}
+                questions={itemQuestions[item.id] ?? []}
                 onCancelAsk={() => setAskingItemId(null)}
                 onSave={() => {
                   if (!isAuthenticated) { openPrompt("save"); return; }
