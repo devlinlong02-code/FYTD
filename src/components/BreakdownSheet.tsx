@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect, useCallback, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { normalizeExternalUrl } from "@/lib/links";
@@ -26,10 +26,6 @@ interface Props {
   onAsk?: () => void;
 }
 
-// Sheet sits at bottom:0, height = 100vh - 60px (clears MobileNav).
-// translateY % is of the element's own height, so:
-//   "half" = 30% of (100vh-60px) ≈ top of sheet at ~28vh from top of screen
-//   "full" = 5%  of (100vh-60px) ≈ nearly full screen
 const SNAP: Record<SheetState, string> = {
   closed: "translateY(100%)",
   half:   "translateY(30%)",
@@ -48,44 +44,12 @@ const ACTION_LABEL_STYLE: React.CSSProperties = {
 
 function ItemSlide({ item }: { item: OutfitItem }) {
   return (
-    <div
-      style={{
-        flex: "0 0 100%",
-        height: "100%",
-        scrollSnapAlign: "start",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          flex: "1 1 0",
-          minHeight: 0,
-          overflowY: "auto",
-          overflowX: "hidden",
-          WebkitOverflowScrolling: "touch",
-        }}
-      >
+    <div style={{ flex: "0 0 100%", height: "100%", scrollSnapAlign: "start", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ flex: "1 1 0", minHeight: 0, overflowY: "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch" }}>
         {/* Image */}
-        <div
-          style={{
-            height: 200,
-            position: "relative",
-            background: "var(--page-surface)",
-            margin: "0 16px 10px",
-            borderRadius: 14,
-            overflow: "hidden",
-          }}
-        >
+        <div style={{ height: 200, position: "relative", background: "var(--page-surface)", margin: "0 16px 10px", borderRadius: 14, overflow: "hidden" }}>
           {item.image ? (
-            <Image
-              src={item.image}
-              alt={item.name}
-              fill
-              sizes="(max-width: 448px) 100vw, 416px"
-              style={{ objectFit: "contain" }}
-            />
+            <Image src={item.image} alt={item.name} fill sizes="(max-width: 448px) 100vw, 416px" style={{ objectFit: "contain" }} />
           ) : (
             <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="1.4" viewBox="0 0 24 24" style={{ color: "var(--page-icon)" }}>
@@ -96,7 +60,6 @@ function ItemSlide({ item }: { item: OutfitItem }) {
             </div>
           )}
         </div>
-
         {/* Details */}
         <div style={{ padding: "0 16px 12px" }}>
           <div style={{ marginBottom: 4 }}>
@@ -104,25 +67,13 @@ function ItemSlide({ item }: { item: OutfitItem }) {
               {item.category}
             </span>
             {item.shopType === "similar" && (
-              <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "#b45309", background: "rgba(251,191,36,0.12)", padding: "3px 8px", borderRadius: 6, marginLeft: 6 }}>
-                Similar
-              </span>
+              <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "#b45309", background: "rgba(251,191,36,0.12)", padding: "3px 8px", borderRadius: 6, marginLeft: 6 }}>Similar</span>
             )}
           </div>
           {item.brand && <p style={{ fontSize: 11, color: "var(--page-text-muted)", marginBottom: 2, fontWeight: 500 }}>{item.brand}</p>}
-          <p style={{ fontSize: 15, fontWeight: 600, color: "var(--page-text-primary)", lineHeight: 1.3, marginBottom: 2, overflow: "hidden" }} className="line-clamp-2">
-            {item.name}
-          </p>
-          {item.price > 0 && (
-            <p style={{ fontSize: 17, fontWeight: 700, color: "var(--page-text-primary)", marginBottom: 2 }}>
-              ${item.price.toLocaleString()}
-            </p>
-          )}
-          {item.note && (
-            <p style={{ fontSize: 12, color: "var(--page-text-muted)", fontStyle: "italic", overflow: "hidden" }} className="line-clamp-2">
-              {item.note}
-            </p>
-          )}
+          <p style={{ fontSize: 15, fontWeight: 600, color: "var(--page-text-primary)", lineHeight: 1.3, marginBottom: 2, overflow: "hidden" }} className="line-clamp-2">{item.name}</p>
+          {item.price > 0 && <p style={{ fontSize: 17, fontWeight: 700, color: "var(--page-text-primary)", marginBottom: 2 }}>${item.price.toLocaleString()}</p>}
+          {item.note && <p style={{ fontSize: 12, color: "var(--page-text-muted)", fontStyle: "italic", overflow: "hidden" }} className="line-clamp-2">{item.note}</p>}
         </div>
       </div>
     </div>
@@ -142,6 +93,10 @@ export default function BreakdownSheet({
   commentsRef,
   onAsk,
 }: Props) {
+  // Gate the portal to client-only to avoid SSR mismatch
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
   const sheetRef = useRef<HTMLDivElement>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
   const dragStartY = useRef(0);
@@ -217,7 +172,9 @@ export default function BreakdownSheet({
   }, [onItemChange]);
 
   const items = outfit.items;
-  if (items.length === 0 || typeof document === "undefined") return null;
+
+  // Don't render until client-side and there are items
+  if (!mounted || items.length === 0) return null;
 
   const isOpen = sheetState !== "closed";
   const currentItem = items[activeItemIndex] ?? items[0];
@@ -230,16 +187,10 @@ export default function BreakdownSheet({
       {/* Backdrop */}
       <div
         onClick={() => onSheetStateChange("closed")}
-        style={{
-          position: "absolute", inset: 0,
-          background: "rgba(0,0,0,0.35)",
-          opacity: isOpen ? 1 : 0,
-          transition: "opacity 0.3s ease",
-          pointerEvents: isOpen ? "auto" : "none",
-        }}
+        style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.35)", opacity: isOpen ? 1 : 0, transition: "opacity 0.3s ease", pointerEvents: isOpen ? "auto" : "none" }}
       />
 
-      {/* Sheet — bottom:0 height:calc(100vh-60px) so it never overflows the viewport */}
+      {/* Sheet */}
       <div
         ref={sheetRef}
         style={{
@@ -263,13 +214,8 @@ export default function BreakdownSheet({
         }}
       >
         {/* Drag handle */}
-        <div
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
-          style={{ padding: "14px 0 8px", cursor: "grab", touchAction: "none", flexShrink: 0 }}
-        >
+        <div onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerUp}
+          style={{ padding: "14px 0 8px", cursor: "grab", touchAction: "none", flexShrink: 0 }}>
           <div style={{ width: 36, height: 4, background: "var(--page-border)", borderRadius: 2, margin: "0 auto" }} />
         </div>
 
@@ -286,8 +232,7 @@ export default function BreakdownSheet({
             ))}
           </div>
           <button onClick={() => onSheetStateChange("closed")} aria-label="Close"
-            style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--page-surface)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--page-icon)" }}
-          >
+            style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--page-surface)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--page-icon)" }}>
             <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             </svg>
@@ -295,28 +240,15 @@ export default function BreakdownSheet({
         </div>
 
         {/* Carousel */}
-        <div
-          ref={carouselRef}
-          onScroll={handleCarouselScroll}
-          style={{ flex: "1 1 0", minHeight: 0, display: "flex", overflowX: "auto", overflowY: "hidden", scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch", scrollbarWidth: "none", msOverflowStyle: "none" }}
-        >
+        <div ref={carouselRef} onScroll={handleCarouselScroll}
+          style={{ flex: "1 1 0", minHeight: 0, display: "flex", overflowX: "auto", overflowY: "hidden", scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch", scrollbarWidth: "none", msOverflowStyle: "none" }}>
           {items.map((item) => <ItemSlide key={item.id} item={item} />)}
         </div>
 
-        {/* ── Actions bar — direct flex child of sheet, NEVER inside carousel ── */}
-        <div
-          style={{
-            flexShrink: 0,
-            display: "flex",
-            justifyContent: "space-around",
-            alignItems: "center",
-            borderTop: "0.5px solid var(--page-border)",
-            background: "var(--page-bg)",
-            paddingTop: 14,
-            paddingBottom: 18,
-          }}
-        >
-          {/* Save */}
+        {/* ── ACTIONS BAR — direct flex child, always rendered, never clipped ── */}
+        <div style={{ flexShrink: 0, display: "flex", justifyContent: "space-around", alignItems: "center", borderTop: "0.5px solid var(--page-border)", background: "var(--page-bg)", paddingTop: 14, paddingBottom: 18 }}>
+          
+          {/* SAVE */}
           <button
             onClick={() => { if (!isAuthenticated) { openPrompt("save"); return; } onToggleSavedItem(currentItem.id); }}
             aria-label={isSaved ? "Saved" : "Save item"}
@@ -328,7 +260,7 @@ export default function BreakdownSheet({
             <span style={ACTION_LABEL_STYLE}>{isSaved ? "Saved" : "Save"}</span>
           </button>
 
-          {/* Ask */}
+          {/* ASK */}
           <button
             onClick={() => { if (onAsk) { onAsk(); } else { onSheetStateChange("closed"); commentsRef?.current?.scrollIntoView({ behavior: "smooth", block: "start" }); } }}
             aria-label="Ask"
@@ -340,12 +272,11 @@ export default function BreakdownSheet({
             <span style={ACTION_LABEL_STYLE}>Ask</span>
           </button>
 
-          {/* Shop */}
+          {/* SHOP */}
           {hasShopLink ? (
             <a href={shopUrl!} target="_blank" rel="noopener noreferrer"
               onClick={() => trackClick(currentItem.id, outfit.id).catch(() => {})}
-              style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, padding: "0 20px", textDecoration: "none", color: "var(--page-text-primary)" }}
-            >
+              style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, padding: "0 20px", textDecoration: "none", color: "var(--page-text-primary)" }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                 <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
                 <polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
