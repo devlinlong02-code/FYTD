@@ -43,6 +43,61 @@ const ACTION_LABEL_STYLE: React.CSSProperties = {
   color: "var(--page-text-muted)",
 };
 
+function getCategoryIcon(category: string) {
+  const style: React.CSSProperties = { color: "var(--page-text-muted)" };
+  switch (category?.toLowerCase()) {
+    case "top":
+      return (
+        <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" style={style}>
+          <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.57a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.57a2 2 0 0 0-1.34-2.23z"/>
+        </svg>
+      );
+    case "bottom":
+      return (
+        <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" style={style}>
+          <path d="M6 2h12l2 7H4L6 2z"/><path d="M4 9l2 13h5l1-7 1 7h5l2-13"/>
+        </svg>
+      );
+    case "outerwear":
+      return (
+        <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" style={style}>
+          <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.57a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.57a2 2 0 0 0-1.34-2.23z"/>
+          <path d="M8 10v4M16 10v4"/>
+        </svg>
+      );
+    case "footwear":
+      return (
+        <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" style={style}>
+          <path d="M3 17h10a4 4 0 0 0 4-4V6l4 2v9a2 2 0 0 1-2 2H3v-2z"/>
+          <path d="M3 17v2"/>
+        </svg>
+      );
+    case "bag":
+      return (
+        <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" style={style}>
+          <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <path d="M16 10a4 4 0 0 1-8 0"/>
+        </svg>
+      );
+    case "accessory":
+    case "accessories":
+      return (
+        <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" style={style}>
+          <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+        </svg>
+      );
+    default:
+      return (
+        <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" style={style}>
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <circle cx="8.5" cy="8.5" r="1.5"/>
+          <polyline points="21 15 16 10 5 21"/>
+        </svg>
+      );
+  }
+}
+
 interface ItemQuestion {
   id: string;
   question: string;
@@ -77,12 +132,25 @@ function ItemSlide({ item, isSaved, onSave, onAsk, shopUrl, outfitId, isAskOpen,
           {item.image ? (
             <Image src={item.image} alt={item.name} fill sizes="(max-width: 448px) 100vw, 416px" style={{ objectFit: "contain" }} />
           ) : (
-            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="1.4" viewBox="0 0 24 24" style={{ color: "var(--page-icon)" }}>
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <polyline points="21 15 16 10 5 21" />
-              </svg>
+            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, background: "var(--page-surface)" }}>
+              <div style={{ width: 56, height: 56, borderRadius: 14, background: "var(--page-bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {getCategoryIcon(item.category)}
+              </div>
+              <div style={{ textAlign: "center", padding: "0 12px" }}>
+                {item.brand ? (
+                  <p style={{ fontSize: 13, fontWeight: 700, color: "var(--page-text-primary)", letterSpacing: "0.04em", textTransform: "uppercase", margin: 0 }}>
+                    {item.brand}
+                  </p>
+                ) : null}
+                <p style={{ fontSize: 11, color: "var(--page-text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", margin: item.brand ? "2px 0 0" : 0, fontFamily: "var(--font-data)" }}>
+                  {item.category}
+                </p>
+              </div>
+              {item.shopLink && item.shopLink !== "#" && (
+                <p style={{ fontSize: 10, color: "var(--page-text-muted)", fontFamily: "var(--font-data)", letterSpacing: "0.06em", textTransform: "uppercase", marginTop: 4 }}>
+                  Tap Shop to view
+                </p>
+              )}
             </div>
           )}
         </div>

@@ -37,24 +37,43 @@ export async function POST(request: NextRequest) {
       const pageRes = await fetch(url, {
         headers: {
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          "Accept": "text/html",
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "Accept-Language": "en-US,en;q=0.9",
+          "Cache-Control": "no-cache",
+          "Sec-Fetch-Mode": "navigate",
         },
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(8000),
       });
       if (pageRes.ok) {
         const html = await pageRes.text();
 
-        // Image extraction
+        // Image extraction — ordered from most to least reliable
         const imagePatterns = [
           /property="og:image"\s+content="([^"]+)"/,
           /content="([^"]+)"\s+property="og:image"/,
+          /property="og:image:url"\s+content="([^"]+)"/,
+          /content="([^"]+)"\s+property="og:image:url"/,
           /name="twitter:image"\s+content="([^"]+)"/,
           /content="([^"]+)"\s+name="twitter:image"/,
-          /property="og:image:url"\s+content="([^"]+)"/,
+          /name="twitter:image:src"\s+content="([^"]+)"/,
+          /"image"\s*:\s*"(https?:\/\/[^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/i,
+          /"image"\s*:\s*\["(https?:\/\/[^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/i,
+          /property="product:image"\s+content="([^"]+)"/,
+          /itemprop="image"\s+content="([^"]+)"/,
+          /rel="preload"\s+as="image"\s+href="([^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/i,
+          /data-src="(https?:\/\/[^"]+\/products\/[^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/i,
+          /src="(https?:\/\/[^"]+\/products\/[^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/i,
         ];
         for (const pattern of imagePatterns) {
           const match = html.match(pattern);
           if (match?.[1]?.startsWith("http")) { imageUrl = match[1]; break; }
+        }
+        if (imageUrl) {
+          try {
+            new URL(imageUrl); // validate — throws if malformed
+          } catch {
+            imageUrl = null;
+          }
         }
 
         // Price extraction
