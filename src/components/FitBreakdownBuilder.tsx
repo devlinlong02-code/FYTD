@@ -18,7 +18,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import PieceEditorModal, { type Piece } from "./PieceEditorModal";
+import PieceEditorModal, { type Piece, type ModalStep } from "./PieceEditorModal";
 
 export type { Piece };
 
@@ -30,6 +30,8 @@ const QUICK_CATEGORIES = [
   { label: "Accessory" },
   { label: "Other" },
 ];
+
+// ─── Sortable piece row (classic layout) ─────────────────────────────────────
 
 interface SortablePieceRowProps {
   piece: Piece;
@@ -156,16 +158,24 @@ function SortablePieceRow({ piece, onEdit, onRemove }: SortablePieceRowProps) {
   );
 }
 
+// ─── Props ────────────────────────────────────────────────────────────────────
+
 interface Props {
   pieces: Piece[];
   onChange: (pieces: Piece[]) => void;
   outfitImageUrl?: string;
+  photoFirst?: boolean;
+  onScanFullOutfit?: () => void;
 }
 
-export default function FitBreakdownBuilder({ pieces, onChange, outfitImageUrl }: Props) {
+// ─── Component ────────────────────────────────────────────────────────────────
+
+export default function FitBreakdownBuilder({ pieces, onChange, outfitImageUrl, photoFirst, onScanFullOutfit }: Props) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingPiece, setEditingPiece] = useState<Piece | null>(null);
   const [defaultCategory, setDefaultCategory] = useState("");
+  const [modalInitialStep, setModalInitialStep] = useState<ModalStep>("entry");
+  const [pendingTapHotspot, setPendingTapHotspot] = useState<{ x: number; y: number } | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -175,17 +185,64 @@ export default function FitBreakdownBuilder({ pieces, onChange, outfitImageUrl }
   const openAdd = (category: string) => {
     setEditingPiece(null);
     setDefaultCategory(category);
+    setModalInitialStep("entry");
     setModalOpen(true);
   };
 
   const openEdit = (piece: Piece) => {
     setEditingPiece(piece);
     setDefaultCategory(piece.category);
+    setModalInitialStep("entry");
+    setModalOpen(true);
+  };
+
+  const openManual = () => {
+    setEditingPiece(null);
+    setDefaultCategory("");
+    setModalInitialStep("manual");
+    setModalOpen(true);
+  };
+
+  const openLinkInput = () => {
+    setEditingPiece(null);
+    setDefaultCategory("");
+    setModalInitialStep("link_input");
+    setModalOpen(true);
+  };
+
+  const openOutfitScan = () => {
+    if (onScanFullOutfit) {
+      onScanFullOutfit();
+      return;
+    }
+    setEditingPiece(null);
+    setDefaultCategory("");
+    setModalInitialStep("outfit_camera");
+    setModalOpen(true);
+  };
+
+  const handlePhotoTap = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = Math.round(((e.clientX - rect.left) / rect.width) * 100 * 10) / 10;
+    const y = Math.round(((e.clientY - rect.top) / rect.height) * 100 * 10) / 10;
+    setPendingTapHotspot({ x, y });
+    setEditingPiece(null);
+    setDefaultCategory("");
+    setModalInitialStep("manual");
     setModalOpen(true);
   };
 
   const handleAdd = (piece: Piece) => {
-    onChange([...pieces, piece]);
+    if (pendingTapHotspot) {
+      onChange([...pieces, { ...piece, hotspotX: pendingTapHotspot.x, hotspotY: pendingTapHotspot.y }]);
+      setPendingTapHotspot(null);
+    } else {
+      onChange([...pieces, piece]);
+    }
+  };
+
+  const handleAddMany = (newPieces: Piece[]) => {
+    onChange([...pieces, ...newPieces]);
   };
 
   const handleEdit = (piece: Piece) => {
@@ -210,6 +267,280 @@ export default function FitBreakdownBuilder({ pieces, onChange, outfitImageUrl }
       onChange(arrayMove(pieces, oldIndex, newIndex));
     }
   };
+
+  // ─── Photo-first layout ───────────────────────────────────────────────────
+
+  if (photoFirst) {
+    const hotspottedPieces = pieces.filter((p) => p.hotspotX != null && p.hotspotY != null);
+
+    return (
+      <>
+        <div>
+          <div className="mb-3">
+            <h2 className="text-sm font-bold" style={{ color: "var(--page-text-primary)" }}>Fit Breakdown</h2>
+          </div>
+
+          {/* 1. Outfit photo — tappable to tag a piece */}
+          <div
+            onClick={handlePhotoTap}
+            style={{
+              position: "relative",
+              width: "100%",
+              aspectRatio: "3/4",
+              borderRadius: 16,
+              overflow: "hidden",
+              background: "var(--page-surface)",
+              cursor: "crosshair",
+              border: "0.5px solid var(--page-border)",
+            }}
+          >
+            {outfitImageUrl && (
+              <Image src={outfitImageUrl} alt="" fill className="object-cover" sizes="448px" />
+            )}
+
+            {/* Hotspot dots */}
+            {hotspottedPieces.map((p) => (
+              <div
+                key={p.id}
+                style={{
+                  position: "absolute",
+                  left: `${p.hotspotX}%`,
+                  top: `${p.hotspotY}%`,
+                  transform: "translate(-50%,-50%)",
+                  zIndex: 2,
+                }}
+              >
+                <div
+                  style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: "50%",
+                    background: "rgba(0,0,0,0.75)",
+                    border: "2px solid white",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: "white",
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.4)",
+                  }}
+                >
+                  {pieces.indexOf(p) + 1}
+                </div>
+              </div>
+            ))}
+
+            {/* Empty-state overlay */}
+            {pieces.length === 0 && (
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: outfitImageUrl ? "rgba(0,0,0,0.35)" : "rgba(0,0,0,0.08)",
+                }}
+              >
+                <p style={{ color: outfitImageUrl ? "white" : "var(--page-text-muted)", fontSize: 13, fontWeight: 500, textAlign: "center", padding: "0 24px" }}>
+                  {outfitImageUrl ? "Tap the photo to tag a piece" : "Upload a photo first"}
+                </p>
+              </div>
+            )}
+
+            {/* Tap-to-tag hint when pieces exist */}
+            {pieces.length > 0 && (
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: 10,
+                  right: 10,
+                  background: "rgba(0,0,0,0.55)",
+                  borderRadius: 999,
+                  padding: "4px 10px",
+                  fontSize: 10,
+                  fontWeight: 500,
+                  color: "rgba(255,255,255,0.85)",
+                  pointerEvents: "none",
+                }}
+              >
+                Tap to tag
+              </div>
+            )}
+          </div>
+
+          {/* 2. Hero scan button */}
+          <button
+            type="button"
+            onClick={openOutfitScan}
+            style={{
+              width: "100%",
+              marginTop: 12,
+              padding: "14px 16px",
+              borderRadius: 14,
+              background: "var(--btn-primary-bg)",
+              color: "var(--btn-primary-text)",
+              border: "none",
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              cursor: "pointer",
+              textAlign: "left",
+            }}
+          >
+            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+            <span style={{ textAlign: "left" }}>
+              <span style={{ display: "block", fontSize: 14, fontWeight: 600 }}>Scan the whole fit</span>
+              <span style={{ display: "block", fontSize: 11, opacity: 0.75 }}>AI finds every piece in one shot</span>
+            </span>
+          </button>
+
+          {/* 3. Piece chips */}
+          {pieces.length > 0 && (
+            <div
+              style={{
+                display: "flex",
+                gap: 8,
+                overflowX: "auto",
+                WebkitOverflowScrolling: "touch" as React.CSSProperties["WebkitOverflowScrolling"],
+                marginTop: 12,
+                paddingBottom: 4,
+                scrollbarWidth: "none" as React.CSSProperties["scrollbarWidth"],
+              }}
+            >
+              {pieces.map((piece, i) => (
+                <div
+                  key={piece.id}
+                  onClick={() => openEdit(piece)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    background: "var(--page-surface)",
+                    border: "0.5px solid var(--page-border)",
+                    borderRadius: 999,
+                    padding: "6px 10px 6px 8px",
+                    flexShrink: 0,
+                    cursor: "pointer",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 18,
+                      height: 18,
+                      borderRadius: "50%",
+                      background: "var(--btn-primary-bg)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 9,
+                      fontWeight: 700,
+                      color: "var(--btn-primary-text)",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {i + 1}
+                  </div>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 500,
+                      color: "var(--page-text-primary)",
+                      maxWidth: 90,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {piece.name || piece.category}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); handleRemove(piece.id); }}
+                    style={{
+                      width: 16,
+                      height: 16,
+                      borderRadius: "50%",
+                      background: "rgba(0,0,0,0.08)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                      padding: 0,
+                      border: "none",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <svg width="8" height="8" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" style={{ color: "var(--page-text-muted)" }}>
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 4. Secondary action row */}
+          <div style={{ display: "flex", gap: 20, marginTop: pieces.length > 0 ? 12 : 10, paddingLeft: 2 }}>
+            <button
+              type="button"
+              onClick={openManual}
+              style={{
+                fontSize: 13,
+                fontWeight: 500,
+                color: "var(--page-text-secondary)",
+                background: "none",
+                border: "none",
+                padding: 0,
+                cursor: "pointer",
+              }}
+            >
+              + Add manually
+            </button>
+            <button
+              type="button"
+              onClick={openLinkInput}
+              style={{
+                fontSize: 13,
+                fontWeight: 500,
+                color: "var(--page-text-secondary)",
+                background: "none",
+                border: "none",
+                padding: 0,
+                cursor: "pointer",
+              }}
+            >
+              + Paste link
+            </button>
+          </div>
+        </div>
+
+        <PieceEditorModal
+          isOpen={modalOpen}
+          onClose={() => {
+            setModalOpen(false);
+            setEditingPiece(null);
+            setPendingTapHotspot(null);
+          }}
+          onAdd={handleAdd}
+          onAddMany={handleAddMany}
+          onEdit={handleEdit}
+          onUpdateHotspot={handleUpdateHotspot}
+          initial={editingPiece}
+          defaultCategory={defaultCategory}
+          pieces={pieces}
+          outfitImageUrl={outfitImageUrl}
+          initialStep={modalInitialStep}
+        />
+      </>
+    );
+  }
+
+  // ─── Classic layout ───────────────────────────────────────────────────────
 
   return (
     <>
@@ -289,12 +620,14 @@ export default function FitBreakdownBuilder({ pieces, onChange, outfitImageUrl }
           setEditingPiece(null);
         }}
         onAdd={handleAdd}
+        onAddMany={handleAddMany}
         onEdit={handleEdit}
         onUpdateHotspot={handleUpdateHotspot}
         initial={editingPiece}
         defaultCategory={defaultCategory}
         pieces={pieces}
         outfitImageUrl={outfitImageUrl}
+        initialStep={modalInitialStep}
       />
     </>
   );

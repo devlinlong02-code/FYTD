@@ -22,7 +22,7 @@ export interface Piece {
   note?: string;
 }
 
-type ModalStep =
+export type ModalStep =
   | "entry"
   | "scan_camera" | "scan_analyzing" | "scan_confirm"
   | "outfit_camera" | "outfit_analyzing" | "outfit_confirm" | "outfit_item_edit"
@@ -142,12 +142,15 @@ function CreationBadge({ pts }: { pts: number }) {
   if (pts < 3) return null;
   const config =
     pts === 5
-      ? { label: "Complete ✦", cls: "bg-black text-white" }
+      ? { label: "Complete ✦", bg: "var(--btn-primary-bg)", color: "var(--btn-primary-text)" }
       : pts === 4
-      ? { label: "Strong", cls: "bg-neutral-200 text-neutral-700" }
-      : { label: "Good", cls: "bg-neutral-100 text-neutral-500" };
+      ? { label: "Strong", bg: "var(--page-surface)", color: "var(--page-text-secondary)" }
+      : { label: "Good", bg: "var(--page-surface)", color: "var(--page-text-muted)" };
   return (
-    <span className={`text-[10px] font-medium tracking-[0.05em] uppercase px-2 py-0.5 rounded-full ${config.cls}`}>
+    <span
+      className="text-[10px] font-medium tracking-[0.05em] uppercase px-2 py-0.5 rounded-full"
+      style={{ background: config.bg, color: config.color }}
+    >
       {config.label}
     </span>
   );
@@ -158,13 +161,13 @@ function LivePreviewCard({ name, brand, price, note, imageUrl, category }: {
 }) {
   const displayPrice = price && parseFloat(price) > 0 ? `$${parseFloat(price).toLocaleString()}` : null;
   return (
-    <div style={{ border: "0.5px solid rgba(0,0,0,0.1)", borderRadius: 12, overflow: "hidden", background: "#fff", fontSize: 12 }}>
-      <div className="relative w-full" style={{ aspectRatio: "16/9", background: "#f4f4f4" }}>
+    <div style={{ border: `0.5px solid var(--page-border)`, borderRadius: 12, overflow: "hidden", background: "var(--page-bg)", fontSize: 12 }}>
+      <div className="relative w-full" style={{ aspectRatio: "16/9", background: "var(--page-surface)" }}>
         {imageUrl ? (
           <Image src={imageUrl} alt="preview" fill className="object-cover" sizes="300px" />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <span style={{ fontSize: 10, color: "#cccccc", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+            <span style={{ fontSize: 10, color: "var(--page-text-muted)", opacity: 0.6, textTransform: "uppercase", letterSpacing: "0.1em" }}>
               {category || "Item"}
             </span>
           </div>
@@ -176,12 +179,12 @@ function LivePreviewCard({ name, brand, price, note, imageUrl, category }: {
         )}
       </div>
       <div className="px-3 py-2.5">
-        <p style={{ fontSize: 9, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", color: "#888888", marginBottom: 2 }}>
-          {brand || <span style={{ color: "#dddddd" }}>Brand</span>}
+        <p style={{ fontSize: 9, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--page-text-muted)", marginBottom: 2 }}>
+          {brand || <span style={{ opacity: 0.4 }}>Brand</span>}
         </p>
-        <p style={{ fontSize: 13, fontWeight: 600, color: name ? "#000" : "#cccccc" }}>{name || "Item name"}</p>
-        {note && <p style={{ fontSize: 10, fontStyle: "italic", color: "#aaaaaa", marginTop: 2 }}>{note}</p>}
-        {displayPrice && <p style={{ fontSize: 12, color: "#000", marginTop: 4 }}>{displayPrice}</p>}
+        <p style={{ fontSize: 13, fontWeight: 600, color: name ? "var(--page-text-primary)" : "var(--page-text-muted)", opacity: name ? 1 : 0.4 }}>{name || "Item name"}</p>
+        {note && <p style={{ fontSize: 10, fontStyle: "italic", color: "var(--page-text-muted)", marginTop: 2 }}>{note}</p>}
+        {displayPrice && <p style={{ fontSize: 12, color: "var(--page-text-primary)", marginTop: 4 }}>{displayPrice}</p>}
       </div>
     </div>
   );
@@ -190,9 +193,9 @@ function LivePreviewCard({ name, brand, price, note, imageUrl, category }: {
 function AiFieldLabel({ label, filled }: { label: string; filled?: boolean }) {
   return (
     <label className="flex items-center gap-1.5 mb-1.5">
-      <span className="text-[10px] font-semibold uppercase tracking-widest text-neutral-400">{label}</span>
+      <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--page-text-muted)" }}>{label}</span>
       {filled && (
-        <span className="text-[10px] font-semibold text-neutral-400 bg-neutral-100 px-1.5 py-0.5 rounded-full">✦ AI</span>
+        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ color: "var(--page-text-muted)", background: "var(--page-surface)" }}>✦ AI</span>
       )}
     </label>
   );
@@ -204,8 +207,8 @@ function Spinner({ size = 20, white = false }: { size?: number; white?: boolean 
       className="rounded-full animate-spin"
       style={{
         width: size, height: size,
-        border: `2px solid ${white ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.1)"}`,
-        borderTopColor: white ? "#ffffff" : "#000000",
+        border: `2px solid ${white ? "rgba(255,255,255,0.3)" : "var(--page-border)"}`,
+        borderTopColor: white ? "#ffffff" : "var(--page-text-primary)",
       }}
     />
   );
@@ -217,19 +220,21 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   onAdd: (piece: Piece) => void;
+  onAddMany?: (pieces: Piece[]) => void;
   onEdit: (piece: Piece) => void;
   onUpdateHotspot: (pieceId: string, x: number, y: number) => void;
   initial?: Piece | null;
   defaultCategory?: string;
   pieces: Piece[];
   outfitImageUrl?: string;
+  initialStep?: ModalStep;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function PieceEditorModal({
-  isOpen, onClose, onAdd, onEdit, onUpdateHotspot,
-  initial, defaultCategory = "", pieces, outfitImageUrl,
+  isOpen, onClose, onAdd, onAddMany, onEdit, onUpdateHotspot,
+  initial, defaultCategory = "", pieces, outfitImageUrl, initialStep,
 }: Props) {
 
   // Step machine
@@ -280,7 +285,7 @@ export default function PieceEditorModal({
   useEffect(() => {
     if (isOpen) {
       setImageKey((k) => k + 1);
-      setStep(initial ? "manual" : "entry");
+      setStep(initial ? "manual" : (initialStep ?? "entry"));
       setName(initial?.name ?? "");
       setCategory(initial?.category ?? defaultCategory);
       setBrand(initial?.brand ?? "");
@@ -305,7 +310,7 @@ export default function PieceEditorModal({
       setEditingOutfitItemIndex(null);
       userPickedCategory.current = false;
     }
-  }, [isOpen, initial, defaultCategory]);
+  }, [isOpen, initial, defaultCategory, initialStep]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -527,19 +532,26 @@ export default function PieceEditorModal({
 
   const handleAddAllOutfitItems = () => {
     const included = outfitScanItems.filter((item) => item.included);
-    included.forEach((item) => {
-      onAdd({
-        id: crypto.randomUUID(),
-        name: item.item_name,
-        category: item.category,
-        brand: item.brand ?? "",
-        price: "",
-        imageUrl: "",
-        shopLink: "",
-        shopType: "exact",
-        note: item.notes ?? undefined,
-      });
-    });
+    if (included.length === 0) { onClose(); return; }
+
+    const newPieces: Piece[] = included.map((item) => ({
+      id: crypto.randomUUID(),
+      name: item.item_name,
+      category: item.category,
+      brand: item.brand ?? "",
+      price: "",
+      imageUrl: "",
+      shopLink: "",
+      shopType: "exact" as const,
+      note: item.notes ?? undefined,
+    }));
+
+    if (onAddMany) {
+      onAddMany(newPieces);
+    } else {
+      newPieces.forEach((p) => onAdd(p));
+    }
+
     onClose();
   };
 
@@ -587,27 +599,27 @@ export default function PieceEditorModal({
       return (
         <div className="flex flex-col gap-4">
           <div className="flex flex-col items-center gap-2 py-2">
-            <div className="w-10 h-10 rounded-full bg-neutral-900 flex items-center justify-center">
-              <svg width="18" height="18" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "var(--btn-primary-bg)" }}>
+              <svg width="18" height="18" fill="none" strokeWidth="2.5" viewBox="0 0 24 24" style={{ stroke: "var(--btn-primary-text)" }}>
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             </div>
-            <p className="text-sm font-semibold text-neutral-900">{justAdded.name} added</p>
+            <p className="text-sm font-semibold" style={{ color: "var(--page-text-primary)" }}>{justAdded.name} added</p>
           </div>
           {pieces.length > 0 && (
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-neutral-400 font-semibold mb-2">In your breakdown</p>
+              <p className="text-[10px] uppercase tracking-widest font-semibold mb-2" style={{ color: "var(--page-text-muted)" }}>In your breakdown</p>
               <div className="flex flex-wrap gap-1.5">
                 {pieces.map((p) => (
-                  <span key={p.id} className="text-xs font-medium px-2.5 py-1 rounded-full bg-neutral-100 text-neutral-700 max-w-[140px] truncate">{p.name}</span>
+                  <span key={p.id} className="text-xs font-medium px-2.5 py-1 rounded-full max-w-[140px] truncate" style={{ background: "var(--page-surface)", color: "var(--page-text-secondary)" }}>{p.name}</span>
                 ))}
               </div>
             </div>
           )}
           {outfitImageUrl && (
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-neutral-400 font-semibold mb-2">Pin this item to the photo (optional)</p>
-              <div className="relative w-full overflow-hidden rounded-xl cursor-crosshair bg-neutral-100" style={{ maxHeight: 180 }} onClick={handleHotspotClick}>
+              <p className="text-[10px] uppercase tracking-widest font-semibold mb-2" style={{ color: "var(--page-text-muted)" }}>Pin this item to the photo (optional)</p>
+              <div className="relative w-full overflow-hidden rounded-xl cursor-crosshair" style={{ maxHeight: 180, background: "var(--page-surface)" }} onClick={handleHotspotClick}>
                 <Image src={outfitImageUrl} alt="Outfit cover" width={400} height={300} className="w-full object-cover" style={{ maxHeight: 180 }} />
                 {pendingHotspot && (
                   <div className="absolute pointer-events-none" style={{ left: `${pendingHotspot.x}%`, top: `${pendingHotspot.y}%`, transform: "translate(-50%, -50%)" }}>
@@ -618,7 +630,7 @@ export default function PieceEditorModal({
                   </div>
                 )}
               </div>
-              <p className="text-[10px] text-neutral-400 mt-1.5 text-center">{pendingHotspot ? "Tap to reposition" : "Tap photo to pin"}</p>
+              <p className="text-[10px] mt-1.5 text-center" style={{ color: "var(--page-text-muted)" }}>{pendingHotspot ? "Tap to reposition" : "Tap photo to pin"}</p>
             </div>
           )}
         </div>
@@ -635,64 +647,64 @@ export default function PieceEditorModal({
               <button
                 type="button"
                 onClick={() => setStep("scan_camera")}
-                style={{ border: "1px solid rgba(0,0,0,0.10)", borderRadius: 16, padding: 20, textAlign: "left", background: "#fff", transition: "background 200ms" }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "#f8f8f8")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
+                style={{ border: `1px solid var(--page-border)`, borderRadius: 16, padding: 20, textAlign: "left", background: "var(--page-surface)", transition: "background 200ms" }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--page-bg)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "var(--page-surface)")}
               >
-                <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="mb-3">
+                <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="mb-3" style={{ color: "var(--page-text-primary)" }}>
                   <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                   <circle cx="12" cy="13" r="4" />
                 </svg>
-                <p style={{ fontSize: 14, fontWeight: 600, color: "#000", marginBottom: 4 }}>Scan Item</p>
-                <p style={{ fontSize: 12, color: "#888888", lineHeight: 1.4 }}>Snap a photo to identify the piece</p>
+                <p style={{ fontSize: 14, fontWeight: 600, color: "var(--page-text-primary)", marginBottom: 4 }}>Scan Item</p>
+                <p style={{ fontSize: 12, color: "var(--page-text-muted)", lineHeight: 1.4 }}>Snap a photo to identify the piece</p>
               </button>
               <button
                 type="button"
                 onClick={() => setStep("link_input")}
-                style={{ border: "1px solid rgba(0,0,0,0.10)", borderRadius: 16, padding: 20, textAlign: "left", background: "#fff", transition: "background 200ms" }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "#f8f8f8")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
+                style={{ border: `1px solid var(--page-border)`, borderRadius: 16, padding: 20, textAlign: "left", background: "var(--page-surface)", transition: "background 200ms" }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--page-bg)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "var(--page-surface)")}
               >
-                <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="mb-3">
+                <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="mb-3" style={{ color: "var(--page-text-primary)" }}>
                   <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
                   <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
                 </svg>
-                <p style={{ fontSize: 14, fontWeight: 600, color: "#000", marginBottom: 4 }}>Paste Link</p>
-                <p style={{ fontSize: 12, color: "#888888", lineHeight: 1.4 }}>Auto-fill from any product URL</p>
+                <p style={{ fontSize: 14, fontWeight: 600, color: "var(--page-text-primary)", marginBottom: 4 }}>Paste Link</p>
+                <p style={{ fontSize: 12, color: "var(--page-text-muted)", lineHeight: 1.4 }}>Auto-fill from any product URL</p>
               </button>
             </div>
 
             {/* Divider + manual */}
             <div className="flex items-center gap-3">
-              <div className="flex-1 h-px bg-neutral-100" />
-              <span className="text-xs text-neutral-300 font-medium">or</span>
-              <div className="flex-1 h-px bg-neutral-100" />
+              <div className="flex-1 h-px" style={{ background: "var(--page-border)" }} />
+              <span className="text-xs font-medium" style={{ color: "var(--page-text-muted)" }}>or</span>
+              <div className="flex-1 h-px" style={{ background: "var(--page-border)" }} />
             </div>
             <button
               type="button"
               onClick={() => { resetFormFields(); setStep("manual"); }}
               className="text-left"
             >
-              <p className="text-sm font-semibold text-neutral-700">Add manually</p>
-              <p className="text-xs text-neutral-400 mt-0.5">Fill in details yourself</p>
+              <p className="text-sm font-semibold" style={{ color: "var(--page-text-secondary)" }}>Add manually</p>
+              <p className="text-xs mt-0.5" style={{ color: "var(--page-text-muted)" }}>Fill in details yourself</p>
             </button>
 
             {/* Full outfit scan promo */}
             <button
               type="button"
               onClick={() => setStep("outfit_camera")}
-              style={{ border: "1px solid rgba(0,0,0,0.08)", borderRadius: 16, padding: "16px 20px", textAlign: "left", background: "#fafafa", transition: "background 200ms", display: "flex", alignItems: "center", gap: 14 }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "#f0f0f0")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "#fafafa")}
+              style={{ border: `1px solid var(--page-border)`, borderRadius: 16, padding: "16px 20px", textAlign: "left", background: "var(--page-surface)", transition: "background 200ms", display: "flex", alignItems: "center", gap: 14 }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--page-bg)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "var(--page-surface)")}
             >
-              <div className="shrink-0 w-10 h-10 rounded-full bg-black flex items-center justify-center">
-                <svg width="18" height="18" fill="none" stroke="white" strokeWidth="1.8" viewBox="0 0 24 24">
+              <div className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "var(--btn-primary-bg)" }}>
+                <svg width="18" height="18" fill="none" strokeWidth="1.8" viewBox="0 0 24 24" style={{ stroke: "var(--btn-primary-text)" }}>
                   <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                 </svg>
               </div>
               <div>
-                <p style={{ fontSize: 13, fontWeight: 600, color: "#000", marginBottom: 2 }}>Scan your full outfit</p>
-                <p style={{ fontSize: 11, color: "#888888", lineHeight: 1.4 }}>Upload one photo — AI identifies all pieces at once</p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: "var(--page-text-primary)", marginBottom: 2 }}>Scan your full outfit</p>
+                <p style={{ fontSize: 11, color: "var(--page-text-muted)", lineHeight: 1.4 }}>Upload one photo — AI identifies all pieces at once</p>
               </div>
             </button>
 
@@ -700,7 +712,7 @@ export default function PieceEditorModal({
               <button
                 type="button"
                 onClick={() => { sessionStorage.removeItem(AI_CALL_KEY); window.location.reload(); }}
-                style={{ fontSize: 10, color: "#aaa", textAlign: "left", marginTop: 4 }}
+                style={{ fontSize: 10, color: "var(--page-text-muted)", textAlign: "left", marginTop: 4 }}
               >
                 Reset AI limit (dev only)
               </button>
@@ -712,19 +724,19 @@ export default function PieceEditorModal({
       case "scan_camera":
         return (
           <div className="flex flex-col gap-4">
-            <p className="text-xs text-neutral-400">Take or upload a photo of a single clothing item. AI will identify the piece and fill in the details.</p>
+            <p className="text-xs" style={{ color: "var(--page-text-muted)" }}>Take or upload a photo of a single clothing item. AI will identify the piece and fill in the details.</p>
             <label
-              style={{ border: "1.5px dashed rgba(0,0,0,0.15)", borderRadius: 16, padding: 32, display: "flex", flexDirection: "column", alignItems: "center", gap: 12, cursor: "pointer", background: "#fafafa", transition: "background 200ms" }}
-              onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "#f0f0f0")}
-              onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "#fafafa")}
+              style={{ border: `1.5px dashed var(--page-border)`, borderRadius: 16, padding: 32, display: "flex", flexDirection: "column", alignItems: "center", gap: 12, cursor: "pointer", background: "var(--page-surface)", transition: "background 200ms" }}
+              onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "var(--page-bg)")}
+              onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "var(--page-surface)")}
             >
-              <svg width="36" height="36" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="text-neutral-400">
+              <svg width="36" height="36" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" style={{ color: "var(--page-text-muted)" }}>
                 <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                 <circle cx="12" cy="13" r="4" />
               </svg>
               <div className="text-center">
-                <p className="text-sm font-semibold text-neutral-900">Choose photo</p>
-                <p className="text-xs text-neutral-400 mt-1">JPG, PNG, WEBP · Camera or library</p>
+                <p className="text-sm font-semibold" style={{ color: "var(--page-text-primary)" }}>Choose photo</p>
+                <p className="text-xs mt-1" style={{ color: "var(--page-text-muted)" }}>JPG, PNG, WEBP · Camera or library</p>
               </div>
               <input
                 type="file"
@@ -740,7 +752,7 @@ export default function PieceEditorModal({
       case "scan_analyzing":
         return (
           <div className="flex flex-col gap-4">
-            <div className="relative w-full overflow-hidden rounded-2xl bg-neutral-100" style={{ aspectRatio: "4/3" }}>
+            <div className="relative w-full overflow-hidden rounded-2xl" style={{ aspectRatio: "4/3", background: "var(--page-surface)" }}>
               {scanPreviewUrl && (
                 <Image src={scanPreviewUrl} alt="Scanning" fill className="object-cover" sizes="400px" unoptimized />
               )}
@@ -749,7 +761,7 @@ export default function PieceEditorModal({
                 <p className="text-white text-sm font-medium">Identifying item…</p>
               </div>
             </div>
-            <p className="text-xs text-neutral-400 text-center">AI is analyzing your photo. This takes a few seconds.</p>
+            <p className="text-xs text-center" style={{ color: "var(--page-text-muted)" }}>AI is analyzing your photo. This takes a few seconds.</p>
           </div>
         );
 
@@ -757,18 +769,18 @@ export default function PieceEditorModal({
       case "outfit_camera":
         return (
           <div className="flex flex-col gap-4">
-            <p className="text-xs text-neutral-400">Upload a full outfit photo. AI will identify every visible piece and pre-fill your breakdown.</p>
+            <p className="text-xs" style={{ color: "var(--page-text-muted)" }}>Upload a full outfit photo. AI will identify every visible piece and pre-fill your breakdown.</p>
             <label
-              style={{ border: "1.5px dashed rgba(0,0,0,0.15)", borderRadius: 16, padding: 32, display: "flex", flexDirection: "column", alignItems: "center", gap: 12, cursor: "pointer", background: "#fafafa", transition: "background 200ms" }}
-              onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "#f0f0f0")}
-              onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "#fafafa")}
+              style={{ border: `1.5px dashed var(--page-border)`, borderRadius: 16, padding: 32, display: "flex", flexDirection: "column", alignItems: "center", gap: 12, cursor: "pointer", background: "var(--page-surface)", transition: "background 200ms" }}
+              onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "var(--page-bg)")}
+              onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "var(--page-surface)")}
             >
-              <svg width="36" height="36" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="text-neutral-400">
+              <svg width="36" height="36" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" style={{ color: "var(--page-text-muted)" }}>
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
               </svg>
               <div className="text-center">
-                <p className="text-sm font-semibold text-neutral-900">Upload outfit photo</p>
-                <p className="text-xs text-neutral-400 mt-1">Full body shot works best</p>
+                <p className="text-sm font-semibold" style={{ color: "var(--page-text-primary)" }}>Upload outfit photo</p>
+                <p className="text-xs mt-1" style={{ color: "var(--page-text-muted)" }}>Full body shot works best</p>
               </div>
               <input
                 type="file"
@@ -784,7 +796,7 @@ export default function PieceEditorModal({
       case "outfit_analyzing":
         return (
           <div className="flex flex-col gap-4">
-            <div className="relative w-full overflow-hidden rounded-2xl bg-neutral-100" style={{ aspectRatio: "3/4" }}>
+            <div className="relative w-full overflow-hidden rounded-2xl" style={{ aspectRatio: "3/4", background: "var(--page-surface)" }}>
               {scanPreviewUrl && (
                 <Image src={scanPreviewUrl} alt="Scanning outfit" fill className="object-cover" sizes="400px" unoptimized />
               )}
@@ -801,23 +813,30 @@ export default function PieceEditorModal({
       case "outfit_confirm":
         return (
           <div className="flex flex-col gap-3">
-            <p className="text-xs text-neutral-400">{outfitScanItems.length} pieces identified. Remove any that are wrong, or edit to fix details.</p>
+            <p className="text-xs" style={{ color: "var(--page-text-muted)" }}>{outfitScanItems.length} pieces identified. Remove any that are wrong, or edit to fix details.</p>
             {outfitScanItems.map((item, i) => (
               <div
                 key={i}
-                style={{ border: item.included ? "1px solid rgba(0,0,0,0.10)" : "1px solid rgba(0,0,0,0.04)", borderRadius: 14, padding: "12px 14px", background: item.included ? "#fff" : "#fafafa", opacity: item.included ? 1 : 0.5, transition: "all 200ms" }}
+                style={{
+                  border: `0.5px solid var(--page-border)`,
+                  borderRadius: 14,
+                  padding: "12px 14px",
+                  background: item.included ? "var(--page-bg)" : "var(--page-surface)",
+                  opacity: item.included ? 1 : 0.5,
+                  transition: "all 200ms",
+                }}
               >
                 <div className="flex items-start gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", background: "rgba(0,0,0,0.08)", color: "#555", padding: "2px 7px", borderRadius: 999 }}>{item.category}</span>
+                      <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", background: "var(--page-surface)", color: "var(--page-text-secondary)", padding: "2px 7px", borderRadius: 999 }}>{item.category}</span>
                       {item.confidence === "low" && (
                         <span style={{ fontSize: 9, fontWeight: 600, color: "#b45309", background: "#fef3c7", padding: "2px 7px", borderRadius: 999 }}>⚠ Review</span>
                       )}
                     </div>
-                    <p className="text-sm font-semibold text-neutral-900 truncate">{item.item_name}</p>
-                    {item.brand && <p className="text-xs text-neutral-400">{item.brand}</p>}
-                    {item.notes && <p className="text-xs text-neutral-300 italic mt-0.5">{item.notes}</p>}
+                    <p className="text-sm font-semibold truncate" style={{ color: "var(--page-text-primary)" }}>{item.item_name}</p>
+                    {item.brand && <p className="text-xs" style={{ color: "var(--page-text-muted)" }}>{item.brand}</p>}
+                    {item.notes && <p className="text-xs italic mt-0.5" style={{ color: "var(--page-text-muted)", opacity: 0.6 }}>{item.notes}</p>}
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <button
@@ -827,14 +846,18 @@ export default function PieceEditorModal({
                         setEditingOutfitItemIndex(i);
                         setStep("outfit_item_edit");
                       }}
-                      className="text-xs font-medium text-neutral-500 hover:text-neutral-900 transition-colors px-2 py-1"
+                      className="text-xs font-medium px-2 py-1 transition-colors"
+                      style={{ color: "var(--page-text-muted)" }}
                     >
                       Edit
                     </button>
                     <button
                       type="button"
                       onClick={() => setOutfitScanItems((prev) => prev.filter((_, idx) => idx !== i))}
-                      className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-neutral-100 text-neutral-400 hover:text-neutral-700 transition-colors"
+                      className="w-7 h-7 flex items-center justify-center rounded-full transition-colors"
+                      style={{ color: "var(--page-text-muted)" }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "var(--page-surface)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                     >
                       <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                         <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -847,7 +870,8 @@ export default function PieceEditorModal({
             <button
               type="button"
               onClick={() => { resetFormFields(); setStep("manual"); }}
-              className="text-sm text-neutral-400 hover:text-neutral-700 transition-colors text-left pt-1"
+              className="text-sm transition-colors text-left pt-1"
+              style={{ color: "var(--page-text-muted)" }}
             >
               + Add a missed piece
             </button>
@@ -859,8 +883,8 @@ export default function PieceEditorModal({
         return (
           <div className="flex flex-col gap-4">
             <div>
-              <p className="text-xs text-neutral-400 mb-3">Paste a product link and AI will extract the name, brand, category, and price automatically.</p>
-              <p className="text-[10px] text-neutral-300 mb-3">Works with: Nike, SSENSE, Grailed, StockX, ASOS, Zara, H&M and more</p>
+              <p className="text-xs mb-3" style={{ color: "var(--page-text-muted)" }}>Paste a product link and AI will extract the name, brand, category, and price automatically.</p>
+              <p className="text-[10px] mb-3" style={{ color: "var(--page-text-muted)", opacity: 0.6 }}>Works with: Nike, SSENSE, Grailed, StockX, ASOS, Zara, H&M and more</p>
               <input
                 type="url"
                 value={linkUrl}
@@ -868,7 +892,8 @@ export default function PieceEditorModal({
                 onKeyDown={(e) => { if (e.key === "Enter") handleLinkSubmit(); }}
                 placeholder="https://..."
                 autoFocus
-                className="w-full px-3.5 py-3 rounded-xl border border-neutral-200 text-sm text-neutral-900 placeholder:text-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                className="w-full px-3.5 py-3 rounded-xl text-sm focus:outline-none focus:ring-2"
+                style={{ background: "var(--page-surface)", color: "var(--page-text-primary)", border: "1px solid var(--page-border)" }}
               />
               {linkError && <p className="text-xs text-red-500 mt-1.5">{linkError}</p>}
             </div>
@@ -881,11 +906,11 @@ export default function PieceEditorModal({
           <div className="flex flex-col items-center gap-4 py-8">
             <Spinner size={28} />
             <div className="text-center">
-              <p className="text-sm font-medium text-neutral-700">Reading product page…</p>
-              <p className="text-xs text-neutral-400 mt-1">Extracting details and categorizing</p>
+              <p className="text-sm font-medium" style={{ color: "var(--page-text-secondary)" }}>Reading product page…</p>
+              <p className="text-xs mt-1" style={{ color: "var(--page-text-muted)" }}>Extracting details and categorizing</p>
             </div>
-            <div className="w-full bg-neutral-100 rounded-full h-1 overflow-hidden">
-              <div className="h-1 bg-neutral-900 rounded-full animate-pulse" style={{ width: "60%" }} />
+            <div className="w-full rounded-full h-1 overflow-hidden" style={{ background: "var(--page-surface)" }}>
+              <div className="h-1 rounded-full animate-pulse" style={{ width: "60%", background: "var(--btn-primary-bg)" }} />
             </div>
           </div>
         );
@@ -894,16 +919,16 @@ export default function PieceEditorModal({
       case "error":
         return (
           <div className="flex flex-col items-center gap-4 py-6 text-center">
-            <div className="w-12 h-12 rounded-full bg-neutral-100 flex items-center justify-center">
-              <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-neutral-500">
+            <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "var(--page-surface)" }}>
+              <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ color: "var(--page-text-muted)" }}>
                 <circle cx="12" cy="12" r="10" />
                 <line x1="12" y1="8" x2="12" y2="12" />
                 <line x1="12" y1="16" x2="12.01" y2="16" />
               </svg>
             </div>
             <div>
-              <p className="text-sm font-semibold text-neutral-900 mb-1">{errorMsg || "Something went wrong"}</p>
-              <p className="text-xs text-neutral-400">Try a clearer photo, a different link, or add manually.</p>
+              <p className="text-sm font-semibold mb-1" style={{ color: "var(--page-text-primary)" }}>{errorMsg || "Something went wrong"}</p>
+              <p className="text-xs" style={{ color: "var(--page-text-muted)" }}>Try a clearer photo, a different link, or add manually.</p>
             </div>
           </div>
         );
@@ -922,15 +947,15 @@ export default function PieceEditorModal({
 
             {/* Link fallback note */}
             {step === "manual" && formNote && (
-              <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-neutral-50 border border-neutral-200">
-                <span className="text-neutral-400 text-sm mt-0.5">ℹ</span>
-                <p className="text-xs text-neutral-500">{formNote}</p>
+              <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl" style={{ background: "var(--page-surface)", border: "0.5px solid var(--page-border)" }}>
+                <span className="text-sm mt-0.5" style={{ color: "var(--page-text-muted)" }}>ℹ</span>
+                <p className="text-xs" style={{ color: "var(--page-text-secondary)" }}>{formNote}</p>
               </div>
             )}
 
             {/* Scan preview (above form, scan_confirm only) */}
             {step === "scan_confirm" && scanPreviewUrl && (
-              <div className="relative w-full overflow-hidden rounded-xl bg-neutral-100" style={{ aspectRatio: "4/3", maxHeight: 160 }}>
+              <div className="relative w-full overflow-hidden rounded-xl" style={{ aspectRatio: "4/3", maxHeight: 160, background: "var(--page-surface)" }}>
                 <Image src={scanPreviewUrl} alt="Scanned item" fill className="object-cover" sizes="400px" unoptimized />
                 <span className="absolute top-2 left-2 text-[9px] font-semibold uppercase tracking-wide bg-black/70 text-white px-2 py-0.5 rounded-full">Scanned</span>
               </div>
@@ -954,7 +979,8 @@ export default function PieceEditorModal({
                 value={name}
                 onChange={(e) => handleNameChange(e.target.value)}
                 placeholder="e.g. Black Oversized Tee"
-                className={`w-full px-3.5 py-2.5 rounded-xl border text-sm text-neutral-900 placeholder:text-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-900 ${nameError ? "border-red-400 bg-red-50" : "border-neutral-200"}`}
+                className={`w-full px-3.5 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 ${nameError ? "border-red-400 bg-red-50" : ""}`}
+                style={nameError ? {} : { background: "var(--page-surface)", color: "var(--page-text-primary)", border: "1px solid var(--page-border)" }}
               />
               {nameError && <p className="text-xs text-red-500 mt-1">Item name is required.</p>}
             </div>
@@ -968,7 +994,12 @@ export default function PieceEditorModal({
                     key={cat}
                     type="button"
                     onClick={() => { setCategory(cat); userPickedCategory.current = true; }}
-                    className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${category === cat ? "bg-neutral-900 text-white border-neutral-900" : "bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400"}`}
+                    className="text-xs font-medium px-3 py-1.5 rounded-full transition-colors"
+                    style={
+                      category === cat
+                        ? { background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)", border: "none" }
+                        : { background: "var(--page-surface)", color: "var(--page-text-secondary)", border: "0.5px solid var(--page-border)" }
+                    }
                   >
                     {cat}
                   </button>
@@ -984,16 +1015,20 @@ export default function PieceEditorModal({
                 onChange={(e) => handleBrandChange(e.target.value)}
                 onBlur={() => setTimeout(() => setBrandSuggestions([]), 150)}
                 placeholder="e.g. Uniqlo"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-200 text-sm text-neutral-900 placeholder:text-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2"
+                style={{ background: "var(--page-surface)", color: "var(--page-text-primary)", border: "1px solid var(--page-border)" }}
               />
               {brandSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 z-10 bg-white border border-neutral-200 rounded-xl shadow-lg mt-1 overflow-hidden">
+                <div className="absolute top-full left-0 right-0 z-10 rounded-xl shadow-lg mt-1 overflow-hidden" style={{ background: "var(--page-bg)", border: "0.5px solid var(--page-border)" }}>
                   {brandSuggestions.map((b) => (
                     <button
                       key={b}
                       type="button"
                       onMouseDown={() => { setBrand(b); setBrandSuggestions([]); }}
-                      className="w-full text-left px-4 py-2.5 text-sm text-neutral-900 hover:bg-neutral-50 transition-colors"
+                      className="w-full text-left px-4 py-2.5 text-sm transition-colors"
+                      style={{ color: "var(--page-text-primary)" }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "var(--page-surface)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                     >
                       {b}
                     </button>
@@ -1013,21 +1048,23 @@ export default function PieceEditorModal({
                 max="99999"
                 step="0.01"
                 placeholder="0.00"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-200 text-sm text-neutral-900 placeholder:text-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2"
+                style={{ background: "var(--page-surface)", color: "var(--page-text-primary)", border: "1px solid var(--page-border)" }}
               />
             </div>
 
             {/* Note */}
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-widest text-neutral-400 mb-1.5">
-                How I found it <span className="normal-case tracking-normal font-normal text-neutral-300">— optional</span>
+              <label className="block text-[10px] font-semibold uppercase tracking-widest mb-1.5" style={{ color: "var(--page-text-muted)" }}>
+                How I found it <span className="normal-case tracking-normal font-normal" style={{ opacity: 0.6 }}>— optional</span>
               </label>
               <input
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder='"Thrifted · $12" or "Sold out — similar linked"'
                 maxLength={120}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-200 text-sm text-neutral-900 placeholder:text-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2"
+                style={{ background: "var(--page-surface)", color: "var(--page-text-primary)", border: "1px solid var(--page-border)" }}
               />
             </div>
 
@@ -1039,21 +1076,27 @@ export default function PieceEditorModal({
                 onChange={(e) => setShopLink(e.target.value)}
                 type="url"
                 placeholder="https://..."
-                className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-200 text-sm text-neutral-900 placeholder:text-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2"
+                style={{ background: "var(--page-surface)", color: "var(--page-text-primary)", border: "1px solid var(--page-border)" }}
               />
             </div>
 
             {/* Link type */}
             {shopLink && (
               <div>
-                <label className="block text-[10px] font-semibold uppercase tracking-widest text-neutral-400 mb-1.5">Is this the exact item or similar?</label>
+                <label className="block text-[10px] font-semibold uppercase tracking-widest mb-1.5" style={{ color: "var(--page-text-muted)" }}>Is this the exact item or similar?</label>
                 <div className="flex gap-2">
                   {(["exact", "similar"] as const).map((type) => (
                     <button
                       key={type}
                       type="button"
                       onClick={() => setShopType(type)}
-                      className={`flex-1 py-2 rounded-xl text-xs font-medium border transition-colors ${shopType === type ? "bg-neutral-100 text-neutral-900 border-neutral-400 font-semibold" : "bg-white text-neutral-400 border-neutral-200 hover:border-neutral-300"}`}
+                      className="flex-1 py-2 rounded-xl text-xs font-medium transition-colors"
+                      style={
+                        shopType === type
+                          ? { background: "var(--page-surface)", color: "var(--page-text-primary)", border: "0.5px solid var(--page-border)", fontWeight: 600 }
+                          : { background: "var(--page-surface)", color: "var(--page-text-muted)", border: "0.5px solid var(--page-border)" }
+                      }
                     >
                       {type === "exact" ? "Exact match" : "Similar style"}
                     </button>
@@ -1067,7 +1110,8 @@ export default function PieceEditorModal({
               <button
                 type="button"
                 onClick={() => { setStep("scan_camera"); setScanPreviewUrl(""); setAiFilledFields({}); setAiConfidence(""); }}
-                className="text-xs text-neutral-400 hover:text-neutral-700 transition-colors text-center mt-1"
+                className="text-xs transition-colors text-center mt-1"
+                style={{ color: "var(--page-text-muted)" }}
               >
                 Not right? Scan again
               </button>
@@ -1081,10 +1125,10 @@ export default function PieceEditorModal({
     if (formState === "added" && justAdded) {
       return (
         <div className="flex flex-col gap-2">
-          <button type="button" onClick={handleDone} className="w-full py-3.5 rounded-2xl bg-neutral-900 text-white text-sm font-semibold hover:bg-neutral-700 active:scale-[0.98] transition-all">
+          <button type="button" onClick={handleDone} className="w-full py-3.5 rounded-2xl text-sm font-semibold active:scale-[0.98] transition-all" style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)" }}>
             Done
           </button>
-          <button type="button" onClick={handleAddAnother} className="w-full py-3.5 rounded-2xl border border-neutral-200 bg-white text-neutral-900 text-sm font-semibold hover:bg-neutral-50 active:scale-[0.98] transition-all">
+          <button type="button" onClick={handleAddAnother} className="w-full py-3.5 rounded-2xl text-sm font-semibold active:scale-[0.98] transition-all" style={{ background: "var(--page-surface)", color: "var(--page-text-primary)", border: "0.5px solid var(--page-border)" }}>
             Add another piece
           </button>
         </div>
@@ -1100,7 +1144,7 @@ export default function PieceEditorModal({
             <div className="flex items-center gap-2 mb-3">
               <div className="flex gap-0.5">
                 {[1, 2, 3, 4, 5].map((n) => (
-                  <div key={n} className="h-1 rounded-full" style={{ width: 20, background: n <= pts ? "#000" : "#e5e5e5", transition: "background 200ms" }} />
+                  <div key={n} className="h-1 rounded-full" style={{ width: 20, background: n <= pts ? "var(--page-text-primary)" : "var(--page-border)", transition: "background 200ms" }} />
                 ))}
               </div>
               <CreationBadge pts={pts} />
@@ -1108,12 +1152,17 @@ export default function PieceEditorModal({
               <button
                 type="button"
                 onClick={() => setShowPreview((v) => !v)}
-                className={`text-[10px] font-medium px-2.5 py-1 rounded-full border transition-colors ${showPreview ? "bg-neutral-900 text-white border-neutral-900" : "bg-white text-neutral-500 border-neutral-200 hover:border-neutral-400"}`}
+                className="text-[10px] font-medium px-2.5 py-1 rounded-full transition-colors"
+                style={
+                  showPreview
+                    ? { background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)", border: "none" }
+                    : { background: "var(--page-surface)", color: "var(--page-text-muted)", border: "0.5px solid var(--page-border)" }
+                }
               >
                 Preview
               </button>
             </div>
-            <button type="button" onClick={handlePrimaryAction} className="w-full py-3.5 rounded-2xl bg-neutral-900 text-white text-sm font-semibold hover:bg-neutral-700 active:scale-[0.98] transition-all">
+            <button type="button" onClick={handlePrimaryAction} className="w-full py-3.5 rounded-2xl text-sm font-semibold active:scale-[0.98] transition-all" style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)" }}>
               {initial ? "Save Changes" : "Add to Breakdown"}
             </button>
           </>
@@ -1121,7 +1170,7 @@ export default function PieceEditorModal({
 
       case "outfit_item_edit":
         return (
-          <button type="button" onClick={handlePrimaryAction} className="w-full py-3.5 rounded-2xl bg-neutral-900 text-white text-sm font-semibold hover:bg-neutral-700 active:scale-[0.98] transition-all">
+          <button type="button" onClick={handlePrimaryAction} className="w-full py-3.5 rounded-2xl text-sm font-semibold active:scale-[0.98] transition-all" style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)" }}>
             Confirm changes
           </button>
         );
@@ -1132,7 +1181,8 @@ export default function PieceEditorModal({
             type="button"
             onClick={handleAddAllOutfitItems}
             disabled={includedCount === 0}
-            className="w-full py-3.5 rounded-2xl bg-neutral-900 text-white text-sm font-semibold hover:bg-neutral-700 active:scale-[0.98] transition-all disabled:opacity-40"
+            className="w-full py-3.5 rounded-2xl text-sm font-semibold active:scale-[0.98] transition-all disabled:opacity-40"
+            style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)" }}
           >
             Add {includedCount === 1 ? "1 piece" : `all ${includedCount} pieces`} to breakdown
           </button>
@@ -1144,7 +1194,8 @@ export default function PieceEditorModal({
             type="button"
             onClick={handleLinkSubmit}
             disabled={!linkUrl.trim()}
-            className="w-full py-3.5 rounded-2xl bg-neutral-900 text-white text-sm font-semibold hover:bg-neutral-700 active:scale-[0.98] transition-all disabled:opacity-40"
+            className="w-full py-3.5 rounded-2xl text-sm font-semibold active:scale-[0.98] transition-all disabled:opacity-40"
+            style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)" }}
           >
             Auto-fill from link
           </button>
@@ -1153,10 +1204,10 @@ export default function PieceEditorModal({
       case "error":
         return (
           <div className="flex flex-col gap-2">
-            <button type="button" onClick={() => { resetFormFields(); setStep("entry"); }} className="w-full py-3.5 rounded-2xl bg-neutral-900 text-white text-sm font-semibold hover:bg-neutral-700 active:scale-[0.98] transition-all">
+            <button type="button" onClick={() => { resetFormFields(); setStep("entry"); }} className="w-full py-3.5 rounded-2xl text-sm font-semibold active:scale-[0.98] transition-all" style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)" }}>
               Try again
             </button>
-            <button type="button" onClick={() => { resetFormFields(); setStep("manual"); }} className="w-full py-3.5 rounded-2xl border border-neutral-200 bg-white text-neutral-900 text-sm font-semibold hover:bg-neutral-50 active:scale-[0.98] transition-all">
+            <button type="button" onClick={() => { resetFormFields(); setStep("manual"); }} className="w-full py-3.5 rounded-2xl text-sm font-semibold active:scale-[0.98] transition-all" style={{ background: "var(--page-surface)", color: "var(--page-text-primary)", border: "0.5px solid var(--page-border)" }}>
               Add manually
             </button>
           </div>
@@ -1178,19 +1229,20 @@ export default function PieceEditorModal({
 
       {/* Sheet */}
       <div className={`fixed bottom-0 left-0 right-0 z-[60] pb-16 transition-transform duration-300 ease-out ${isOpen ? "translate-y-0" : "translate-y-full"}`}>
-        <div className="mx-auto max-w-md bg-white rounded-t-3xl shadow-2xl flex flex-col" style={{ maxHeight: "90vh" }}>
+        <div className="mx-auto max-w-md rounded-t-3xl shadow-2xl flex flex-col" style={{ maxHeight: "90vh", background: "var(--page-bg)" }}>
 
           {/* Handle + header */}
           <div className="shrink-0">
             <div className="pt-4 pb-2 flex justify-center">
-              <div className="w-10 h-1 rounded-full bg-neutral-200" />
+              <div className="w-10 h-1 rounded-full" style={{ background: "var(--page-border)" }} />
             </div>
             <div className="flex items-center gap-2 px-5 pb-3">
               {showBack && (
                 <button
                   type="button"
                   onClick={goBack}
-                  className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-500 hover:bg-neutral-200 transition-colors shrink-0"
+                  className="w-8 h-8 rounded-full flex items-center justify-center transition-colors shrink-0"
+                  style={{ background: "var(--page-surface)", color: "var(--page-text-muted)" }}
                   aria-label="Back"
                 >
                   <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -1199,11 +1251,12 @@ export default function PieceEditorModal({
                   </svg>
                 </button>
               )}
-              <h3 className="text-base font-bold text-neutral-900 flex-1">{stepTitle()}</h3>
+              <h3 className="text-base font-bold flex-1" style={{ color: "var(--page-text-primary)" }}>{stepTitle()}</h3>
               <button
                 type="button"
                 onClick={onClose}
-                className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-500 hover:bg-neutral-200 transition-colors"
+                className="w-8 h-8 rounded-full flex items-center justify-center transition-colors"
+                style={{ background: "var(--page-surface)", color: "var(--page-text-muted)" }}
               >
                 <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                   <line x1="18" y1="6" x2="6" y2="18" />
@@ -1220,7 +1273,7 @@ export default function PieceEditorModal({
 
           {/* Footer */}
           {renderFooter() && (
-            <div className="shrink-0 px-5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] border-t border-neutral-100 bg-white shadow-[0_-4px_12px_rgba(0,0,0,0.06)]">
+            <div className="shrink-0 px-5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-4px_12px_rgba(0,0,0,0.06)]" style={{ background: "var(--page-bg)", borderTop: "0.5px solid var(--page-border)" }}>
               {renderFooter()}
             </div>
           )}

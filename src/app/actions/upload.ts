@@ -190,7 +190,7 @@ export async function createOutfit(
       category: p.category?.trim() || "Other",
       price: parsePrice(p.price),
       image_url: p.imageUrl?.trim() || null,
-      shop_link: normalizeExternalUrl(p.shopLink) ?? "",
+      shop_link: (p.shopLink?.trim() ? normalizeExternalUrl(p.shopLink) : null) ?? "",
       shop_type: p.shopType === "similar" ? "similar" : "exact",
       display_order: i + 1,
       hotspot_x: typeof p.hotspotX === 'number' ? p.hotspotX : null,
@@ -203,21 +203,35 @@ export async function createOutfit(
   }
 
   if (items.length > 0) {
-    let { error: itemsError } = await supabase.from("outfit_items").insert(items);
-    if (itemsError?.message?.includes("item_note")) {
-      console.warn("[createOutfit] item_note column missing — apply supabase/migrations/017_item_note.sql");
-      ({ error: itemsError } = await supabase.from("outfit_items").insert(
-        items.map(({ item_note: _n, ...rest }) => rest)
-      ));
-    }
-    if (itemsError) {
-      console.error("[createOutfit] Items insert failed:", itemsError.message, itemsError);
-      // Preserve the outfit — media already uploaded successfully. Return outfitId so the
-      // user can view their post and we don't silently destroy their uploaded content.
+    const results = await Promise.allSettled(
+      items.map((item) => supabase.from("outfit_items").insert(item))
+    );
+
+    const failures = results.filter(
+      (r) => r.status === "rejected" || (r.status === "fulfilled" && r.value.error !== null)
+    );
+
+    if (failures.length === results.length) {
+      const firstResult = results[0];
+      const errDetail =
+        firstResult.status === "fulfilled"
+          ? {
+              message: firstResult.value.error?.message,
+              code: (firstResult.value.error as { code?: string })?.code,
+              details: (firstResult.value.error as { details?: string })?.details,
+              hint: (firstResult.value.error as { hint?: string })?.hint,
+              items_sample: items.slice(0, 2),
+            }
+          : String((firstResult as PromiseRejectedResult).reason);
+      console.error("[createOutfit] All items failed to insert:", JSON.stringify(errDetail, null, 2));
       return {
         outfitId: outfit.id,
         error: "Your outfit was posted, but the fit breakdown couldn't be saved. You can add pieces from your post.",
       };
+    }
+
+    if (failures.length > 0) {
+      console.warn(`[createOutfit] ${failures.length}/${results.length} items failed to insert`);
     }
   }
 

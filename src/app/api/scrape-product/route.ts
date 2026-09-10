@@ -3,6 +3,55 @@ import { createClient } from "@/lib/supabase/server";
 
 const AI_MODEL = "claude-sonnet-4-5";
 
+async function rehostImage(
+  remoteUrl: string,
+  userId: string,
+  supabase: Awaited<ReturnType<typeof createClient>>
+): Promise<string | null> {
+  try {
+    const res = await fetch(remoteUrl, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+      },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) return null;
+
+    const contentType = res.headers.get("content-type") ?? "";
+    if (!contentType.startsWith("image/")) return null;
+
+    const buf = await res.arrayBuffer();
+    if (buf.byteLength === 0 || buf.byteLength > 10 * 1024 * 1024) return null;
+
+    const extMap: Record<string, string> = {
+      "image/jpeg": "jpg",
+      "image/jpg": "jpg",
+      "image/png": "png",
+      "image/webp": "webp",
+      "image/gif": "gif",
+      "image/avif": "avif",
+    };
+    const ext = extMap[contentType.split(";")[0].trim()] ?? "jpg";
+    const path = `outfit-items/${userId}/${crypto.randomUUID()}.${ext}`;
+
+    const { error: upErr } = await supabase.storage
+      .from("outfit-images")
+      .upload(path, buf, { contentType, cacheControl: "31536000", upsert: false });
+
+    if (upErr) {
+      console.warn("[scrape-product] rehost upload failed:", upErr.message);
+      return null;
+    }
+
+    const { data } = supabase.storage.from("outfit-images").getPublicUrl(path);
+    return data.publicUrl;
+  } catch (err) {
+    console.warn("[scrape-product] rehost failed:", err instanceof Error ? err.message : String(err));
+    return null;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -41,6 +90,7 @@ export async function POST(request: NextRequest) {
           "Accept-Language": "en-US,en;q=0.9",
           "Cache-Control": "no-cache",
           "Sec-Fetch-Mode": "navigate",
+          "Sec-Fetch-Dest": "document",
         },
         signal: AbortSignal.timeout(8000),
       });
@@ -49,28 +99,39 @@ export async function POST(request: NextRequest) {
 
         // Image extraction — ordered from most to least reliable
         const imagePatterns = [
-          /property="og:image"\s+content="([^"]+)"/,
-          /content="([^"]+)"\s+property="og:image"/,
-          /property="og:image:url"\s+content="([^"]+)"/,
-          /content="([^"]+)"\s+property="og:image:url"/,
-          /name="twitter:image"\s+content="([^"]+)"/,
-          /content="([^"]+)"\s+name="twitter:image"/,
-          /name="twitter:image:src"\s+content="([^"]+)"/,
-          /"image"\s*:\s*"(https?:\/\/[^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/i,
-          /"image"\s*:\s*\["(https?:\/\/[^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/i,
-          /property="product:image"\s+content="([^"]+)"/,
-          /itemprop="image"\s+content="([^"]+)"/,
-          /rel="preload"\s+as="image"\s+href="([^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/i,
-          /data-src="(https?:\/\/[^"]+\/products\/[^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/i,
-          /src="(https?:\/\/[^"]+\/products\/[^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/i,
+          /property="og:image"\s+content="([^"]+)"/i,
+          /content="([^"]+)"\s+property="og:image"/i,
+          /property="og:image:secure_url"\s+content="([^"]+)"/i,
+          /property="og:image:url"\s+content="([^"]+)"/i,
+          /name="twitter:image"\s+content="([^"]+)"/i,
+          /content="([^"]+)"\s+name="twitter:image"/i,
+          /name="twitter:image:src"\s+content="([^"]+)"/i,
+          /itemprop="image"\s+content="([^"]+)"/i,
+          // JSON-LD (Shopify, Nike, SSENSE, most modern storefronts)
+          /"image"\s*:\s*"([^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/i,
+          /"image"\s*:\s*\[\s*"([^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/i,
+          /"contentUrl"\s*:\s*"([^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/i,
+          // Preloaded hero image
+          /rel="preload"[^>]+as="image"[^>]+href="([^"]+)"/i,
+          // Last resort: a product-path image in markup
+          /(?:data-src|src)="([^"]*\/products?\/[^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/i,
         ];
         for (const pattern of imagePatterns) {
           const match = html.match(pattern);
-          if (match?.[1]?.startsWith("http")) { imageUrl = match[1]; break; }
+          if (match?.[1]) { imageUrl = match[1]; break; }
         }
         if (imageUrl) {
           try {
-            new URL(imageUrl); // validate — throws if malformed
+            if (imageUrl.startsWith("//")) {
+              imageUrl = "https:" + imageUrl;
+            } else if (imageUrl.startsWith("/")) {
+              imageUrl = new URL(imageUrl, url).href;
+            }
+            // Decode HTML entities commonly found in meta tags
+            imageUrl = imageUrl.replace(/&amp;/g, "&");
+            // Validate
+            const u = new URL(imageUrl);
+            if (!/^https?:$/.test(u.protocol)) imageUrl = null;
           } catch {
             imageUrl = null;
           }
@@ -102,6 +163,17 @@ export async function POST(request: NextRequest) {
       console.log("[scrape-product] og:image:", imageUrl ?? "not found", "| price:", price ?? "not found");
     } catch {
       console.log("[scrape-product] page fetch skipped (blocked or timeout)");
+    }
+
+    // Re-host scraped image in our own storage so retailer CDNs can't block it
+    if (imageUrl) {
+      const rehosted = await rehostImage(imageUrl, user.id, supabase);
+      if (rehosted) {
+        console.log("[scrape-product] rehosted image to storage");
+        imageUrl = rehosted;
+      } else {
+        console.log("[scrape-product] rehost failed — using remote URL as fallback");
+      }
     }
 
     // Step 2: Claude analyzes URL for name/brand/category

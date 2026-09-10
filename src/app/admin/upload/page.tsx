@@ -1,6 +1,7 @@
 "use client";
 
-import { startTransition, useActionState, useCallback, useEffect, useState } from "react";
+import { startTransition, useActionState, useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Layout from "@/components/Layout";
@@ -8,6 +9,8 @@ import MultiMediaUpload from "@/components/MultiMediaUpload";
 import FitBreakdownBuilder, { type Piece } from "@/components/FitBreakdownBuilder";
 import StyleTagPicker from "@/components/StyleTagPicker";
 import { createOutfit } from "@/app/actions/upload";
+
+const DRAFT_KEY = "fytd_post_draft";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Card Style Picker
@@ -154,115 +157,60 @@ function StyleOption({
   );
 }
 
-function CardStylePicker({
-  selectedStyle,
-  onSelect,
-  previewImage,
-}: {
-  selectedStyle: CardStyleKey;
-  onSelect: (s: CardStyleKey) => void;
-  previewImage: string | null;
-}) {
-  return (
-    <div style={{ padding: "0 16px 8px" }}>
-      <div style={{ marginBottom: 16 }}>
-        <p style={{ fontFamily: "var(--font-body)", fontSize: 16, fontWeight: 600, color: "var(--page-text-primary)", margin: "0 0 3px" }}>Card style</p>
-        <p style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "var(--page-text-muted)", margin: 0 }}>How your post appears in the feed</p>
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {CARD_STYLES.map((style) => (
-          <StyleOption
-            key={style.key}
-            style={style}
-            isSelected={selectedStyle === style.key}
-            onSelect={() => onSelect(style.key)}
-            previewImage={previewImage}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Perfect Breakdown live progress
 // ─────────────────────────────────────────────────────────────────────────────
 
 const StarPath = "M6 1L7.545 4.09L11 4.635L8.5 7.07L9.09 10.5L6 8.875L2.91 10.5L3.5 7.07L1 4.635L4.455 4.09L6 1Z";
 
-function BreakdownProgress({ items, title }: { items: Piece[]; title: string }) {
+function BreakdownNudge({ items, title, onEditBreakdown }: { items: Piece[]; title: string; onEditBreakdown: () => void }) {
   const criteria = [
-    { key: "title",  label: "Post title",            met: title.trim().length > 0 },
-    { key: "count",  label: "At least 3 pieces",     met: items.length >= 3 },
-    { key: "names",  label: "All pieces named",      met: items.length > 0 && items.every((i) => i.name.trim().length > 0) },
-    { key: "brands", label: "All pieces have a brand", met: items.length > 0 && items.every((i) => i.brand.trim().length > 0) },
-    { key: "prices", label: "All pieces have a price", met: items.length > 0 && items.every((i) => parseFloat(i.price) > 0) },
-    { key: "links",  label: "At least one shop link", met: items.some((i) => i.shopLink.trim().length > 0) },
+    { key: "title",  label: "Add a post title",           met: title.trim().length > 0 },
+    { key: "count",  label: "Add at least 3 pieces",      met: items.length >= 3 },
+    { key: "names",  label: "Name all pieces",            met: items.length > 0 && items.every((i) => i.name.trim().length > 0) },
+    { key: "brands", label: "Brand every piece",          met: items.length > 0 && items.every((i) => i.brand.trim().length > 0) },
+    { key: "prices", label: "Price every piece",          met: items.length > 0 && items.every((i) => parseFloat(i.price) > 0) },
+    { key: "links",  label: "Add at least one shop link", met: items.some((i) => i.shopLink.trim().length > 0) },
   ];
 
   const metCount = criteria.filter((c) => c.met).length;
   const isPerfect = metCount === criteria.length;
-  const progress = (metCount / criteria.length) * 100;
+  const nextUnmet = criteria.find((c) => !c.met);
 
-  if (items.length === 0) return null;
+  if (items.length === 0 && title.trim().length === 0) return null;
 
   return (
-    <div style={{
-      margin: "0 16px 16px",
-      padding: 14,
-      background: isPerfect ? "rgba(255,215,0,0.08)" : "rgba(255,255,255,0.04)",
-      border: isPerfect ? "0.5px solid rgba(255,215,0,0.3)" : "0.5px solid rgba(255,255,255,0.08)",
-      borderRadius: 12,
-      transition: "all 300ms ease",
-    }}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path d={StarPath} fill={isPerfect ? "#FFD700" : "rgba(255,255,255,0.2)"} stroke={isPerfect ? "#FFD700" : "rgba(255,255,255,0.2)"} strokeWidth="0.5" />
-          </svg>
-          <span style={{ fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 600, color: isPerfect ? "#FFD700" : "var(--page-text-secondary)", letterSpacing: "0.02em" }}>
-            {isPerfect ? "Perfect Breakdown earned!" : "Perfect Breakdown"}
-          </span>
-        </div>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: isPerfect ? "#FFD700" : "var(--page-text-muted)", letterSpacing: "0.04em" }}>
-          {metCount}/{criteria.length}
-        </span>
-      </div>
-
-      {/* Progress bar */}
-      <div style={{ height: 3, background: "rgba(255,255,255,0.08)", borderRadius: 999, marginBottom: 12, overflow: "hidden" }}>
-        <div style={{ height: "100%", width: `${progress}%`, background: isPerfect ? "#FFD700" : "rgba(255,255,255,0.4)", borderRadius: 999, transition: "width 400ms ease, background 400ms ease" }} />
-      </div>
-
-      {/* Criteria */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {criteria.map((c) => (
-          <div key={c.key} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{
-              width: 16, height: 16, borderRadius: "50%", flexShrink: 0,
-              background: c.met ? (isPerfect ? "#FFD700" : "rgba(255,255,255,0.9)") : "rgba(255,255,255,0.08)",
-              border: c.met ? "none" : "0.5px solid rgba(255,255,255,0.2)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              transition: "all 250ms ease",
-            }}>
-              {c.met && (
-                <svg width="8" height="6" viewBox="0 0 8 6" fill="none">
-                  <path d="M1 3L3 5L7 1" stroke="#0a0a0a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              )}
-            </div>
-            <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: c.met ? (isPerfect ? "rgba(255,215,0,0.9)" : "var(--page-text-primary)") : "var(--page-text-muted)", transition: "color 250ms ease" }}>
-              {c.label}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      {isPerfect && (
-        <div style={{ marginTop: 12, paddingTop: 10, borderTop: "0.5px solid rgba(255,215,0,0.2)", fontFamily: "var(--font-body)", fontSize: 11, color: "rgba(255,215,0,0.7)", lineHeight: 1.4 }}>
-          ✦ Your post will display the Perfect Breakdown badge in the feed and on your profile.
-        </div>
+    <div
+      role={isPerfect ? undefined : "button"}
+      tabIndex={isPerfect ? undefined : 0}
+      onClick={isPerfect ? undefined : onEditBreakdown}
+      onKeyDown={isPerfect ? undefined : (e) => e.key === "Enter" && onEditBreakdown()}
+      style={{
+        margin: "0 0 8px",
+        padding: "10px 14px",
+        background: isPerfect ? "rgba(255,215,0,0.08)" : "rgba(255,255,255,0.03)",
+        border: isPerfect ? "0.5px solid rgba(255,215,0,0.25)" : "0.5px solid rgba(255,255,255,0.07)",
+        borderRadius: 10,
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        cursor: isPerfect ? "default" : "pointer",
+        transition: "all 200ms ease",
+      }}
+    >
+      <svg width="14" height="14" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
+        <path d={StarPath} fill={isPerfect ? "#FFD700" : "rgba(255,255,255,0.25)"} stroke={isPerfect ? "#FFD700" : "rgba(255,255,255,0.25)"} strokeWidth="0.5" />
+      </svg>
+      <span style={{ flex: 1, fontFamily: "var(--font-body)", fontSize: 12, color: isPerfect ? "#FFD700" : "var(--page-text-muted)", lineHeight: 1.4, minWidth: 0 }}>
+        {isPerfect ? "Perfect Breakdown earned!" : nextUnmet?.label ?? ""}
+      </span>
+      <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: isPerfect ? "rgba(255,215,0,0.7)" : "var(--page-text-muted)", flexShrink: 0 }}>
+        {metCount}/{criteria.length}
+      </span>
+      {!isPerfect && (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
       )}
     </div>
   );
@@ -278,6 +226,7 @@ interface UploadedMedia {
 export default function PostOutfitPage() {
   const router = useRouter();
   const [state, action, pending] = useActionState(createOutfit, null);
+  const [mounted, setMounted] = useState(false);
 
   // All form state is controlled so it survives failed submissions
   const [title, setTitle] = useState("");
@@ -285,17 +234,48 @@ export default function PostOutfitPage() {
   const [styleTag, setStyleTag] = useState("");
   const [mediaItems, setMediaItems] = useState<UploadedMedia[]>([]);
   const [pieces, setPieces] = useState<Piece[]>([]);
-  const [cardStyle, setCardStyle] = useState<"editorial" | "statement" | "streetwear">("editorial");
+  const [cardStyle, setCardStyle] = useState<CardStyleKey>("editorial");
   const [mediaError, setMediaError] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [styleSheetOpen, setStyleSheetOpen] = useState(false);
+
+  const breakdownRef = useRef<HTMLElement>(null);
 
   const isFullSuccess = !!(state?.outfitId && !state?.error);
   const isPartialSuccess = !!(state?.outfitId && state?.error);
   const isSuccess = isFullSuccess || isPartialSuccess;
   const errorMsg = !state?.outfitId && state?.error ? state.error : null;
 
+  // SSR guard for portals
+  useEffect(() => { setMounted(true); }, []);
+
+  // Restore draft on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      const draft = JSON.parse(raw);
+      if (draft.title) setTitle(draft.title);
+      if (draft.description) setDescription(draft.description);
+      if (draft.styleTag) setStyleTag(draft.styleTag);
+      if (draft.cardStyle) setCardStyle(draft.cardStyle);
+      if (Array.isArray(draft.mediaItems)) setMediaItems(draft.mediaItems);
+      if (Array.isArray(draft.pieces)) setPieces(draft.pieces);
+    } catch {}
+  }, []);
+
+  // Persist draft on any change
+  useEffect(() => {
+    if (isFullSuccess) return;
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ title, description, styleTag, cardStyle, mediaItems, pieces }));
+    } catch {}
+  }, [title, description, styleTag, cardStyle, mediaItems, pieces, isFullSuccess]);
+
+  // Navigate on success + clear draft
   useEffect(() => {
     if (isFullSuccess && state?.outfitId) {
+      try { localStorage.removeItem(DRAFT_KEY); } catch {}
       router.push(`/outfit/${state.outfitId}`);
     }
   }, [isFullSuccess, state, router]);
@@ -325,6 +305,8 @@ export default function PostOutfitPage() {
 
     startTransition(() => { action(fd); });
   };
+
+  const previewImage = mediaItems.find((m) => m.media_type === "image")?.media_url ?? null;
 
   return (
     <Layout>
@@ -444,29 +426,52 @@ export default function PostOutfitPage() {
           </section>
 
           {/* 3. Fit Breakdown */}
-          <section>
+          <section ref={breakdownRef}>
             {(() => {
               const coverImageUrl = mediaItems.find((m) => m.media_type === "image")?.media_url ?? mediaItems[0]?.media_url;
-              return <FitBreakdownBuilder pieces={pieces} onChange={setPieces} outfitImageUrl={coverImageUrl} />;
+              return <FitBreakdownBuilder pieces={pieces} onChange={setPieces} outfitImageUrl={coverImageUrl} photoFirst />;
             })()}
           </section>
 
-          {/* 4. Card Style */}
+          {/* 4. Card Style — trigger row */}
           <section>
-            <CardStylePicker
-              selectedStyle={cardStyle}
-              onSelect={setCardStyle}
-              previewImage={mediaItems.find((m) => m.media_type === "image")?.media_url ?? null}
-            />
-            <div style={{ margin: "0 16px 16px", padding: "10px 14px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "0.5px solid rgba(255,255,255,0.06)" }}>
-              <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "rgba(255,255,255,0.4)", margin: 0, lineHeight: 1.5 }}>
-                💡 This controls how your post looks in the feed. You can only set this when posting — it cannot be changed after.
-              </p>
-            </div>
+            <button
+              type="button"
+              onClick={() => setStyleSheetOpen(true)}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "12px 14px",
+                background: "rgba(255,255,255,0.03)",
+                border: "0.5px solid rgba(255,255,255,0.08)",
+                borderRadius: 12,
+                cursor: "pointer",
+                textAlign: "left",
+              }}
+            >
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <span style={{ fontFamily: "var(--font-body)", fontSize: 11, fontWeight: 600, color: "var(--page-text-muted)", textTransform: "uppercase", letterSpacing: "0.07em" }}>Card Style</span>
+                <span style={{ fontFamily: "var(--font-body)", fontSize: 15, fontWeight: 600, color: "var(--page-text-primary)" }}>
+                  {CARD_STYLES.find((s) => s.key === cardStyle)?.name ?? "Editorial"}
+                </span>
+                <span style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--page-text-muted)" }}>
+                  {CARD_STYLES.find((s) => s.key === cardStyle)?.tagline ?? ""}
+                </span>
+              </div>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
           </section>
 
-          {/* Perfect Breakdown progress indicator */}
-          <BreakdownProgress items={pieces} title={title} />
+          {/* Perfect Breakdown nudge */}
+          <BreakdownNudge
+            items={pieces}
+            title={title}
+            onEditBreakdown={() => breakdownRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          />
 
           {uploading && (
             <p className="text-xs text-center -mb-4" style={{ color: "var(--page-text-muted)" }}>
@@ -499,6 +504,79 @@ export default function PostOutfitPage() {
           )}
         </form>
       </div>
+
+      {/* Card Style bottom sheet */}
+      {mounted && styleSheetOpen && createPortal(
+        <>
+          <div
+            onClick={() => setStyleSheetOpen(false)}
+            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 9998 }}
+          />
+          <div style={{
+            position: "fixed",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            zIndex: 9999,
+            background: "var(--page-bg)",
+            borderRadius: "20px 20px 0 0",
+            border: "0.5px solid rgba(255,255,255,0.1)",
+            maxHeight: "90vh",
+            overflowY: "auto",
+          }}>
+            {/* Drag handle */}
+            <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 4px" }}>
+              <div style={{ width: 36, height: 4, borderRadius: 999, background: "rgba(255,255,255,0.15)" }} />
+            </div>
+
+            {/* Header */}
+            <div style={{ padding: "10px 16px 16px" }}>
+              <p style={{ fontFamily: "var(--font-body)", fontSize: 17, fontWeight: 700, color: "var(--page-text-primary)", margin: "0 0 2px" }}>Card Style</p>
+              <p style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "var(--page-text-muted)", margin: 0 }}>How your post appears in the feed</p>
+            </div>
+
+            <div style={{ padding: "0 16px 8px", display: "flex", flexDirection: "column", gap: 10 }}>
+              {CARD_STYLES.map((style) => (
+                <StyleOption
+                  key={style.key}
+                  style={style}
+                  isSelected={cardStyle === style.key}
+                  onSelect={() => { setCardStyle(style.key); }}
+                  previewImage={previewImage}
+                />
+              ))}
+            </div>
+
+            <div style={{ margin: "8px 16px 16px", padding: "10px 14px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "0.5px solid rgba(255,255,255,0.06)" }}>
+              <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "rgba(255,255,255,0.4)", margin: 0, lineHeight: 1.5 }}>
+                💡 This controls how your post looks in the feed. You can only set this when posting — it cannot be changed after.
+              </p>
+            </div>
+
+            <div style={{ padding: "0 16px 32px" }}>
+              <button
+                type="button"
+                onClick={() => setStyleSheetOpen(false)}
+                style={{
+                  width: "100%",
+                  padding: "13px 0",
+                  borderRadius: 14,
+                  background: "var(--btn-primary-bg)",
+                  color: "var(--btn-primary-text)",
+                  fontFamily: "var(--font-body)",
+                  fontSize: 15,
+                  fontWeight: 600,
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </>,
+        document.body
+      )}
     </Layout>
   );
 }
