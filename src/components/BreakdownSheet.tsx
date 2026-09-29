@@ -34,6 +34,12 @@ const SNAP: Record<SheetState, string> = {
 };
 const TRANSITION = "transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)";
 
+// The sheet is always (100dvh - 60px) tall and slid down with translateY, so at
+// "half" the bottom 30% sits below the screen edge. Padding the scrollable
+// content by that much lets the user scroll the last rows up into view.
+const SHEET_HEIGHT = "calc(100dvh - 60px)";
+const OFFSCREEN_PAD = `calc((100dvh - 60px) * 0.30 + 24px)`;
+
 const ACTION_LABEL_STYLE: React.CSSProperties = {
   fontFamily: "var(--font-data)",
   fontSize: 10,
@@ -165,7 +171,7 @@ function ItemSlide({ item, isSaved, onSave, onAsk, shopUrl, outfitId, isAskOpen,
   const [imgFailed, setImgFailed] = useState(false);
   return (
     <div style={{ flex: "0 0 100%", height: "100%", scrollSnapAlign: "start", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      <div style={{ flex: "1 1 0", minHeight: 0, overflowY: "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" }}>
+      <div style={{ flex: "1 1 0", minHeight: 0, overflowY: "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", touchAction: "pan-y", paddingBottom: OFFSCREEN_PAD }}>
         {/* Image */}
         <div style={{ height: 200, position: "relative", background: "var(--page-surface)", margin: "0 16px 10px", borderRadius: 14, overflow: "hidden" }}>
           {item.image && !imgFailed ? (
@@ -574,6 +580,15 @@ export default function BreakdownSheet({
   useEffect(() => { sheetStateRef.current = sheetState; });
   useEffect(() => { if (sheetState === "closed") setView("carousel"); }, [sheetState]);
 
+  // Lock the feed behind the sheet so scroll gestures can't chain to the page
+  // (same pattern AuthPromptSheet / ReportSheet / TakeDownButton already use).
+  useEffect(() => {
+    if (sheetState === "closed") return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [sheetState]);
+
 
   useEffect(() => {
     const el = carouselRef.current;
@@ -677,7 +692,7 @@ export default function BreakdownSheet({
           right: 0,
           maxWidth: 448,
           margin: "0 auto",
-          height: "calc(100vh - 60px)",
+          height: SHEET_HEIGHT,
           background: "var(--page-bg)",
           borderRadius: "20px 20px 0 0",
           transform: SNAP[sheetState],
@@ -790,7 +805,7 @@ export default function BreakdownSheet({
             })}
           </div>
         ) : (
-          <div style={{ flex: "1 1 0", minHeight: 0, overflowY: "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch", padding: "8px 12px 80px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, alignContent: "start", overscrollBehavior: "contain" } as React.CSSProperties}>
+          <div style={{ flex: "1 1 0", minHeight: 0, overflowY: "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch", padding: `8px 12px ${OFFSCREEN_PAD}`, touchAction: "pan-y", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, alignContent: "start", overscrollBehavior: "contain" } as React.CSSProperties}>
             {items.map((item, i) => {
               const url = normalizeExternalUrl(item.shopLink ?? "");
               return (
