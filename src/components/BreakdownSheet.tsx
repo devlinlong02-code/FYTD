@@ -33,6 +33,17 @@ const SNAP: Record<SheetState, string> = {
   full:   "translateY(5%)",
 };
 const TRANSITION = "transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)";
+const SHEET_HEIGHT = "calc(100dvh - 60px)";
+// Bottom padding that makes the scroll container overflow by at least the
+// off-screen slice + nav height so content is reachable at every snap position.
+const NAV_CLEARANCE = "80px + env(safe-area-inset-bottom, 0px)";
+const SCROLL_PAD: Record<SheetState, string> = {
+  closed: `calc((100dvh - 60px) * 0.30 + ${NAV_CLEARANCE})`,
+  half:   `calc((100dvh - 60px) * 0.30 + ${NAV_CLEARANCE})`,
+  full:   `calc((100dvh - 60px) * 0.05 + ${NAV_CLEARANCE})`,
+};
+// Resolved at render time via a CSS custom property set on the sheet root.
+const OFFSCREEN_PAD = "var(--sheet-scroll-pad)";
 
 const ACTION_LABEL_STYLE: React.CSSProperties = {
   fontFamily: "var(--font-data)",
@@ -164,8 +175,8 @@ interface ItemSlideProps {
 function ItemSlide({ item, isSaved, onSave, onAsk, shopUrl, outfitId, isAskOpen, askText, onAskTextChange, onAskSubmit, askPosting, askPosted, onCancelAsk, questions }: ItemSlideProps) {
   const [imgFailed, setImgFailed] = useState(false);
   return (
-    <div style={{ flex: "0 0 100%", height: "100%", scrollSnapAlign: "start", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      <div style={{ flex: "1 1 0", minHeight: 0, overflowY: "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" }}>
+    <div style={{ flex: "0 0 100%", width: "100%", height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ flex: "1 1 0", minHeight: 0, overflowY: "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", touchAction: "pan-y", paddingBottom: OFFSCREEN_PAD }}>
         {/* Image */}
         <div style={{ height: 200, position: "relative", background: "var(--page-surface)", margin: "0 16px 10px", borderRadius: 14, overflow: "hidden" }}>
           {item.image && !imgFailed ? (
@@ -564,23 +575,19 @@ export default function BreakdownSheet({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, currentUserId, askText, openPrompt, fetchItemQuestions]);
   const sheetRef = useRef<HTMLDivElement>(null);
-  const carouselRef = useRef<HTMLDivElement>(null);
-  const dragStartY = useRef(0);
-  const dragStartTranslateY = useRef(0);
-  const isDragging = useRef(false);
-  const scrollTimer = useRef<number>(0);
-  const sheetStateRef = useRef(sheetState);
+  const swipeStartX = useRef(0);
+  const swipeStartY = useRef(0);
+  const swipeIntent = useRef<"none" | "h" | "v">("none");
 
-  useEffect(() => { sheetStateRef.current = sheetState; });
   useEffect(() => { if (sheetState === "closed") setView("carousel"); }, [sheetState]);
-
-
   useEffect(() => {
-    const el = carouselRef.current;
-    if (!el || sheetState === "closed") return;
-    const targetX = activeItemIndex * el.offsetWidth;
-    if (Math.abs(el.scrollLeft - targetX) > 4) el.scrollTo({ left: targetX, behavior: "smooth" });
-  }, [activeItemIndex, sheetState]);
+    if (sheetState === "closed") return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [sheetState]);
+
+
 
   useEffect(() => {
     if (sheetState === "closed") return;
@@ -590,62 +597,36 @@ export default function BreakdownSheet({
     }
   }, [sheetState, activeItemIndex, outfit.items, itemQuestions, fetchItemQuestions]);
 
-  const getTranslateYPx = useCallback((s: SheetState): number => {
-    const h = sheetRef.current ? sheetRef.current.offsetHeight : window.innerHeight - 60;
-    if (s === "closed") return h;
-    if (s === "half")   return h * 0.30;
-    return h * 0.05;
-  }, []);
-
-  const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    const sheet = sheetRef.current;
-    if (!sheet) return;
-    isDragging.current = true;
-    dragStartY.current = e.clientY;
-    dragStartTranslateY.current = getTranslateYPx(sheetStateRef.current);
-    sheet.style.transition = "none";
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-  }, [getTranslateYPx]);
-
-  const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!isDragging.current) return;
-    const sheet = sheetRef.current;
-    if (!sheet) return;
-    const raw = dragStartTranslateY.current + (e.clientY - dragStartY.current);
-    sheet.style.transform = `translateY(${Math.max(sheet.offsetHeight * 0.05, raw)}px)`;
-  }, []);
-
-  const handlePointerUp = useCallback((e: React.PointerEvent) => {
-    if (!isDragging.current) return;
-    isDragging.current = false;
-    const sheet = sheetRef.current;
-    if (!sheet) return;
-    const delta = e.clientY - dragStartY.current;
-    const current = sheetStateRef.current;
-    let next: SheetState;
-    if (delta < -60)     next = current === "half" ? "full" : "full";
-    else if (delta > 60) next = current === "full" ? "half" : "closed";
-    else                 next = current;
-    sheet.style.transition = TRANSITION;
-    sheet.style.transform = SNAP[next];
-    onSheetStateChange(next);
-  }, [onSheetStateChange]);
-
-  const handleCarouselScroll = useCallback(() => {
-    clearTimeout(scrollTimer.current);
-    scrollTimer.current = window.setTimeout(() => {
-      const el = carouselRef.current;
-      if (!el) return;
-      const idx = Math.round(el.scrollLeft / el.offsetWidth);
-      if (idx !== activeItemIndex) onItemChange(idx);
-    }, 60);
-  }, [activeItemIndex, onItemChange]);
-
-  const scrollToItem = useCallback((i: number) => {
+  const goToItem = useCallback((i: number) => {
     onItemChange(i);
-    const el = carouselRef.current;
-    if (el) el.scrollTo({ left: i * el.offsetWidth, behavior: "smooth" });
   }, [onItemChange]);
+
+  const handleSwipeStart = useCallback((e: React.PointerEvent) => {
+    swipeStartX.current = e.clientX;
+    swipeStartY.current = e.clientY;
+    swipeIntent.current = "none";
+  }, []);
+
+  const handleSwipeMove = useCallback((e: React.PointerEvent) => {
+    if (swipeIntent.current !== "none") return;
+    const dx = Math.abs(e.clientX - swipeStartX.current);
+    const dy = Math.abs(e.clientY - swipeStartY.current);
+    if (dx > 5 || dy > 5) {
+      swipeIntent.current = dx > dy ? "h" : "v";
+    }
+  }, []);
+
+  const handleSwipeEnd = useCallback((e: React.PointerEvent) => {
+    const intent = swipeIntent.current;
+    swipeIntent.current = "none";
+    if (intent !== "h") return;
+    const dx = e.clientX - swipeStartX.current;
+    if (dx < -40 && activeItemIndex < outfit.items.length - 1) {
+      onItemChange(activeItemIndex + 1);
+    } else if (dx > 40 && activeItemIndex > 0) {
+      onItemChange(activeItemIndex - 1);
+    }
+  }, [activeItemIndex, outfit.items.length, onItemChange]);
 
   const items = outfit.items;
 
@@ -653,10 +634,6 @@ export default function BreakdownSheet({
   if (!mounted || items.length === 0) return null;
 
   const isOpen = sheetState !== "closed";
-  const currentItem = items[activeItemIndex] ?? items[0];
-  const shopUrl = normalizeExternalUrl(currentItem.shopLink ?? "");
-  const hasShopLink = !!shopUrl;
-  const isSaved = savedItemIds.includes(currentItem.id);
 
   return createPortal(
     <div style={{ position: "fixed", inset: 0, zIndex: 40, pointerEvents: "none" }}>
@@ -664,7 +641,8 @@ export default function BreakdownSheet({
       <div
         onClick={() => onSheetStateChange("closed")}
         onWheel={(e) => e.stopPropagation()}
-        style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.35)", opacity: isOpen ? 1 : 0, transition: "opacity 0.3s ease", pointerEvents: isOpen ? "auto" : "none" }}
+        onTouchMove={(e) => e.stopPropagation()}
+        style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.35)", opacity: isOpen ? 1 : 0, transition: "opacity 0.3s ease", pointerEvents: isOpen ? "auto" : "none", touchAction: "none" }}
       />
 
       {/* Sheet */}
@@ -677,7 +655,8 @@ export default function BreakdownSheet({
           right: 0,
           maxWidth: 448,
           margin: "0 auto",
-          height: "calc(100vh - 60px)",
+          height: SHEET_HEIGHT,
+          ["--sheet-scroll-pad" as string]: SCROLL_PAD[sheetState],
           background: "var(--page-bg)",
           borderRadius: "20px 20px 0 0",
           transform: SNAP[sheetState],
@@ -692,20 +671,14 @@ export default function BreakdownSheet({
         }}
         onWheel={(e) => e.stopPropagation()}
       >
-        {/* Drag handle */}
-        <div onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerUp}
-          style={{ padding: "14px 0 8px", cursor: "grab", touchAction: "none", flexShrink: 0 }}>
-          <div style={{ width: 36, height: 4, background: "var(--page-border)", borderRadius: 2, margin: "0 auto" }} />
-        </div>
-
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 16px 12px", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 16px 12px", flexShrink: 0 }}>
           <span style={{ fontSize: 13, fontWeight: 600, color: "var(--page-text-primary)" }}>
             {items.length} {items.length === 1 ? "piece" : "pieces"}
           </span>
           <div style={{ display: "flex", gap: 5, alignItems: "center", opacity: view === "grid" ? 0 : 1, pointerEvents: view === "grid" ? "none" : "auto", transition: "opacity 0.2s ease" }}>
             {items.map((_, i) => (
-              <button key={i} onClick={() => scrollToItem(i)} aria-label={`Item ${i + 1}`}
+              <button key={i} onClick={() => goToItem(i)} aria-label={`Item ${i + 1}`}
                 style={{ width: i === activeItemIndex ? 18 : 6, height: 6, borderRadius: 3, background: i === activeItemIndex ? "var(--page-text-primary)" : "var(--page-border)", transition: "width 0.2s ease, background 0.2s ease", border: "none", padding: 0, cursor: "pointer" }}
               />
             ))}
@@ -743,54 +716,60 @@ export default function BreakdownSheet({
 
         {/* Carousel / Grid */}
         {view === "carousel" ? (
-          <div ref={carouselRef} onScroll={handleCarouselScroll}
-            style={{ flex: "1 1 0", minHeight: 0, display: "flex", overflowX: "auto", overflowY: "hidden", scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch", scrollbarWidth: "none", msOverflowStyle: "none", overscrollBehavior: "contain", cursor: "grab" }}
-            onMouseDown={(e) => {
-              const el = carouselRef.current;
-              if (!el) return;
-              const startX = e.pageX - el.offsetLeft;
-              const scrollLeft = el.scrollLeft;
-              const onMouseMove = (ev: MouseEvent) => {
-                const x = ev.pageX - el.offsetLeft;
-                el.scrollLeft = scrollLeft - (x - startX);
-              };
-              const onMouseUp = () => {
-                el.style.cursor = "grab";
-                document.removeEventListener("mousemove", onMouseMove);
-                document.removeEventListener("mouseup", onMouseUp);
-              };
-              el.style.cursor = "grabbing";
-              document.addEventListener("mousemove", onMouseMove);
-              document.addEventListener("mouseup", onMouseUp);
-            }}>
-            {items.map((item) => {
+          <div
+            style={{ flex: "1 1 0", minHeight: 0, position: "relative", overflow: "hidden", touchAction: "pan-y" }}
+            onPointerDown={handleSwipeStart}
+            onPointerMove={handleSwipeMove}
+            onPointerUp={handleSwipeEnd}
+          >
+            {items.map((item, i) => {
               const url = normalizeExternalUrl(item.shopLink ?? "");
               return (
-                <ItemSlide
+                <div
                   key={item.id}
-                  item={item}
-                  outfitId={outfit.id}
-                  shopUrl={url || null}
-                  isSaved={savedItemIds.includes(item.id)}
-                  isAskOpen={askingItemId === item.id}
-                  askText={askText[item.id] ?? ""}
-                  onAskTextChange={(text) => setAskText((prev) => ({ ...prev, [item.id]: text }))}
-                  onAskSubmit={() => handleAskSubmit(item)}
-                  askPosting={askPosting}
-                  askPosted={askPosted === item.id}
-                  questions={itemQuestions[item.id] ?? []}
-                  onCancelAsk={() => setAskingItemId(null)}
-                  onSave={() => {
-                    if (!isAuthenticated) { openPrompt("save"); return; }
-                    onToggleSavedItem(item.id);
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    opacity: i === activeItemIndex ? 1 : 0,
+                    transform: i === activeItemIndex
+                      ? "translateX(0)"
+                      : i < activeItemIndex
+                        ? "translateX(-100%)"
+                        : "translateX(100%)",
+                    transition: "opacity 0.25s ease, transform 0.25s ease",
+                    pointerEvents: i === activeItemIndex ? "auto" : "none",
+                    display: "flex",
+                    flexDirection: "column",
+                    overflow: "hidden",
                   }}
-                  onAsk={() => setAskingItemId(askingItemId === item.id ? null : item.id)}
-                />
+                >
+                  <ItemSlide
+                    item={item}
+                    outfitId={outfit.id}
+                    shopUrl={url || null}
+                    isSaved={savedItemIds.includes(item.id)}
+                    isAskOpen={askingItemId === item.id}
+                    askText={askText[item.id] ?? ""}
+                    onAskTextChange={(text) => setAskText((prev) => ({ ...prev, [item.id]: text }))}
+                    onAskSubmit={() => handleAskSubmit(item)}
+                    askPosting={askPosting}
+                    askPosted={askPosted === item.id}
+                    questions={itemQuestions[item.id] ?? []}
+                    onCancelAsk={() => setAskingItemId(null)}
+                    onSave={() => {
+                      if (!isAuthenticated) { openPrompt("save"); return; }
+                      onToggleSavedItem(item.id);
+                    }}
+                    onAsk={() => setAskingItemId(askingItemId === item.id ? null : item.id)}
+                  />
+                </div>
               );
             })}
           </div>
         ) : (
-          <div style={{ flex: "1 1 0", minHeight: 0, overflowY: "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch", padding: "8px 12px 80px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, alignContent: "start", overscrollBehavior: "contain" } as React.CSSProperties}>
+          <div
+            style={{ flex: "1 1 0", minHeight: 0, overflowY: "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch", padding: `8px 12px ${OFFSCREEN_PAD}`, display: "grid", gridTemplateColumns: "1fr 1fr", gridAutoRows: "max-content", gap: 10, alignContent: "start", overscrollBehavior: "contain", touchAction: "pan-y" } as React.CSSProperties}
+          >
             {items.map((item, i) => {
               const url = normalizeExternalUrl(item.shopLink ?? "");
               return (
@@ -813,10 +792,6 @@ export default function BreakdownSheet({
                   onSelect={() => {
                     setView("carousel");
                     onItemChange(i);
-                    setTimeout(() => {
-                      const el = carouselRef.current;
-                      if (el) el.scrollTo({ left: i * el.offsetWidth, behavior: "instant" });
-                    }, 0);
                   }}
                 />
               );

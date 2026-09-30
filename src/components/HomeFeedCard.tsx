@@ -215,6 +215,21 @@ export default function HomeFeedCard({
   // ── Heart burst (double-tap) ────────────────────────────────────────────────
   const [heartBurst, setHeartBurst] = useState<{ x: number; y: number } | null>(null);
   const lastTap = useRef(0);
+  const [captionExpanded, setCaptionExpanded] = useState(false);
+  const [captionClamped, setCaptionClamped] = useState(false);
+  const captionGhostRef = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    const ghost = captionGhostRef.current;
+    if (!ghost) return;
+    const LINE = 18; // must match leading-[18px] on the visible <p>
+    const measure = () => setCaptionClamped(ghost.offsetHeight > LINE * 2 + 1);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(ghost);
+    document.fonts?.ready.then(measure);
+    return () => ro.disconnect();
+  }, [outfit.description]);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   const handleLike = useCallback((e?: React.MouseEvent) => {
@@ -314,13 +329,47 @@ export default function HomeFeedCard({
         </div>
       )}
       {outfit.description && (
-        <div style={{ padding: "2px 14px 4px", background: "var(--feed-social-bar-bg)" }}>
-          <span className="text-[13px] font-semibold mr-1" style={{ color: "var(--caption-username-color)" }}>{creatorUsername}</span>
-          <span className="text-[13px]" style={{ color: "var(--caption-text-color)" }}>
-            {outfit.description.length > 120
-              ? <>{outfit.description.slice(0, 120)}<span style={{ color: "var(--feed-text-muted)", fontWeight: 500 }}> more</span></>
-              : outfit.description}
-          </span>
+        <div style={{ position: "relative", padding: "2px 14px 4px", background: "var(--feed-social-bar-bg)" }}>
+          {/* Visible caption */}
+          <p
+            className={`text-[13px] leading-[18px] ${captionExpanded ? "" : "line-clamp-2"}`}
+            style={{ color: "var(--caption-text-color)", whiteSpace: "pre-line", wordBreak: "break-word", margin: 0 }}
+            onClick={() => { if (!captionExpanded && captionClamped) setCaptionExpanded(true); }}
+          >
+            <span className="font-semibold mr-1" style={{ color: "var(--caption-username-color)" }}>{creatorUsername}</span>
+            {outfit.description}
+            {captionExpanded && (
+              <button type="button" aria-expanded="true"
+                onClick={(e) => { e.stopPropagation(); setCaptionExpanded(false); }}
+                style={{ background: "none", border: 0, padding: 0, marginLeft: 6, color: "var(--feed-text-muted)", fontWeight: 500, fontSize: 13, cursor: "pointer" }}>
+                less
+              </button>
+            )}
+          </p>
+          {/* Invisible unclamped ghost — used only for measuring line count */}
+          <p
+            ref={captionGhostRef}
+            aria-hidden="true"
+            className="text-[13px] leading-[18px]"
+            style={{ position: "absolute", left: 14, right: 14, top: 2, visibility: "hidden", pointerEvents: "none", whiteSpace: "pre-line", wordBreak: "break-word", margin: 0 }}
+          >
+            <span className="font-semibold mr-1">{creatorUsername}</span>
+            {outfit.description}
+          </p>
+          {/* "… more" is a sibling of the clamped <p>, never a child, so the clamp can't hide it */}
+          {!captionExpanded && captionClamped && (
+            <button type="button" aria-expanded="false"
+              onClick={(e) => { e.stopPropagation(); setCaptionExpanded(true); }}
+              style={{
+                position: "absolute", right: 14, bottom: 4,
+                background: "var(--feed-social-bar-bg)",
+                boxShadow: "-14px 0 10px 4px var(--feed-social-bar-bg)",
+                border: 0, padding: "0 0 0 4px",
+                color: "var(--feed-text-muted)", fontWeight: 500, fontSize: 13, lineHeight: "18px", cursor: "pointer",
+              }}>
+              … more
+            </button>
+          )}
         </div>
       )}
       {commentsCount > 0 && (
