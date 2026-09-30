@@ -805,7 +805,7 @@ export default function BreakdownSheet({
             })}
           </div>
         ) : (
-          <div style={{ flex: "1 1 0", minHeight: 0, overflowY: "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch", padding: `8px 12px ${OFFSCREEN_PAD}`, touchAction: "pan-y", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, alignContent: "start", overscrollBehavior: "contain" } as React.CSSProperties}>
+          <div style={{ flex: "1 1 0", minHeight: 0, overflowY: "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch", padding: `8px 12px ${OFFSCREEN_PAD}`, touchAction: "pan-y", display: "grid", gridTemplateColumns: "1fr 1fr", gridAutoRows: "max-content", gap: 10, alignContent: "start", overscrollBehavior: "contain" } as React.CSSProperties}>
             {items.map((item, i) => {
               const url = normalizeExternalUrl(item.shopLink ?? "");
               return (
