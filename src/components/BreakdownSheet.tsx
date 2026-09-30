@@ -35,10 +35,18 @@ const SNAP: Record<SheetState, string> = {
 const TRANSITION = "transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)";
 
 // The sheet is always (100dvh - 60px) tall and slid down with translateY, so at
-// "half" the bottom 30% sits below the screen edge. Padding the scrollable
-// content by that much lets the user scroll the last rows up into view.
+// "half" the bottom 30% (5% at "full") sits below the screen edge, and the
+// fixed 56px MobileNav (z-50) covers the bottom of what is left. The scroll
+// areas pad their content by exactly that much, so the last row can always be
+// scrolled fully into view. The value is set per sheet state on the sheet root.
 const SHEET_HEIGHT = "calc(100dvh - 60px)";
-const OFFSCREEN_PAD = `calc((100dvh - 60px) * 0.30 + 24px)`;
+const NAV_CLEARANCE = "80px + env(safe-area-inset-bottom, 0px)";
+const SCROLL_PAD: Record<SheetState, string> = {
+  closed: `calc((100dvh - 60px) * 0.30 + ${NAV_CLEARANCE})`,
+  half:   `calc((100dvh - 60px) * 0.30 + ${NAV_CLEARANCE})`,
+  full:   `calc((100dvh - 60px) * 0.05 + ${NAV_CLEARANCE})`,
+};
+const OFFSCREEN_PAD = "var(--sheet-scroll-pad)";
 
 const ACTION_LABEL_STYLE: React.CSSProperties = {
   fontFamily: "var(--font-data)",
@@ -693,6 +701,7 @@ export default function BreakdownSheet({
           maxWidth: 448,
           margin: "0 auto",
           height: SHEET_HEIGHT,
+          ["--sheet-scroll-pad" as string]: SCROLL_PAD[sheetState],
           background: "var(--page-bg)",
           borderRadius: "20px 20px 0 0",
           transform: SNAP[sheetState],
